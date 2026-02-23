@@ -1,0 +1,21 @@
+# IDEs
+.idea/
+.vscode/
+*.iws
+*.iml
+*.ipr
+
+# Build outputs
+out/
+**/bin/
+**/build/
+**/.gradle/
+
+# Config & Secrets
+**/application.properties
+**/application-*.properties
+.env
+
+# System files
+.DS_Store
+Thumbs.db
