@@ -41,7 +41,7 @@ public class UserAchievementEntity {
 	private AchievementEntity achievement;
 
 	@CreatedDate
-	@Column(name = "earned_at", updatable = false) // 여기 이 부분!!! db는 achieved_at, 문서는 earned_at로 정의되어 있음 사유 : 안바뀜
+	@Column(name = "achieved_at", updatable = false)
 	private LocalDateTime earnedAt;
 
 	/**
