@@ -26,8 +26,8 @@ public class BookmarkEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	@Column(name = "bookmark_id", nullable = false, updatable = false)
-	private Long bookmarkId;
+	@Column(name = "book_mark_id", nullable = false, updatable = false)
+	private Integer bookmarkId;
 
 	@Column(name = "book_mark_name", length = 100, nullable = false)
 	private String bookmarkName;

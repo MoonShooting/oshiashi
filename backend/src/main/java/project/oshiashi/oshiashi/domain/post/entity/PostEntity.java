@@ -58,7 +58,7 @@ public class PostEntity {
 	private LocalDateTime createdAt;
 
 	@Column(name = "update_at")
-	private LocalDateTime updatedAt;
+	private LocalDateTime updateAt;
 
 	@OneToMany(mappedBy = "post")
 	private List<CommentEntity> comments = new ArrayList<>();

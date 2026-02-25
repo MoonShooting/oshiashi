@@ -43,13 +43,13 @@ public class SpotEntity {
 	 * - latitude:  DECIMAL(10,7)  -> -90.0000000 ~ 90.0000000
 	 * - longitude: DECIMAL(10,7)  -> -180.0000000 ~ 180.0000000
 	 */
-	@Column(name = "latitude", precision = 10, scale = 7, nullable = false)
+	@Column(name = "latitude", precision = 10, scale = 7, nullable = false) // 여기야!!!!!!!
 	private BigDecimal latitude;
 
-	@Column(name = "longitude", precision = 10, scale = 7, nullable = false)
+	@Column(name = "longitude", precision = 10, scale = 7, nullable = false) // 여기야!!!!!!!
 	private BigDecimal longitude;
 
-	@Column(name = "address", length = 300)
+	@Column(name = "address", length = 300) // 여기야 !!!!!!!!!!!
 	private String address;
 
 	/**
