@@ -11,9 +11,9 @@ import java.io.Serializable;
 @Embeddable
 public class RouteSpotId implements Serializable {
 
-	@Column(name = "route_id")
-	private Long routeId;
+    @Column(name = "route_id")
+    private Long routeId;
 
-	@Column(name = "spot_id")
-	private Long spotId;
+    @Column(name = "spot_id")
+    private Long spotId;
 }

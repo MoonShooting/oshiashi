@@ -10,19 +10,19 @@ import project.oshiashi.oshiashi.domain.spot.entity.SpotEntity;
 @Table(name = "Route_spot")
 public class RouteSpotEntity {
 
-	@EmbeddedId
-	private RouteSpotId id;
+    @EmbeddedId
+    private RouteSpotId id;
 
-	@MapsId("routeId")
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "route_id", nullable = false)
-	private RouteEntity route;
+    @MapsId("routeId")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "route_id", nullable = false)
+    private RouteEntity route;
 
-	@MapsId("spotId")
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "spot_id", nullable = false)
-	private SpotEntity spot;
+    @MapsId("spotId")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "spot_id", nullable = false)
+    private SpotEntity spot;
 
-	@Column(name = "visit_order", nullable = false)
-	private Integer visitOrder = 1;
+    @Column(name = "visit_order", nullable = false)
+    private Integer visitOrder = 1;
 }

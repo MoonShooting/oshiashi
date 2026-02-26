@@ -14,28 +14,28 @@ import java.util.List;
 @Table(name = "Route")
 public class RouteEntity {
 
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	@Column(name = "route_id")
-	private Long routeId;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "route_id")
+    private Long routeId;
 
-	@ManyToOne(fetch = FetchType.LAZY, optional = false)
-	@JoinColumn(
-					name = "user_id",
-					nullable = false,
-					foreignKey = @ForeignKey(name = "FK_Route_User")
-	)
-	private UserEntity user;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(
+            name = "user_id",
+            nullable = false,
+            foreignKey = @ForeignKey(name = "FK_Route_User")
+    )
+    private UserEntity user;
 
-	@Column(name = "title", length = 255)
-	private String title;
+    @Column(name = "title", length = 255)
+    private String title;
 
-	@Column(name = "is_public", nullable = false)
-	private Boolean isPublic = false;
+    @Column(name = "is_public", nullable = false)
+    private Boolean isPublic = false;
 
-	@Column(name = "created_at")
-	private LocalDateTime createdAt;
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
 
-	@OneToMany(mappedBy = "route")
-	private List<RouteSpotEntity> routeSpots = new ArrayList<>();
+    @OneToMany(mappedBy = "route")
+    private List<RouteSpotEntity> routeSpots = new ArrayList<>();
 }

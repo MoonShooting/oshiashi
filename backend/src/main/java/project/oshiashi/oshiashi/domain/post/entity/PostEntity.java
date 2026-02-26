@@ -16,55 +16,55 @@ import java.util.List;
 @Table(name = "Post")
 public class PostEntity {
 
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	@Column(name = "post_id")
-	private Long postId;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "post_id")
+    private Long postId;
 
-	@ManyToOne(fetch = FetchType.LAZY, optional = false)
-	@JoinColumn(
-					name = "user_id",
-					nullable = false,
-					foreignKey = @ForeignKey(name = "FK_Post_User")
-	)
-	private UserEntity user;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(
+            name = "user_id",
+            nullable = false,
+            foreignKey = @ForeignKey(name = "FK_Post_User")
+    )
+    private UserEntity user;
 
-	@ManyToOne(fetch = FetchType.LAZY, optional = false)
-	@JoinColumn(
-					name = "route_id",
-					nullable = false,
-					foreignKey = @ForeignKey(name = "FK_Post_Route")
-	)
-	private RouteEntity route;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(
+            name = "route_id",
+            nullable = false,
+            foreignKey = @ForeignKey(name = "FK_Post_Route")
+    )
+    private RouteEntity route;
 
-	@Column(name = "title", length = 255, nullable = false)
-	private String title;
+    @Column(name = "title", length = 255, nullable = false)
+    private String title;
 
-	@Lob
-	@Column(name = "content", columnDefinition = "TEXT", nullable = false)
-	private String content;
+    @Lob
+    @Column(name = "content", columnDefinition = "TEXT", nullable = false)
+    private String content;
 
-	@Enumerated(EnumType.STRING)
-	@Column(name = "status", length = 20, nullable = false)
-	private PostStatus status; // PUBLIC / PRIVATE
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", length = 20, nullable = false)
+    private PostStatus status; // PUBLIC / PRIVATE
 
-	@Column(name = "view_count")
-	private Integer viewCount = 0;
+    @Column(name = "view_count")
+    private Integer viewCount = 0;
 
-	@Column(name = "like_count")
-	private Integer likeCount = 0;
+    @Column(name = "like_count")
+    private Integer likeCount = 0;
 
-	@Column(name = "created_at")
-	private LocalDateTime createdAt;
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
 
-	@Column(name = "update_at")
-	private LocalDateTime updateAt;
+    @Column(name = "update_at")
+    private LocalDateTime updateAt;
 
-	@OneToMany(mappedBy = "post")
-	private List<CommentEntity> comments = new ArrayList<>();
+    @OneToMany(mappedBy = "post")
+    private List<CommentEntity> comments = new ArrayList<>();
 
-	@OneToMany(mappedBy = "post")
-	private List<PostImageEntity> images = new ArrayList<>();
+    @OneToMany(mappedBy = "post")
+    private List<PostImageEntity> images = new ArrayList<>();
 
-	public enum PostStatus { PUBLIC, PRIVATE }
+    public enum PostStatus {PUBLIC, PRIVATE}
 }
