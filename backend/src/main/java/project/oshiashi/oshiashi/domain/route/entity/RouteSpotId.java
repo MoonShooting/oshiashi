@@ -1,0 +1,21 @@
+package project.oshiashi.oshiashi.domain.route.entity;
+
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.io.Serializable;
+
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+@Embeddable
+// 추가 했습니다
+@EqualsAndHashCode
+public class RouteSpotId implements Serializable {
+
+    @Column(name = "route_id")
+    private Long routeId;
+
+    @Column(name = "spot_id")
+    private Long spotId;
+}
