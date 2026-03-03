@@ -30,15 +30,17 @@ public class PostImageEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(
             name = "post_id",
-            nullable = false,
-            foreignKey = @ForeignKey(name = "FK_post_image_post")
+            nullable = false
+            // ,foreignKey = @ForeignKey(name = "FK_post_image_post")
     )
     private PostEntity post;
 
-    @Column(name = "image_url", length = 2000, nullable = false)
+    // length를 2000에서 5000으로 늘렸습니다
+    @Column(name = "image_url", length = 5000, nullable = false)
     private String imageUrl;
 
-    @Column(name = "sort_order", nullable = false)
+    // nullable 항목 제거
+    @Column(name = "sort_order")
     private int sortOrder;
 
     @Column(name = "exif_latitude", precision = 10, scale = 7)
@@ -47,6 +49,7 @@ public class PostImageEntity {
     @Column(name = "exif_longitude", precision = 10, scale = 7)
     private BigDecimal exifLongitude;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
+    // nullable 항목 제거
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
 }

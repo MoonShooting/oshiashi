@@ -41,14 +41,15 @@ public class CommentEntity {
     )
     private UserEntity user;
 
-    @Column(name = "content", length = 1000, nullable = false)
+    // length가 1000였던 것을 255로 수정했습니다.
+    @Column(name = "content", length = 255, nullable = false)
     private String content;
 
     /**
      * 추천: JPA Auditing 쓰면 @CreatedDate로 자동 입력 가능
      * (그 경우 nullable=false로 두고, 직접 세팅은 안 함)
      */
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
 
     // 대댓글이 필요해지면 아래처럼 "자기참조"가 가장 깔끔함

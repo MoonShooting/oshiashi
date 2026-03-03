@@ -9,6 +9,8 @@ import java.io.Serializable;
 @NoArgsConstructor
 @AllArgsConstructor
 @Embeddable
+// 추가 했습니다
+@EqualsAndHashCode
 public class RouteSpotId implements Serializable {
 
     @Column(name = "route_id")

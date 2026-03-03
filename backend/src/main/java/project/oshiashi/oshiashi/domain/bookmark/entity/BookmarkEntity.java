@@ -13,14 +13,15 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(
-        name = "Bookmark",
-        indexes = {
+        name = "Bookmark"
+        /* // 인덱스 아직 없으니 주석처리
+        ,indexes = {
                 @Index(name = "IX_bookmark_user", columnList = "user_id"),
                 @Index(name = "IX_bookmark_post", columnList = "post_id"),
                 @Index(name = "IX_bookmark_post_image", columnList = "post_image_id"),
                 @Index(name = "IX_bookmark_route", columnList = "route_id"),
                 @Index(name = "IX_bookmark_created_at", columnList = "created_at")
-        }
+        }*/
 )
 public class BookmarkEntity {
 
@@ -51,17 +52,19 @@ public class BookmarkEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
             name = "post_image_id",
-            foreignKey = @ForeignKey(name = "FK_bookmark_post_image")
+            nullable = false
+            // ,foreignKey = @ForeignKey(name = "FK_bookmark_post_image")
     )
     private PostImageEntity postImage;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
-            name = "route_id",
-            foreignKey = @ForeignKey(name = "FK_bookmark_route")
+            name = "route_id"
+            // ,foreignKey = @ForeignKey(name = "FK_bookmark_route")
     )
     private RouteEntity route;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
+    // nullable updatable 제거
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
 }

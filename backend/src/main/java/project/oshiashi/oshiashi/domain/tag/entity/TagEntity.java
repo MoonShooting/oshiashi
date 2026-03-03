@@ -9,6 +9,11 @@ import project.oshiashi.oshiashi.domain.artwork.entity.ArtworkEntity;
 @Entity
 @Table(
         name = "Tag",
+        // DB는 tag_name 단독 UNIQUE+NULL 가능(여러 NULL은 허용될 수 있음), 따라서 복합 유니크 주석 처리
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = "tag_name")
+        }
+        /*
         uniqueConstraints = {
                 @UniqueConstraint(
                         name = "UX_tag_artwork_name",
@@ -18,7 +23,7 @@ import project.oshiashi.oshiashi.domain.artwork.entity.ArtworkEntity;
         indexes = {
                 @Index(name = "IX_tag_artwork", columnList = "artwork_id"),
                 @Index(name = "IX_tag_name", columnList = "tag_name")
-        }
+        }*/
 )
 public class TagEntity {
 

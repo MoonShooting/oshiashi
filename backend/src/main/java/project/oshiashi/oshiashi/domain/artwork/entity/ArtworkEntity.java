@@ -3,18 +3,20 @@ package project.oshiashi.oshiashi.domain.artwork.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
-@Data
+@Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(
-        name = "Artwork",
+        name = "Artwork"
+        // title UNIQUE 없음에따라 주석처리
+        /*,
         uniqueConstraints = {
                 @UniqueConstraint(
                         name = "UX_artwork_title", columnNames = "title")
         },
         indexes = {
                 @Index(name = "IX_artwork_type", columnList = "artwork_type_id")
-        }
+        }*/
 )
 public class ArtworkEntity {
 
@@ -26,7 +28,8 @@ public class ArtworkEntity {
     @Column(name = "title", length = 255, nullable = false)
     private String title;
 
-    @Column(name = "poster_url", length = 500, nullable = false)
+    // nullable 제거
+    @Column(name = "poster_url", length = 255)
     private String posterUrl;
 
     @Column(name = "description", columnDefinition = "TEXT")
@@ -38,8 +41,8 @@ public class ArtworkEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(
             name = "artwork_type_id",
-            nullable = false,
-            foreignKey = @ForeignKey(name = "FK_artwork_artwork_type")
+            nullable = false
+            // ,foreignKey = @ForeignKey(name = "FK_artwork_artwork_type")
     )
     private ArtworkTypeEntity artworkType;
 }

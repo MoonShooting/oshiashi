@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.Check;
 import project.oshiashi.oshiashi.domain.post.entity.PostEntity;
 
 import java.time.LocalDateTime;
@@ -24,7 +23,7 @@ import java.util.List;
 public class UserEntity {
 
     @Id
-    @Column(name = "user_id", length = 50)
+    @Column(name = "user_id", length = 50, nullable = false)
     private String userId;
 
     @Column(name = "email", length = 225, nullable = false)
@@ -33,6 +32,7 @@ public class UserEntity {
     @Column(name = "password", length = 225, nullable = false)
     private String password;
 
+    // 설계서에는 NOT NULL 없음. 일단 false로 해둠
     @Column(name = "nickname", length = 225, nullable = false)
     private String nickname;
 
@@ -50,7 +50,7 @@ public class UserEntity {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    @OneToMany(mappedBy = "user")
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
     private List<PostEntity> posts = new ArrayList<>();
 
 

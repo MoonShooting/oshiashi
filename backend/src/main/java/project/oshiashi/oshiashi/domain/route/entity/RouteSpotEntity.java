@@ -14,12 +14,14 @@ public class RouteSpotEntity {
     private RouteSpotId id;
 
     @MapsId("routeId")
-    @ManyToOne(fetch = FetchType.LAZY)
+    // optional = false 구문을 추가 했습니다
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "route_id", nullable = false)
     private RouteEntity route;
 
     @MapsId("spotId")
-    @ManyToOne(fetch = FetchType.LAZY)
+    // optional = false 구문을 추가 했습니다
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "spot_id", nullable = false)
     private SpotEntity spot;
 

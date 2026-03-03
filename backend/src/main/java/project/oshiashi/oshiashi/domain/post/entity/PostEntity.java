@@ -40,8 +40,9 @@ public class PostEntity {
     @Column(name = "title", length = 255, nullable = false)
     private String title;
 
+    //DB가 text + NULL 가능입니다만 nullable 항목을 지웠습니다
     @Lob
-    @Column(name = "content", columnDefinition = "TEXT", nullable = false)
+    @Column(name = "content", columnDefinition = "TEXT")
     private String content;
 
     @Enumerated(EnumType.STRING)
@@ -57,6 +58,7 @@ public class PostEntity {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    // 오타아님. DB에서 이렇게 되어있습니다. AI는 updated가 어울린다고 합니다만 일단 DB에 따랐습니다
     @Column(name = "update_at")
     private LocalDateTime updateAt;
 

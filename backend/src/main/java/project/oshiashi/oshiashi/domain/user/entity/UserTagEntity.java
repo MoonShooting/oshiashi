@@ -2,14 +2,15 @@ package project.oshiashi.oshiashi.domain.user.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import project.oshiashi.oshiashi.domain.artwork.entity.ArtworkEntity;
 import project.oshiashi.oshiashi.domain.tag.entity.TagEntity;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(
-        name = "User_tag",
-        uniqueConstraints = {
+        name = "User_tag"
+        /*,uniqueConstraints = {
                 @UniqueConstraint(
                         name = "UX_user_tag_user_tag",
                         columnNames = {"user_id", "tag_id"}
@@ -18,7 +19,7 @@ import project.oshiashi.oshiashi.domain.tag.entity.TagEntity;
         indexes = {
                 @Index(name = "IX_user_tag_user", columnList = "user_id"),
                 @Index(name = "IX_user_tag_tag", columnList = "tag_id")
-        }
+        }*/
 )
 public class UserTagEntity {
 
@@ -37,4 +38,9 @@ public class UserTagEntity {
 
     @Column(name = "count", nullable = false)
     private int count;
+
+    // artwork 추가
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "artwork_id", nullable = false)
+    private ArtworkEntity artwork;
 }

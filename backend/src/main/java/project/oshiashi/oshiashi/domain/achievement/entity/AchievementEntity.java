@@ -11,16 +11,19 @@ public class AchievementEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "achievement_id")
+    // nullable, updatable 추가
+    @Column(name = "achievement_id", nullable = false, updatable = false)
     private Long achievementId;
 
     @Column(name = "name", length = 100, nullable = false)
     private String name;
 
-    @Column(name = "description", length = 255)
+    // length 제거, columnDefinition 추가
+    @Column(name = "description", columnDefinition = "text")
     private String description;
 
-    @Column(name = "icon_url", length = 500, nullable = false)
+    // length 255로 수정, null 가능으로 변경
+    @Column(name = "icon_url", length = 255)
     private String iconUrl;
 
     // ERD에 base_score가 필요하면 아래 주석 해제

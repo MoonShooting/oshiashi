@@ -10,7 +10,8 @@ import java.math.BigDecimal;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(
-        name = "Spot",
+        name = "Spot"
+        /*,
         uniqueConstraints = {
                 // 작품 내에서 같은 장소명이 중복되는 걸 막고 싶으면 유지 (원치 않으면 삭제)
                 @UniqueConstraint(name = "UX_spot_artwork_name", columnNames = {"artwork_id", "name"})
@@ -18,7 +19,7 @@ import java.math.BigDecimal;
         indexes = {
                 @Index(name = "IX_spot_artwork", columnList = "artwork_id"),
                 @Index(name = "IX_spot_lat_lng", columnList = "latitude,longitude")
-        }
+        }*/
 )
 public class SpotEntity {
 
@@ -30,8 +31,8 @@ public class SpotEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(
             name = "artwork_id",
-            nullable = false,
-            foreignKey = @ForeignKey(name = "FK_spot_artwork")
+            nullable = false
+            // ,foreignKey = @ForeignKey(name = "FK_spot_artwork")
     )
     private ArtworkEntity artwork;
 
@@ -57,6 +58,7 @@ public class SpotEntity {
      * - 서로 다른 스팟이 같은 이미지 URL을 공유하면 저장이 막힘
      * 실제로 그럴 수 있으면 unique 제거 추천.
      */
-    @Column(name = "scene_image_url", length = 500)
+    // length를 300으로 수정
+    @Column(name = "scene_image_url", length = 300)
     private String sceneImgUrl;
 }
