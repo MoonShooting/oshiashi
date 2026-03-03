@@ -19,7 +19,7 @@ public class RouteEntity {
     @Column(name = "route_id")
     private Long routeId;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false) // length 50
     @JoinColumn(
             name = "user_id",
             nullable = false,
@@ -28,16 +28,17 @@ public class RouteEntity {
     private UserEntity user;
 
     // length를 100으로 수정, nullable을 false로 정의 했습니다
-    @Column(name = "title", length = 100, nullable = false)
+    @Column(name = "title", length = 255, nullable = false)
     private String title;
 
     // 공개 여부는 DB에서 처리하니 코드에서 false 초기값을 없에는것을 추천 받았습니다. 일단 남겨듈게요
     @Column(name = "is_public", nullable = false)
-    private Boolean isPublic = false;
+    private Boolean isPublic = false; // 디폴트 0으로
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    /*
     @OneToMany(mappedBy = "route")
-    private List<RouteSpotEntity> routeSpots = new ArrayList<>();
+    private List<RouteSpotEntity> routeSpots = new ArrayList<>();*/
 }

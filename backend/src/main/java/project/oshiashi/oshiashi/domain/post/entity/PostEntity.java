@@ -19,6 +19,7 @@ public class PostEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "post_id")
+    //제약조건 오토 인크리먼트
     private Long postId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -47,10 +48,10 @@ public class PostEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 20, nullable = false)
-    private PostStatus status; // PUBLIC / PRIVATE
+    private PostStatus status; // PUBLIC / PRIVATE 디폴트 Private
 
     @Column(name = "view_count")
-    private Integer viewCount = 0;
+    private Integer viewCount = 0; //
 
     @Column(name = "like_count")
     private Integer likeCount = 0;

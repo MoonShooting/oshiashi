@@ -25,24 +25,24 @@ public class ArtworkEntity {
     @Column(name = "artwork_id", nullable = false, updatable = false)
     private Long artworkId;
 
-    @Column(name = "title", length = 255, nullable = false)
+    @Column(name = "title", length = 255, nullable = false) // 유니크
     private String title;
 
     // nullable 제거
-    @Column(name = "poster_url", length = 255)
+    @Column(name = "poster_url", length = 255, nullable = false)
     private String posterUrl;
 
-    @Column(name = "description", columnDefinition = "TEXT")
+    @Column(name = "description", columnDefinition = "TEXT") // 디폴트 null
     private String description;
 
-    @Column(name = "spotify_album_id", length = 100)
+    @Column(name = "spotify_album_id", length = 100) // 디폴트 null
     private String spotifyAlbumId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(
             name = "artwork_type_id",
             nullable = false
-            // ,foreignKey = @ForeignKey(name = "FK_artwork_artwork_type")
+            ,foreignKey = @ForeignKey(name = "FK_artwork_artwork_type")
     )
     private ArtworkTypeEntity artworkType;
 }

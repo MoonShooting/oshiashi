@@ -31,7 +31,7 @@ public class PostImageEntity {
     @JoinColumn(
             name = "post_id",
             nullable = false
-            // ,foreignKey = @ForeignKey(name = "FK_post_image_post")
+            ,foreignKey = @ForeignKey(name = "FK_post_image_post")
     )
     private PostEntity post;
 
@@ -40,7 +40,7 @@ public class PostImageEntity {
     private String imageUrl;
 
     // nullable 항목 제거
-    @Column(name = "sort_order")
+    @Column(name = "sort_order") // 디폴트 0
     private int sortOrder;
 
     @Column(name = "exif_latitude", precision = 10, scale = 7)

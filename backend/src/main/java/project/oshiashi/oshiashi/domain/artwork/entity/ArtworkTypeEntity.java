@@ -18,7 +18,7 @@ public class ArtworkTypeEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "artwork_type_id", nullable = false, updatable = false)
-    private Integer artworkTypeId;
+    private Long artworkTypeId;
 
     @Column(name = "artwork_type_name", length = 50, nullable = false)
     private String artworkTypeName;

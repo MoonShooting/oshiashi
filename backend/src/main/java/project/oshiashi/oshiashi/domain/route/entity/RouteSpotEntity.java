@@ -12,6 +12,8 @@ public class RouteSpotEntity {
 
     @EmbeddedId
     private RouteSpotId id;
+    
+    // RouteSpotId 추가
 
     @MapsId("routeId")
     // optional = false 구문을 추가 했습니다

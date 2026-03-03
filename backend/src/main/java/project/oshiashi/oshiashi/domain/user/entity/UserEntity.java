@@ -26,22 +26,24 @@ public class UserEntity {
     @Column(name = "user_id", length = 50, nullable = false)
     private String userId;
 
-    @Column(name = "email", length = 225, nullable = false)
+    // 유니크
+    @Column(name = "email", length = 255, nullable = false)
     private String email;
 
-    @Column(name = "password", length = 225, nullable = false)
+    @Column(name = "password", length = 255, nullable = false)
     private String password;
 
+    // 유니크
     // 설계서에는 NOT NULL 없음. 일단 false로 해둠
-    @Column(name = "nickname", length = 225, nullable = false)
+    @Column(name = "nickname", length = 255, nullable = false)
     private String nickname;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "role", length = 50, nullable = false)
+    @Column(name = "role", length = 50, nullable = false) // 디폴트
     private Role role;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", length = 50, nullable = false)
+    @Column(name = "status", length = 50, nullable = false) // 디폴트 엑티브 체크
     private UserStatus status;
 
     @Column(name = "last_login_at")

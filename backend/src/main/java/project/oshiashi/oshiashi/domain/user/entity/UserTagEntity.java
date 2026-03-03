@@ -26,17 +26,17 @@ public class UserTagEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_tag_id", nullable = false, updatable = false)
-    private Integer userTagId;
+    private Long userTagId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
     private UserEntity user;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "tag_id", nullable = false)
+    @JoinColumn(name = "tag_id", nullable = false) // forign 키 연결
     private TagEntity tag;
 
-    @Column(name = "count", nullable = false)
+    @Column(name = "count", nullable = false) // 디폴트 0
     private int count;
 
     // artwork 추가

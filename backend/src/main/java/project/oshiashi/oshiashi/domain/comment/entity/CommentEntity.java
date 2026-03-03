@@ -29,11 +29,11 @@ public class CommentEntity {
     @JoinColumn(
             name = "post_id",
             nullable = false,
-            foreignKey = @ForeignKey(name = "FK_comment_post")
+            foreignKey = @ForeignKey(name = "FK_post_id")
     )
     private PostEntity post;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false) // lenght 50
     @JoinColumn(
             name = "user_id",
             nullable = false,

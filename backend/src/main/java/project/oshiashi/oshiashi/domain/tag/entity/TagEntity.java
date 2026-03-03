@@ -32,10 +32,10 @@ public class TagEntity {
     @Column(name = "tag_id", nullable = false, updatable = false)
     private Long tagId;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false) // foreign 키 설정
     @JoinColumn(name = "artwork_id", nullable = false)
     private ArtworkEntity artwork;
 
-    @Column(name = "tag_name", length = 100, nullable = false)
+    @Column(name = "tag_name", length = 100, nullable = false) // 유니크
     private String tagName;
 }

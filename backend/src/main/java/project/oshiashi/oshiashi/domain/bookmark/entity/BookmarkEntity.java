@@ -28,7 +28,7 @@ public class BookmarkEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "book_mark_id", nullable = false, updatable = false)
-    private Integer bookmarkId;
+    private Long bookmarkId;
 
     @Column(name = "book_mark_name", length = 100, nullable = false)
     private String bookmarkName;
@@ -53,14 +53,14 @@ public class BookmarkEntity {
     @JoinColumn(
             name = "post_image_id",
             nullable = false
-            // ,foreignKey = @ForeignKey(name = "FK_bookmark_post_image")
+            ,foreignKey = @ForeignKey(name = "FK_bookmark_post_image")
     )
     private PostImageEntity postImage;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
             name = "route_id"
-            // ,foreignKey = @ForeignKey(name = "FK_bookmark_route")
+            ,foreignKey = @ForeignKey(name = "FK_bookmark_route")
     )
     private RouteEntity route;
 
