@@ -32,7 +32,7 @@ public class RouteEntity {
     private String title;
 
     // 공개 여부는 DB에서 처리하니 코드에서 false 초기값을 없에는것을 추천 받았습니다. 일단 남겨듈게요
-    @Column(name = "is_public", nullable = false)
+    @Column(name = "is_public", nullable = false, columnDefinition = "tinyint(1)")
     private Boolean isPublic = false; // 디폴트 0으로
 
     @Column(name = "created_at")

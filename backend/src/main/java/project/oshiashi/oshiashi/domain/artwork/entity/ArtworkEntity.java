@@ -32,8 +32,8 @@ public class ArtworkEntity {
     @Column(name = "poster_url", length = 255, nullable = false)
     private String posterUrl;
 
-    @Column(name = "descripition", columnDefinition = "TEXT") // DB에서 다음과 같이 정의되어 있슴
-    private String description; // 여기서 오타 수정
+    @Column(name = "description", columnDefinition = "TEXT") // DB에서 다음과 같이 정의되어 있슴
+    private String description;
 
     @Column(name = "spotify_album_id", length = 100) // 디폴트 null
     private String spotifyAlbumId;
