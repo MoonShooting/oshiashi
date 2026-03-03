@@ -36,6 +36,6 @@ public class TagEntity {
     @JoinColumn(name = "artwork_id", nullable = false)
     private ArtworkEntity artwork;
 
-    @Column(name = "tag_name", length = 100, nullable = false) // 유니크
+    @Column(name = "tag_name", length = 100, nullable = false, unique = true) // 유니크 추가
     private String tagName;
 }

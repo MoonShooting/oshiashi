@@ -29,18 +29,30 @@ public class UserTagEntity {
     private Long userTagId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(
+            name = "user_id",
+            nullable = false,
+            foreignKey = @ForeignKey(name = "FK_user_tag_user")
+    )
     private UserEntity user;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "tag_id", nullable = false) // forign 키 연결
+    @JoinColumn(
+            name = "tag_id",
+            nullable = false,
+            foreignKey = @ForeignKey(name = "FK_user_tag_tag")
+    )
     private TagEntity tag;
 
     @Column(name = "count", nullable = false) // 디폴트 0
-    private int count;
+    private int count = 0;
 
     // artwork 추가
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "artwork_id", nullable = false)
+    @JoinColumn(
+            name = "artwork_id",
+            nullable = false,
+            foreignKey = @ForeignKey(name = "FK_user_tag_artwork")
+    )
     private ArtworkEntity artwork;
 }

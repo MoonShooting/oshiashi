@@ -10,10 +10,13 @@ import project.oshiashi.oshiashi.domain.spot.entity.SpotEntity;
 @Table(name = "Route_spot")
 public class RouteSpotEntity {
 
-    @EmbeddedId
-    private RouteSpotId id;
+
     
     // RouteSpotId 추가
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "rout_spot_id")
+    private Long routeSpotId;
 
     @MapsId("routeId")
     // optional = false 구문을 추가 했습니다

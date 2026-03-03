@@ -19,11 +19,11 @@ public class AchievementEntity {
     private String name;
 
     // length 제거, columnDefinition 추가
-    @Column(name = "description", columnDefinition = "text") // lenghts 255
+    @Column(name = "description", length = 255, columnDefinition = "text")
     private String description;
 
     // length 255로 수정, null 가능으로 변경
-    @Column(name = "icon_url", length = 500)
+    @Column(name = "icon_url", length = 500, nullable = false)
     private String iconUrl;
 
     // ERD에 base_score가 필요하면 아래 주석 해제

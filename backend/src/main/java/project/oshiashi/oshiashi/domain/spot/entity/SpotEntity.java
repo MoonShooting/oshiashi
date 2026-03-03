@@ -59,6 +59,6 @@ public class SpotEntity {
      * 실제로 그럴 수 있으면 unique 제거 추천.
      */
     // length를 300으로 수정
-    @Column(name = "scene_image_url", length = 300) // 유니크
+    @Column(name = "scene_image_url", length = 300, nullable = false, unique = true) // 유니크
     private String sceneImgUrl;
 }

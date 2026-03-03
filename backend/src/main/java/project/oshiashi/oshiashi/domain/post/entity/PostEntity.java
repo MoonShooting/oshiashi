@@ -47,8 +47,8 @@ public class PostEntity {
     private String content;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", length = 20, nullable = false)
-    private PostStatus status; // PUBLIC / PRIVATE 디폴트 Private
+    @Column(name = "status", nullable = false)
+    private PostStatus status = PostStatus.PRIVATE; // PUBLIC / PRIVATE 디폴트 Private
 
     @Column(name = "view_count")
     private Integer viewCount = 0; //

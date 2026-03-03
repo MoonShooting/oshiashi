@@ -45,6 +45,7 @@ public class BookmarkEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
             name = "post_id",
+            nullable = false,
             foreignKey = @ForeignKey(name = "FK_bookmark_post")
     )
     private PostEntity post;

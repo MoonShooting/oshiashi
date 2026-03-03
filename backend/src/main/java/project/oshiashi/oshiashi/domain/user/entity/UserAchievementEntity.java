@@ -42,7 +42,7 @@ public class UserAchievementEntity {
 
     // @CreatedDate
     @Column(name = "achieved_at", updatable = false)
-    private LocalDateTime earnedAt;
+    private LocalDateTime achievedAt = LocalDateTime.now();
 
     /**
      * 편의 생성자 (서비스에서 만들기 편하게)
