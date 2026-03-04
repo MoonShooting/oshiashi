@@ -1,0 +1,135 @@
+/* src/components/auth/LoginForm.css */
+
+.login-container {
+  display: flex;
+  width: 900px; /* AuthFrame 내부에 꽉 차게 조절 가능 */
+  min-height: 550px;
+  background-color: #1c1c28; /* 카드 배경색 */
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+/* 좌측 이미지 섹션 */
+.login-image-side {
+  flex: 1;
+  background-image: url('https://images.unsplash.com/photo-1503899036084-c55cdd92da26?q=80&w=1000&auto=format&fit=crop'); /* 도쿄 야경 예시 */
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
+
+.image-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.2),
+    rgba(28, 28, 40, 0.9)
+  );
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 40px;
+  text-align: left;
+}
+
+.image-overlay h2 {
+  font-size: 24px;
+  margin-bottom: 12px;
+  color: #ffffff;
+}
+
+.image-overlay p {
+  font-size: 14px;
+  color: #a0a0ab;
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+/* 우측 폼 섹션 */
+.login-form-side {
+  flex: 1.2;
+  padding: 50px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.login-form-side h3 {
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  color: #71717a;
+  font-size: 14px;
+  margin-bottom: 32px;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+}
+
+.input-group label {
+  font-size: 13px;
+  color: #a0a0ab;
+}
+
+.input-group input {
+  background-color: #252533;
+  border: 1px solid #333345;
+  border-radius: 8px;
+  padding: 12px 16px;
+  color: white;
+  outline: none;
+}
+
+.input-group input:focus {
+  border-color: #9d50bb;
+}
+
+/* 로그인 버튼 */
+.btn-login {
+  background: linear-gradient(90deg, #6e48aa, #9d50bb);
+  color: white;
+  padding: 14px;
+  border-radius: 8px;
+  font-weight: 600;
+  margin-top: 10px;
+  transition: opacity 0.2s;
+}
+
+.btn-login:hover {
+  opacity: 0.9;
+}
+
+/* 기타 링크 */
+.form-options {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #71717a;
+  margin-top: -10px;
+}
+
+.register-hint {
+  margin-top: 24px;
+  font-size: 14px;
+  color: #71717a;
+}
+
+.register-hint a {
+  color: #9d50bb;
+  text-decoration: none;
+  font-weight: 600;
+}

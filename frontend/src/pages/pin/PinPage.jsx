@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { APIProvider } from '@vis.gl/react-google-maps'; // ❗ 필수 임포트
 import Search from '../map/Search.jsx';
 import PinMapDisplay from './PinMapDisplay';
-import styles from './PinPage.module.css';
+import styles from './PinMapDisplay.jsx';
 
 export default function PinPage() {
   const [pins, setPins] = useState([]);
