@@ -18,8 +18,8 @@ public class RouteSpotResponse {
 	
 	public static RouteSpotResponse fromEntity(RouteSpotEntity routeSpotEntity) {
 		return RouteSpotResponse.builder()
-				.routeId(routeSpotEntity.getId().getRouteId())
-				.spotId(routeSpotEntity.getId().getSpotId())
+				.routeId(routeSpotEntity.getRoute().getRouteId())
+				.spotId(routeSpotEntity.getSpot().getSpotId())
 				.visitOrder(routeSpotEntity.getVisitOrder())
 				.build();
 	}

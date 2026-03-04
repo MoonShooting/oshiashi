@@ -18,7 +18,7 @@ public class ArtworkResponse {
 	private String spotifyAlbumId;
 	
 	// ArtworkTypeEntity에서 가져올 정보
-	private Integer artworkTypeId;
+	private Long artworkTypeId;
 	private String artworkTypeName; // 예: "애니메이션", "영화" 등
 	
 	public static ArtworkResponse fromEntity(ArtworkEntity artworkEntity) {
