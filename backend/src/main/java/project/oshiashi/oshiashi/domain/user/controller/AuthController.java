@@ -21,7 +21,6 @@ public class AuthController {
 
 	/**
 	 * 아이디 중복 확인
-	 * GET /api/v1/auth/check-id?userId=test123
 	 */
 	@GetMapping("/check-id")
 	public ResponseEntity<Boolean> checkId(@RequestParam("userId") String userId) {

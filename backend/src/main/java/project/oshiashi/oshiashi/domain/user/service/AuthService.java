@@ -14,17 +14,16 @@ import java.time.LocalDateTime;
 /**
  * [AuthService: 인증 관문 서비스]
  * - 역할: 회원가입 시의 자격 부여, 로그인 시의 자격 검증 및 JWT 발급을 전담함.
- * - 설계서 경로: /api/v1/auth/** 관련 비즈니스 로직 처리.
+ * - 설계서 경로: /api/v1/auth/** 관련 비즈니스 로직 처리함.
  */
 @Service
 @RequiredArgsConstructor
 public class AuthService {
 	private final UserRepository userRepository;
 	private final BCryptPasswordEncoder passwordEncoder;
-	private final JwtProvider jwtProvider; // [추가] 토큰 발급을 위한 엔진
+	private final JwtProvider jwtProvider;
 
-	/**
-	 * [아이디 중복 확인]
+	/** * [아이디 중복 확인]
 	 * - 가입 폼 입력 시 실시간 중복 체크를 위해 사용됨.
 	 */
 	@Transactional(readOnly = true)
@@ -32,8 +31,7 @@ public class AuthService {
 		return userRepository.existsById(userId);
 	}
 
-	/**
-	 * [닉네임 중복 확인]
+	/** * [닉네임 중복 확인]
 	 * - 서비스 내 유일한 닉네임을 보장하기 위해 사용됨.
 	 */
 	@Transactional(readOnly = true)
@@ -41,49 +39,67 @@ public class AuthService {
 		return userRepository.existsByNickname(nickname);
 	}
 
-	/**
-	 * [회원가입 처리]
-	 * 1. 2중 체크: 프론트엔드 체크와 별개로 서버에서 다시 한번 중복 여부를 검증함 (보안 필수).
-	 * 2. 암호화: BCrypt를 이용하여 비밀번호를 해시화함. 서버 개발자도 실제 비번을 알 수 없음.
-	 * 3. 저장: 가입일(createdAt)을 포함하여 DB에 영구 저장함.
+	/** * [이메일 중복 확인]
+	 * - 가입 시 이메일 중복 여부를 판단함 (DB 유니크 제약 조건 대응).
+	 */
+	@Transactional(readOnly = true)
+	public boolean isEmailDuplicated(String email) {
+		return userRepository.existsByEmail(email);
+	}
+
+	/** * [회원가입 처리]
+	 * 1. 3중 검증: 아이디, 닉네임, 이메일의 중복 여부를 순차적으로 확인함.
+	 * 2. 암호화: BCrypt를 이용하여 비밀번호를 해시화하여 저장함.
+	 * 3. 저장: 가입 일시를 포함해 DB에 영구 기록함.
 	 */
 	@Transactional
 	public void signUp(UserSignUpRequest request) {
-		if (isUserIdDuplicated(request.getUserId())) {
-			throw new IllegalArgumentException("이미 사용 중인 아이디입니다.");
-		}
-		if (isNicknameDuplicated(request.getNickname())) {
-			throw new IllegalArgumentException("이미 사용 중인 닉네임입니다.");
-		}
+		// 중복 검증 로직을 내부 메서드로 호출하여 핵심 흐름만 남김
+		validateDuplicateData(request);
 
 		UserEntity newUser = UserEntity.builder()
 				.userId(request.getUserId())
-				.password(passwordEncoder.encode(request.getPassword())) // 비밀번호 암호화
+				.password(passwordEncoder.encode(request.getPassword()))
 				.email(request.getEmail())
 				.nickname(request.getNickname())
-				.createdAt(LocalDateTime.now()) // 가입 시점 기록
+				.createdAt(LocalDateTime.now())
 				.build();
+
 		userRepository.save(newUser);
 	}
-	/**
-	 * [로그인 및 JWT 발급]
+
+	/** * [회원가입 데이터 중복 검증 로직]
+	 * - 가입 절차 중 발생할 수 있는 데이터 충돌을 한곳에서 관리함.
+	 */
+	private void validateDuplicateData(UserSignUpRequest request) {
+		if (isUserIdDuplicated(request.getUserId())) {
+			throw new IllegalArgumentException("이미 사용 중인 아이디임.");
+		}
+		if (isNicknameDuplicated(request.getNickname())) {
+			throw new IllegalArgumentException("이미 사용 중인 닉네임임.");
+		}
+		if (isEmailDuplicated(request.getEmail())) {
+			throw new IllegalArgumentException("이미 가입된 이메일임.");
+		}
+	}
+
+	/** * [로그인 및 JWT 발급]
 	 * 1. 식별: ID로 유저 검색. 없으면 에러 던짐.
 	 * 2. 검증: 암호화된 비번 대조. 틀리면 에러 던짐.
 	 * 3. 발급: 검증 완료 시 JWT 토큰 생성 및 반환함.
 	 */
 	@Transactional(readOnly = true)
 	public String login(UserLoginRequest request) {
-		// 1. [아이디 확인] DB에서 ID로 유저 검색.
-		// 유저 없으면 즉시 예외 던져서 이후 로직 차단함.
+		// 아이디 확인
 		UserEntity user = userRepository.findById(request.getUserId())
 				.orElseThrow(() -> new IllegalArgumentException("존재하지 않는 아이디임."));
-		// 2. [비밀번호 확인] 입력 비번과 DB의 암호화 비번 대조.
-		// BCrypt 특성상 matches() 활용한 내부 로직 비교 필수임.
+
+		// 비밀번호 확인
 		if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
 			throw new IllegalArgumentException("비밀번호 불일치함.");
 		}
-		// 3. [토큰 발급] 모든 검증 통과 시 JWT 토큰 생성.
-		//  헤더에 이 토큰을 실어 서버에 인증된 사용자임을 알림
+
+		// JWT 토큰 발급 (클라이언트는 이를 Authorization 헤더에 담아 제출함)
 		return jwtProvider.createToken(user.getUserId());
 	}
 }
