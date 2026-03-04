@@ -3,6 +3,7 @@ package project.oshiashi.oshiashi.domain.user.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import project.oshiashi.oshiashi.domain.user.dto.UserLoginRequest;
 import project.oshiashi.oshiashi.domain.user.entity.UserEntity;
 import project.oshiashi.oshiashi.domain.user.repository.UserRepository;
 import project.oshiashi.oshiashi.domain.user.dto.UserSignUpRequest;
@@ -61,5 +62,24 @@ public class UserService {
 
 		// DB에 최종 저장 (성공 시 Commit, 실패 시 Rollback)
 		userRepository.save(newUser);
+	}
+	/**
+	 * 로그인 처리
+	 * - 아이디 존재 여부 확인 후 비밀번호 대조함.
+	 * - 성공 시 유저 엔티티를 반환하거나 성공 메시지를 보냄.
+	 */
+	@Transactional(readOnly = true)
+	public UserEntity login(UserLoginRequest request) {
+		// 1. 아이디로 유저 조회 (없으면 예외 발생)
+		UserEntity user = userRepository.findById(request.getUserId())
+				.orElseThrow(() -> new IllegalArgumentException("존재하지 않는 아이디입니다."));
+
+		// 2. 비밀번호 일치 확인 (현재 평문 비교, 추후 암호화 적용 필수)
+		if (!user.getPassword().equals(request.getPassword())) {
+			throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+		}
+
+		// 3. 로그인 성공 시 유저 객체 반환
+		return user;
 	}
 }

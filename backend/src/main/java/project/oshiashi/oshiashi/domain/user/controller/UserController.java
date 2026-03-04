@@ -3,6 +3,7 @@ package project.oshiashi.oshiashi.domain.user.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import project.oshiashi.oshiashi.domain.user.dto.UserLoginRequest;
 import project.oshiashi.oshiashi.domain.user.dto.UserSignUpRequest;
 import project.oshiashi.oshiashi.domain.user.service.UserService;
 
@@ -44,5 +45,20 @@ public class UserController {
 		userService.signUp(request);
 		// 성공 시 200 OK와 메시지 반환함.
 		return ResponseEntity.ok("회원가입이 완료되었습니다.");
+	}
+
+	/**
+	 * 로그인 처리
+	 * POST /api/users/login
+	 */
+	@PostMapping("/login")
+	public ResponseEntity<String> login(@RequestBody UserLoginRequest request) {
+		try {
+			userService.login(request);
+			return ResponseEntity.ok("로그인에 성공하였습니다.");
+		} catch (IllegalArgumentException e) {
+			// 아이디 없음 또는 비밀번호 불일치 시 에러 메시지 반환함.
+			return ResponseEntity.status(401).body(e.getMessage());
+		}
 	}
 }
