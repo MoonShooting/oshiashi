@@ -1,16 +1,28 @@
 import React, { useState } from 'react';
+import { TERMS_DATA } from '../../data/termsData';
+import TermsModal from './TermsModal';
 import './RegisterForm.css';
 
 const RegisterForm = () => {
-  const [step, setStep] = useState(1);
+  // 1. 데이터 상태 관리
   const [formData, setFormData] = useState({
     userId: '',
     password: '',
+    confirmPassword: '',
     nickname: '',
     email: '',
   });
 
   const [errors, setErrors] = useState({});
+
+  // 2. 필수 체크박스만 관리 (마케팅 삭제)
+  const [agreements, setAgreements] = useState({
+    service: false,
+    privacy: false,
+  });
+
+  // 3. 모달 상태 관리
+  const [modal, setModal] = useState({ isOpen: false, title: '', content: '' });
 
   // 유효성 검사 로직
   const validate = (name, value) => {
@@ -18,17 +30,19 @@ const RegisterForm = () => {
     if (name === 'userId') {
       const idRegex = /^[a-z0-9]{4,20}$/;
       if (!idRegex.test(value))
-        error =
-          '4~20자의 영문 소문자, 숫자만 사용 가능합니다. (특수문자/공백 불가)';
+        error = '4~20자의 영문 소문자, 숫자만 가능합니다.';
     }
     if (name === 'password') {
       if (value.length < 8 || value.length > 20)
         error = '8~20자로 입력해주세요.';
     }
+    if (name === 'confirmPassword') {
+      if (value !== formData.password) error = '비밀번호가 일치하지 않습니다.';
+    }
     if (name === 'nickname') {
       const nickRegex = /^[a-zA-Z0-9가-힣]{2,12}$/;
       if (!nickRegex.test(value))
-        error = '2~12자의 한글, 영문, 숫자만 사용 가능합니다.';
+        error = '2~12자의 한글, 영문, 숫자만 가능합니다.';
     }
     setErrors((prev) => ({ ...prev, [name]: error }));
   };
@@ -39,99 +53,149 @@ const RegisterForm = () => {
     validate(name, value);
   };
 
+  // 체크박스 핸들러
+  const handleAllCheck = (e) => {
+    const checked = e.target.checked;
+    setAgreements({ service: checked, privacy: checked });
+  };
+
+  const handleCheck = (name) => {
+    setAgreements((prev) => ({ ...prev, [name]: !prev[name] }));
+  };
+
+  // 모달 제어
+  const openModal = (type) => {
+    const title = type === 'service' ? '이용약관' : '개인정보 처리방침';
+    const content =
+      type === 'service' ? TERMS_DATA.serviceTerms : TERMS_DATA.privacyPolicy;
+    setModal({ isOpen: true, title, content });
+  };
+
   return (
     <div className="register-container">
-      {/* 상단 스텝 바 (생략) */}
-
       <div className="register-content">
-        {step === 1 && (
-          <div className="step-form">
-            <h3>기본 정보 입력</h3>
+        <h3>회원가입</h3>
 
-            {/* ID 필드 */}
-            <div className="input-group">
-              <label>아이디</label>
-              <div className="input-row">
-                <input
-                  name="userId"
-                  value={formData.userId}
-                  onChange={handleChange}
-                  placeholder="영문 소문자, 숫자 4~20자"
-                />
-                <button className="btn-check">중복확인</button>
-              </div>
-              {errors.userId && (
-                <span className="error-msg">{errors.userId}</span>
-              )}
-            </div>
-
-            {/* PW 필드 */}
-            <div className="input-group">
-              <label>비밀번호</label>
-              <input
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                placeholder="8~20자 입력"
-              />
-              {errors.password && (
-                <span className="error-msg">{errors.password}</span>
-              )}
-            </div>
-
-            {/* 닉네임 필드 */}
-            <div className="input-group">
-              <label>닉네임</label>
-              <input
-                name="nickname"
-                value={formData.nickname}
-                onChange={handleChange}
-                placeholder="한글, 영문, 숫자 2~12자"
-              />
-              {errors.nickname && (
-                <span className="error-msg">{errors.nickname}</span>
-              )}
-            </div>
-
-            <button
-              className="btn-next"
-              disabled={
-                Object.values(errors).some((e) => e !== '') || !formData.userId
-              }
-              onClick={() => setStep(2)}
-            >
-              다음 단계로
+        {/* 아이디 필드 */}
+        <div className="input-group">
+          <label>아이디</label>
+          <div className="input-row">
+            <input
+              name="userId"
+              value={formData.userId}
+              onChange={handleChange}
+              placeholder="영문 소문자, 숫자 4~20자"
+            />
+            <button type="button" className="btn-check">
+              중복확인
             </button>
           </div>
-        )}
+          {errors.userId && <span className="error-msg">{errors.userId}</span>}
+        </div>
 
-        {step === 2 && (
-          <div className="step-verify">
-            <h3>이메일 인증</h3>
-            <p>입력하신 이메일로 6자리 인증코드가 전송되었습니다.</p>
+        {/* 비밀번호 필드 */}
+        <div className="input-group">
+          <label>비밀번호</label>
+          <input
+            type="password"
+            name="password"
+            value={formData.password}
+            onChange={handleChange}
+            placeholder="8~20자 입력"
+          />
+          {errors.password && (
+            <span className="error-msg">{errors.password}</span>
+          )}
+        </div>
 
-            <div className="input-group">
-              <label>인증코드</label>
-              <div className="input-row">
-                <input
-                  type="text"
-                  placeholder="6자리 코드 입력"
-                  maxLength={6}
-                />
-                <button className="btn-check">확인</button>
-              </div>
-            </div>
+        {/* 비밀번호 확인 필드 */}
+        <div className="input-group">
+          <label>비밀번호 확인</label>
+          <input
+            type="password"
+            name="confirmPassword"
+            value={formData.confirmPassword}
+            onChange={handleChange}
+            placeholder="비밀번호 재입력"
+          />
+          {errors.confirmPassword && (
+            <span className="error-msg">{errors.confirmPassword}</span>
+          )}
+        </div>
 
-            <button className="btn-next" onClick={() => setStep(3)}>
-              인증 완료
-            </button>
-            <button className="btn-prev" onClick={() => setStep(1)}>
-              이전으로
-            </button>
+        {/* 닉네임 필드 */}
+        <div className="input-group">
+          <label>닉네임</label>
+          <input
+            name="nickname"
+            value={formData.nickname}
+            onChange={handleChange}
+            placeholder="한글, 영문, 숫자 2~12자"
+          />
+          {errors.nickname && (
+            <span className="error-msg">{errors.nickname}</span>
+          )}
+        </div>
+
+        {/* 약관 동의 영역 (마케팅 삭제됨) */}
+        <div className="agreement-section">
+          <div className="check-item all-check">
+            <input
+              type="checkbox"
+              checked={agreements.service && agreements.privacy}
+              onChange={handleAllCheck}
+              id="all"
+            />
+            <label htmlFor="all">전체 동의</label>
           </div>
-        )}
+          <hr />
+          {['service', 'privacy'].map((type) => (
+            <div className="check-item" key={type}>
+              <input
+                type="checkbox"
+                checked={agreements[type]}
+                onChange={() => handleCheck(type)}
+                id={type}
+              />
+              <label htmlFor={type}>
+                (필수){' '}
+                {type === 'service'
+                  ? '이용약관 동의'
+                  : '개인정보 처리방침 동의'}
+              </label>
+              <button
+                type="button"
+                className="btn-view"
+                onClick={() => openModal(type)}
+              >
+                보기
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <button
+          type="submit"
+          className="btn-submit"
+          disabled={
+            !agreements.service ||
+            !agreements.privacy ||
+            Object.values(errors).some((err) => err !== '') ||
+            !formData.userId ||
+            !formData.password ||
+            !formData.nickname
+          }
+        >
+          가입하기
+        </button>
       </div>
+
+      <TermsModal
+        isOpen={modal.isOpen}
+        title={modal.title}
+        content={modal.content}
+        onClose={() => setModal({ ...modal, isOpen: false })}
+      />
     </div>
   );
 };
