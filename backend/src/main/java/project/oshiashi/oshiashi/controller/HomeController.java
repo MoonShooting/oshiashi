@@ -7,9 +7,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 @Slf4j
 public class HomeController {
-	@GetMapping("home")
-	public String home(){
-		log.debug("테스트");
-		return "home";
-	}
+    @GetMapping("home")
+    public String home() {
+        log.debug("테스트");
+        return "home";
+    }
 }
