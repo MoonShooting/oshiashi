@@ -1,9 +1,7 @@
 package project.oshiashi.oshiashi.domain.user.entity;
 
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import project.oshiashi.oshiashi.domain.post.entity.PostEntity;
 
 import java.time.LocalDateTime;
@@ -13,6 +11,8 @@ import java.util.List;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
+@AllArgsConstructor
+@Builder
 @Table(
         name = "User",
         uniqueConstraints = {
@@ -38,13 +38,15 @@ public class UserEntity {
     @Column(name = "nickname", length = 255, nullable = false)
     private String nickname;
 
+	@Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(name = "role", length = 50, nullable = false) // 디폴트
-    private Role role;
+    private Role role = Role.user; // 디폴트 값 user로 설정
 
+	@Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 50, nullable = false) // 디폴트 엑티브 체크
-    private UserStatus status;
+    private UserStatus status = UserStatus.active; // 디폴트 값 active로 설정
 
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
@@ -52,6 +54,12 @@ public class UserEntity {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
+/**
+ @Builder.Default
+  - Lombok빌더 사용 시,필드에 선언된 초기값(new ArrayList<>())을 유지함.
+ - 미설정 시 빌더가 이 리스트를 nul로 만들어 에러(NullPointerException)를 유발함.
+ */
+	@Builder.Default
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
     private List<PostEntity> posts = new ArrayList<>();
 
