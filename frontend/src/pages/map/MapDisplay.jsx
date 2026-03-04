@@ -1,10 +1,5 @@
-import React, { useEffect } from "react";
-import {
-  APIProvider,
-  Map,
-  AdvancedMarker,
-  useMap,
-} from "@vis.gl/react-google-maps";
+import React, { useEffect } from 'react';
+import { Map, AdvancedMarker, useMap } from '@vis.gl/react-google-maps';
 
 /**
  * [비용 절감 핵심]
@@ -24,21 +19,19 @@ export default function MapDisplay({ location }) {
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
   return (
-    <APIProvider apiKey={apiKey}>
-      <Map
-        style={{ width: "100%", height: "600px" }}
-        defaultCenter={location}
-        defaultZoom={15}
-        mapId="YOUR_MAP_ID" // 구글 콘솔에서 생성한 Map ID (Advanced Marker용)
-        gestureHandling={"greedy"}
-        disableDefaultUI={true}
-      >
-        {/* 현재 위치 마커 */}
-        <AdvancedMarker position={location} />
+    <Map
+      style={{ width: '100%', height: '600px' }}
+      defaultCenter={location}
+      defaultZoom={15}
+      mapId="YOUR_MAP_ID" // 구글 콘솔에서 생성한 Map ID (Advanced Marker용)
+      gestureHandling={'greedy'}
+      disableDefaultUI={true}
+    >
+      {/* 현재 위치 마커 */}
+      <AdvancedMarker position={location} />
 
-        {/* 위치 변경 감지 및 지도 이동 처리 */}
-        <MapHandler location={location} />
-      </Map>
-    </APIProvider>
+      {/* 위치 변경 감지 및 지도 이동 처리 */}
+      <MapHandler location={location} />
+    </Map>
   );
 }

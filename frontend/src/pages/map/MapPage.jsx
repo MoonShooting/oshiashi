@@ -1,11 +1,12 @@
-import React, { useState, useCallback } from "react";
-import Search from "../map/Search.jsx";
-import MapDisplay from "../map/MapDisplay";
+import React, { useState, useCallback } from 'react';
+import Search from '../map/Search.jsx';
+import MapDisplay from '../map/MapDisplay';
 import {
   DUMMY_PILGRIMAGE_SITES,
   DEFAULT_LOCATION,
-} from "../../constants/dummyData.js";
-import styles from "./MapPage.module.css";
+} from '../../constants/dummyData.js';
+import styles from './MapPage.module.css';
+import { APIProvider } from '@vis.gl/react-google-maps';
 
 export default function MapPage() {
   const [location, setLocation] = useState(DEFAULT_LOCATION);
@@ -19,28 +20,33 @@ export default function MapPage() {
   }, []);
 
   return (
-    <div className={styles.container}>
-      {/* 1. 테스트 패널: 더미 데이터를 handleLocationChange에 전달 */}
-      {isDev && (
-        <div className={styles.testPanel}>
-          {DUMMY_PILGRIMAGE_SITES.map((site) => (
-            <button
-              key={site.id}
-              onClick={() => handleLocationChange(site.position)}
-            >
-              {site.title}
-            </button>
-          ))}
+    <APIProvider
+      apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}
+      libraries={['places', 'routes']}
+    >
+      <div className={styles.container}>
+        {/* 1. 테스트 패널: 더미 데이터를 handleLocationChange에 전달 */}
+        {isDev && (
+          <div className={styles.testPanel}>
+            {DUMMY_PILGRIMAGE_SITES.map((site) => (
+              <button
+                key={site.id}
+                onClick={() => handleLocationChange(site.position)}
+              >
+                {site.title}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* 2. 검색 컴포넌트: 실제 검색 결과를 handleLocationChange에 전달 */}
+        <Search onSearchResult={handleLocationChange} />
+
+        {/* 3. 지도 표시: 최적화된 location 상태 반영 */}
+        <div className={styles.mapWrapper}>
+          <MapDisplay location={location} />
         </div>
-      )}
-
-      {/* 2. 검색 컴포넌트: 실제 검색 결과를 handleLocationChange에 전달 */}
-      <Search onSearchResult={handleLocationChange} />
-
-      {/* 3. 지도 표시: 최적화된 location 상태 반영 */}
-      <div className={styles.mapWrapper}>
-        <MapDisplay location={location} />
       </div>
-    </div>
+    </APIProvider>
   );
 }
