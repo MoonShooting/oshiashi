@@ -38,7 +38,6 @@ public class RouteEntity {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    /*
     @OneToMany(mappedBy = "route")
-    private List<RouteSpotEntity> routeSpots = new ArrayList<>();*/
+    private List<RouteSpotEntity> routeSpots = new ArrayList<>();
 }

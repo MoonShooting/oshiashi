@@ -11,9 +11,9 @@ import project.oshiashi.oshiashi.domain.artwork.entity.ArtworkTypeEntity;
 @NoArgsConstructor
 @Builder
 public class ArtworkTypeResponse {
-	private Integer artworkTypeId;
+	private Long artworkTypeId;
 	private String artworkTypeName;
-	
+
 	public static ArtworkTypeResponse from(ArtworkTypeEntity artworkTypeEntity) {
 		return ArtworkTypeResponse.builder()
 				.artworkTypeId(artworkTypeEntity.getArtworkTypeId())

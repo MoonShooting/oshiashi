@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class BookmarkResponse {
-	private Integer bookmarkId;     // 명세서에 int로 되어있으므로 Integer
+	private Long bookmarkId;     // 명세서에 int로 되어있으므로 Integer
 	private String bookmarkName;
 	private String userId;
 	
