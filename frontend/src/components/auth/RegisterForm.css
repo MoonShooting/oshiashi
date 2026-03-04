@@ -1,19 +1,135 @@
-/* 에러 메시지 스타일 */
+/* 기본 컨테이너 간격 */
+.register-content {
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 20px;
+  color: #ffffff;
+}
+
+.input-group {
+  margin-bottom: 20px;
+}
+
+/* 에러메시지 스타일 */
 .error-msg {
+  display: block;
+  margin-top: 5px;
   color: #ff4d4d;
-  font-size: 11px;
-  margin-top: 4px;
-  text-align: left;
+  font-size: 12px;
 }
 
-/* 입력창 에러 시 강조 (선택 사항) */
-.input-group input.error {
-  border-color: #ff4d4d;
+/* 동의 영역 스타일 */
+.agreement-section {
+  margin-top: 30px;
+  padding: 15px;
+  background-color: #1e1e1e;
+  border-radius: 8px;
+  border: 1px solid #333;
 }
 
-/* 버튼 비활성화 스타일 */
-.btn-next:disabled {
-  background: #333;
+.check-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.check-item input[type='checkbox'] {
+  margin-right: 10px;
+  cursor: pointer;
+}
+
+.check-item.all-check {
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.agreement-section hr {
+  border: 0;
+  border-top: 1px solid #333;
+  margin: 10px 0;
+}
+
+/* 모든 입력 필드(ID, PW, 닉네임 등)의 공통 라벨 스타일 */
+.input-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #ddd;
+}
+
+/* 입력창 기본 스타일 (이름, 닉네임 필드 포함) */
+.input-group input {
+  width: 100%;
+  padding: 12px;
+  background-color: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 15px;
+  box-sizing: border-box; /* 패딩이 너비를 침범하지 않게 설정 */
+}
+
+.input-group input:focus {
+  outline: none;
+  border-color: #007bff;
+  background-color: #333;
+}
+
+/* 중복확인 버튼이 있는 Row (ID 필드 등) */
+.input-row {
+  display: flex;
+  gap: 8px; /* 입력창과 버튼 사이 간격 */
+}
+
+.input-row input {
+  flex: 1; /* 입력창이 남은 공간을 다 채우도록 */
+}
+
+.btn-check {
+  padding: 0 15px;
+  background-color: #444;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap; /* 버튼 글자 줄바꿈 방지 */
+}
+
+.btn-check:hover {
+  background-color: #555;
+}
+
+/* 보기 버튼 */
+.btn-view {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: #888;
+  text-decoration: underline;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.btn-view:hover {
+  color: #bbb;
+}
+
+/* 가입하기 버튼 */
+.btn-submit {
+  width: 100%;
+  padding: 15px;
+  margin-top: 20px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.btn-submit:disabled {
+  background-color: #444;
   cursor: not-allowed;
-  opacity: 0.6;
 }
