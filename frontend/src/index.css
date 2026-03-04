@@ -1,5 +1,25 @@
-body{
-  position: absolute;
-  width: 100%;
-  background: #0F0F1E;
+/* 전체 css 기본 설정 */
+:root {
+  --bg-dark: #0f0f15;
+  --card-bg: #1c1c28;
+  --primary-purple: #9d50bb;
+  --text-white: #ffffff;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--bg-dark);
+  color: var(--text-white);
+  overflow-x: hidden;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
 }

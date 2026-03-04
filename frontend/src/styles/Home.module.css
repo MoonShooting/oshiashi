@@ -1,0 +1,17 @@
+.homeContainer {
+  padding: 20px;
+}
+
+.heroBanner {
+  height: 400px;
+  background: linear-gradient(90deg, #6e48aa, #9d50bb);
+  border-radius: 20px;
+  /* ... 상세 배너 스타일 ... */
+  /* 배너나 카드 그리드 스타일 */
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 20px;
+}
