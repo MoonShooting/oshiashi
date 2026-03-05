@@ -1,49 +1,64 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Film, House, MapPinned, MessageSquare, Settings, Trophy, UserRound, X } from 'lucide-react';
 import styles from '../../styles/Sidebar.module.css';
 
-const Sidebar = ({ isOpen, onClose }) => {
+const menuItems = [
+  { key: 'home', icon: House, label: '홈' },
+  { key: 'works', icon: Film, label: '작품 탐색' },
+  { key: 'route', icon: MapPinned, label: '루트 생성' },
+  { key: 'community', icon: MessageSquare, label: '커뮤니티' },
+  { key: 'mypage', icon: UserRound, label: '마이페이지' },
+];
+
+const bottomItems = [
+  { key: 'achievements', icon: Trophy, label: '업적' },
+  { key: 'settings', icon: Settings, label: '설정' },
+];
+
+const Sidebar = ({ isOpen = false, onClose, activeKey = 'home', onNavigate }) => {
   return (
     <>
-      <aside className={`${styles.sidebar} ${isOpen ? styles.open : ''}`}>
-        <div className={styles.header}>
-          <span className={styles.logo}>推し足</span>
-          <button className={styles.closeBtn} onClick={onClose}>
-            ×
+      <div
+        className={isOpen ? `${styles.backdrop} ${styles.open}` : styles.backdrop}
+        onClick={onClose}
+      />
+
+      <aside className={isOpen ? `${styles.sidebar} ${styles.open}` : styles.sidebar}>
+        <div className={styles.topBar}>
+          <button className={styles.closeBtn} onClick={onClose} aria-label="close sidebar">
+            <X className={styles.iconSvg} strokeWidth={2} />
           </button>
         </div>
+        <ul className={styles.menu}>
+          {menuItems.map((item) => (
+            <li key={item.key}>
+              <button
+                className={activeKey === item.key ? styles.active : ''}
+                onClick={() => {
+                  onNavigate?.(item.key);
+                  onClose?.();
+                }}
+              >
+                <span className={styles.itemIcon}>
+                  <item.icon className={styles.iconSvg} strokeWidth={1.9} />
+                </span>
+                <span>{item.label}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
 
-        {/* 상단 메뉴 영역 */}
-        <nav className={styles.menu}>
-          <Link to="/" className={styles.menuItem} onClick={onClose}>
-            🏠 홈
-          </Link>
-          <Link to="/explore" className={styles.menuItem} onClick={onClose}>
-            🔍 작품 탐색
-          </Link>
-          <Link to="/routes" className={styles.menuItem} onClick={onClose}>
-            🗺️ 루트 공유
-          </Link>
-          <Link to="/community" className={styles.menuItem} onClick={onClose}>
-            💬 커뮤니티
-          </Link>
-          <Link to="/mypage" className={styles.menuItem} onClick={onClose}>
-            👤 마이페이지
-          </Link>
-        </nav>
-
-        {/* 하단 고정 영역: 구분선 + 업적 + 설정 + 로그아웃 */}
-        <div className={styles.footer}>
-          <hr className={styles.divider} />
-          <button className={styles.footerBtn}>🏆 업적</button>
-          <Link to="/settings" className={styles.footerBtn} onClick={onClose}>
-            ⚙️ 설정
-          </Link>
-          <button className={styles.logoutBtn}>로그아웃</button>
+        <div className={styles.bottomMenu}>
+          {bottomItems.map((item) => (
+            <button key={item.key} onClick={onClose}>
+              <span className={styles.itemIcon}>
+                <item.icon className={styles.iconSvg} strokeWidth={1.9} />
+              </span>
+              <span>{item.label}</span>
+            </button>
+          ))}
         </div>
       </aside>
-
-      {isOpen && <div className={styles.overlay} onClick={onClose} />}
     </>
   );
 };

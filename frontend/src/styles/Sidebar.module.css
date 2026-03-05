@@ -1,110 +1,115 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 59;
+  background: rgba(8, 8, 16, 0.56);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.28s ease;
+}
+
+.backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 .sidebar {
   position: fixed;
   top: 0;
-  left: -280px;
-  width: 280px;
-  height: 100vh;
-  background-color: #1c1c28;
-  z-index: 2000;
-  transition: transform 0.3s ease-in-out;
+  left: 0;
+  bottom: 0;
+  width: min(302px, 84vw);
+  z-index: 60;
+  padding: 14px 10px 12px;
   display: flex;
-  flex-direction: column; /* 세로 배치 */
-  border-right: 1px solid #2d2d3d;
+  flex-direction: column;
+  gap: 14px;
+  background: linear-gradient(180deg, #1a1a2f 0%, #111124 100%);
+  border-right: 1px solid rgba(64, 64, 97, 0.95);
+  transform: translateX(-106%);
+  transition: transform 0.32s ease;
 }
 
 .sidebar.open {
-  transform: translateX(280px);
+  transform: translateX(0);
 }
 
-.header {
-  padding: 24px;
+.topBar {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
-.logo {
-  font-weight: 700;
-  font-size: 22px;
-  /* 밑에서 위로 흐르는 그라데이션 적용 */
-  background: linear-gradient(0deg, #6b46c1 0%, #8b5fd9 50%, #ec4899 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+.closeBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  color: #f5f5ff;
+  background: rgba(39, 39, 62, 0.96);
+  font-size: 14px;
 }
 
 .menu {
-  flex: 1; /* ★중요: 남는 공간을 다 채워서 푸터를 밑으로 밀어냄 */
-  padding: 10px 16px;
+  list-style: none;
+  margin: 2px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
 }
 
-.menuItem {
-  display: block;
-  padding: 14px 16px;
-  color: #a0a0ab;
-  text-decoration: none;
-  border-radius: 10px;
-  transition: all 0.2s;
-  font-size: 15px;
-}
-
-.menuItem:hover {
-  background-color: #252533;
-  color: #8b5fd9;
-}
-
-/* 하단 영역 스타일 */
-.footer {
-  padding: 0 16px 24px 16px;
-}
-
-.divider {
-  border: 0;
-  border-top: 1px solid #2d2d3d;
-  margin-bottom: 12px;
-}
-
-.footerBtn {
+.menu button,
+.bottomMenu button {
   width: 100%;
+  min-height: 48px;
+  border-radius: 12px;
+  padding: 0 12px;
   display: flex;
   align-items: center;
-  padding: 12px 16px;
-  background: none;
-  border: none;
-  color: #a0a0ab;
-  font-size: 15px;
-  cursor: pointer;
-  border-radius: 10px;
-  text-decoration: none;
-  transition: all 0.2s;
+  gap: 10px;
+  color: #f1f1ff;
+  font-size: 16px;
+  line-height: 1.25;
+  font-weight: 600;
+  background: transparent;
+  text-align: left;
+  border: 1px solid transparent;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
 }
 
-.footerBtn:hover {
-  background-color: #252533;
-  color: #fff;
+.menu button:hover,
+.bottomMenu button:hover {
+  border-color: rgba(93, 76, 153, 0.7);
+  background: rgba(43, 34, 75, 0.8);
+  transform: translateX(3px);
 }
 
-.logoutBtn {
-  width: 100%;
-  margin-top: 12px;
-  padding: 10px;
-  background-color: transparent;
-  border: 1px solid #333345;
-  color: #71717a;
+.active {
+  border-color: rgba(157, 126, 255, 0.65) !important;
+  background: linear-gradient(90deg, rgba(92, 64, 167, 0.75), rgba(236, 72, 153, 0.45)) !important;
+}
+
+.itemIcon {
+  width: 26px;
+  height: 26px;
   border-radius: 8px;
-  cursor: pointer;
-  font-size: 13px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  background: rgba(23, 23, 41, 0.72);
+  border: 1px solid rgba(70, 70, 102, 0.52);
+  color: rgba(230, 230, 252, 0.95);
 }
 
-.logoutBtn:hover {
-  border-color: #ec4899;
-  color: #ec4899;
+.iconSvg {
+  width: 16px;
+  height: 16px;
 }
 
-.overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(2px);
-  z-index: 1999;
+.bottomMenu {
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid rgba(58, 58, 89, 0.9);
+  display: grid;
+  gap: 6px;
 }

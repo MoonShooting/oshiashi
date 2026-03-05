@@ -1,123 +1,171 @@
 .navbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 24px;
-  height: 64px;
-  background-color: #1c1c28; /* 피그마 다크 배경색 */
-  border-bottom: 1px solid #2d2d3d;
-  position: sticky;
+  position: fixed;
   top: 0;
-  z-index: 1000;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  height: 80px;
+  padding: 0 28px;
+  display: grid;
+  grid-template-columns: minmax(220px, auto) minmax(360px, 1fr) minmax(180px, auto);
+  align-items: center;
+  gap: 22px;
+  border-bottom: 1px solid rgba(45, 45, 68, 0.6);
+  background: rgba(20, 20, 38, 0.86);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
 }
 
-.navLeft {
+.leftSection {
   display: flex;
   align-items: center;
   gap: 16px;
+  min-width: 0;
 }
 
 .menuBtn {
-  background: none;
-  border: none;
-  color: #ffffff;
-  font-size: 28px;
-  cursor: pointer;
-  padding: 0;
-  display: flex;
-  align-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  color: #f5f5ff;
+  background: rgba(33, 33, 57, 0.95);
+  font-size: 20px;
+  transition: background 0.2s ease, transform 0.2s ease;
 }
 
-.logoText {
-  font-family: 'Noto Sans JP', sans-serif;
-  font-weight: 700;
-  font-size: 20px;
+.menuBtn:hover {
+  background: rgba(69, 57, 117, 0.95);
+  transform: translateY(-1px);
+}
 
-  /* 방향 설정: 0deg (밑에서 위로) */
-  background: linear-gradient(0deg, #6b46c1 0%, #8b5fd9 30%, #ec4899 100%);
-
+.logo {
+  font-family: var(--font-jp);
+  font-size: clamp(32px, 2.2vw, 40px);
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  background: linear-gradient(90deg, #6b46c1 0%, #8b5fd9 55%, #ec4899 100%);
   -webkit-background-clip: text;
   background-clip: text;
-  -webkit-text-fill-color: transparent;
-
-  display: inline-block;
-  white-space: nowrap;
-  letter-spacing: -0.02em;
-
-  /* 텍스트 높이에 그라데이션이 꽉 차도록 설정 */
-  line-height: 1.2;
+  color: transparent;
 }
 
-/* 검색창 영역 */
 .searchWrapper {
-  position: relative;
-  flex: 0 1 400px;
-  margin: 0 20px;
+  height: 52px;
+  border-radius: 999px;
+  border: 1px solid #2d2d44;
+  background: rgba(17, 17, 34, 0.88);
+  display: flex;
+  align-items: center;
+  padding: 0 18px;
+  gap: 10px;
 }
 
 .searchIcon {
-  position: absolute;
-  left: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #71717a;
-  font-size: 14px;
+  color: #7f5ad2;
+  font-size: 16px;
+  flex-shrink: 0;
 }
 
 .searchInput {
   width: 100%;
-  padding: 10px 16px 10px 40px;
-  background-color: #12121a;
-  border: 1px solid #333345;
-  border-radius: 20px;
-  color: #ffffff;
-  font-size: 14px;
-  outline: none;
-  transition: border-color 0.2s;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #f4f4ff;
+  font-size: 18px;
+  font-weight: 500;
 }
 
-.searchInput:focus {
-  border-color: #8b5fd9;
+.searchInput::placeholder {
+  color: #9b9bb5;
 }
 
 .navRight {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
 }
 
-/* 피그마 그라데이션 적용 버튼 */
 .uploadBtn {
-  background: linear-gradient(90deg, #6b46c1 0%, #8b5fd9 50%, #ec4899 100%);
-  color: #ffffff;
-  border: none;
-  padding: 8px 18px;
-  border-radius: 50px;
+  height: 44px;
+  padding: 0 20px;
+  border-radius: 999px;
+  font-size: 16px;
   font-weight: 600;
-  font-size: 14px;
-  cursor: pointer;
-  transition:
-    transform 0.2s,
-    opacity 0.2s;
+  color: #fff;
+  background: linear-gradient(90deg, #6b46c1 0%, #ec4899 100%);
+  box-shadow: 0 10px 24px rgba(107, 70, 193, 0.42);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .uploadBtn:hover {
   transform: translateY(-1px);
-  opacity: 0.9;
+  box-shadow: 0 14px 30px rgba(107, 70, 193, 0.5);
 }
 
 .profileCircle {
-  width: 36px;
-  height: 36px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #8b5fd9 0%, #ec4899 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
+  border: 2px solid #6b46c1;
+  background: linear-gradient(140deg, #6b46c1, #ec4899);
+  box-shadow: 0 0 22px rgba(107, 70, 193, 0.5);
 }
 
-.profileIcon {
-  color: #ffffff;
-  font-size: 18px;
+@media (max-width: 1280px) {
+  .navbar {
+    grid-template-columns: auto minmax(240px, 1fr) auto;
+    padding: 0 16px;
+    gap: 12px;
+  }
+
+  .logo {
+    font-size: clamp(26px, 2.5vw, 34px);
+  }
+
+  .uploadBtn {
+    font-size: 15px;
+    padding: 0 14px;
+  }
+
+  .profileCircle {
+    width: 38px;
+    height: 38px;
+  }
+}
+
+@media (max-width: 900px) {
+  .navbar {
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+    height: auto;
+    padding: 12px;
+  }
+
+  .leftSection {
+    min-width: 0;
+  }
+
+  .searchWrapper {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .logo {
+    font-size: 24px;
+  }
+
+  .uploadBtn {
+    height: 40px;
+    font-size: 14px;
+  }
+
+  .profileCircle {
+    width: 40px;
+    height: 40px;
+  }
 }
