@@ -60,4 +60,5 @@ public class AuthController {
 			return ResponseEntity.status(401).body(e.getMessage());
 		}
 	}
+//	TODO: 회원 탈퇴 (DELETE /api/v1/user/withdraw)
 }

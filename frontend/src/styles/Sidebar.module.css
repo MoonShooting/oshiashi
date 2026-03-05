@@ -1,0 +1,110 @@
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: -280px;
+  width: 280px;
+  height: 100vh;
+  background-color: #1c1c28;
+  z-index: 2000;
+  transition: transform 0.3s ease-in-out;
+  display: flex;
+  flex-direction: column; /* 세로 배치 */
+  border-right: 1px solid #2d2d3d;
+}
+
+.sidebar.open {
+  transform: translateX(280px);
+}
+
+.header {
+  padding: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  font-weight: 700;
+  font-size: 22px;
+  /* 밑에서 위로 흐르는 그라데이션 적용 */
+  background: linear-gradient(0deg, #6b46c1 0%, #8b5fd9 50%, #ec4899 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.menu {
+  flex: 1; /* ★중요: 남는 공간을 다 채워서 푸터를 밑으로 밀어냄 */
+  padding: 10px 16px;
+}
+
+.menuItem {
+  display: block;
+  padding: 14px 16px;
+  color: #a0a0ab;
+  text-decoration: none;
+  border-radius: 10px;
+  transition: all 0.2s;
+  font-size: 15px;
+}
+
+.menuItem:hover {
+  background-color: #252533;
+  color: #8b5fd9;
+}
+
+/* 하단 영역 스타일 */
+.footer {
+  padding: 0 16px 24px 16px;
+}
+
+.divider {
+  border: 0;
+  border-top: 1px solid #2d2d3d;
+  margin-bottom: 12px;
+}
+
+.footerBtn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  background: none;
+  border: none;
+  color: #a0a0ab;
+  font-size: 15px;
+  cursor: pointer;
+  border-radius: 10px;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.footerBtn:hover {
+  background-color: #252533;
+  color: #fff;
+}
+
+.logoutBtn {
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px;
+  background-color: transparent;
+  border: 1px solid #333345;
+  color: #71717a;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.logoutBtn:hover {
+  border-color: #ec4899;
+  color: #ec4899;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
+  z-index: 1999;
+}

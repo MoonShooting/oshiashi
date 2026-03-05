@@ -26,6 +26,9 @@ public class UserEntity {
     @Column(name = "user_id", length = 50, nullable = false)
     private String userId;
 
+	@Column(name="name", length=50, nullable = false)
+	private String name;
+
     // 유니크
     @Column(name = "email", length = 255, nullable = false)
     private String email;
@@ -61,7 +64,6 @@ public class UserEntity {
 	@Builder.Default
 	@OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
 	private List<PostEntity> posts = new ArrayList<>();
-
 
     public enum Role {user, admin}
 
