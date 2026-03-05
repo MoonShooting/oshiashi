@@ -59,6 +59,7 @@ public class AuthService {
 
 		UserEntity newUser = UserEntity.builder()
 				.userId(request.getUserId())
+				.name(request.getName())
 				.password(passwordEncoder.encode(request.getPassword()))
 				.email(request.getEmail())
 				.nickname(request.getNickname())
@@ -102,4 +103,42 @@ public class AuthService {
 		// JWT 토큰 발급 (클라이언트는 이를 Authorization 헤더에 담아 제출함)
 		return jwtProvider.createToken(user.getUserId());
 	}
+
+	/**
+	 * [아이디 찾기: findUserId]
+	 * @param email 가입 시 사용한 이메일
+	 * @return 마스킹 처리된 유저 아이디 (String)
+	 */
+	@Transactional(readOnly = true)
+	public String findUserId(String email) {
+		return userRepository.findByEmail(email)
+				/* * [로직 단계]
+				 * 1. Unique/NotNull 제약조건 덕분에 결과는 0개 아니면 1개임.
+				 * 2. 검색 성공 시, 유저 객체에서 아이디만 추출해 마스킹 메서드로 전달함.
+				 * 3. 검색 실패 시(Empty), 가입 정보가 없다는 예외를 던짐.
+				 */
+				.map(user -> maskUserId(user.getUserId()))
+				.orElseThrow(() -> new IllegalArgumentException("가입 정보가 없는 이메일임."));
+	}
+
+	/**
+	 * [아이디 마스킹: maskUserId]
+	 * @param userId 원본 아이디
+	 * @return 일부 별표(*) 처리된 아이디
+	 */
+	private String maskUserId(String userId) {
+		/*
+		 * [마스킹 규칙]
+		 * - 3자 이하: 첫 글자만 남기고 뒤에는 "**" 붙임.
+		 * - 4자 이상: 앞의 5자(최대)만 보여주고 나머지는 원래 길이만큼 "*" 채움.
+		 */
+		if (userId.length() <= 3) {
+			return userId.substring(0, 1) + "**";
+		}
+		int visibleLength = Math.min(userId.length(), 5);
+		String visiblePart = userId.substring(0, visibleLength);
+		int maskCount = userId.length() - visibleLength;
+		return visiblePart + "*".repeat(maskCount);
+	}
+
 }

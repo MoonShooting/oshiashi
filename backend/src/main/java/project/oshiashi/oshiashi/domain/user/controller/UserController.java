@@ -20,6 +20,6 @@ public class UserController {
 	/*
 	 * TODO: 마이페이지 프로필 조회 (GET /api/v1/user/profile)
 	 * TODO: 개인정보 수정 (PATCH /api/v1/user/update)
-	 * TODO: 회원 탈퇴 (DELETE /api/v1/user/withdraw)
+	 *
 	 */
 }
