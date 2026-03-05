@@ -45,12 +45,29 @@ public class CommentEntity {
     @Column(name = "content", length = 255, nullable = false)
     private String content;
 
+    // 생성자 입니당
+    @Builder
+    private CommentEntity(PostEntity post,
+                          UserEntity user,
+                          String content,
+                          LocalDateTime createdAt) {
+        this.post = post;
+        this.user = user;
+        this.content = content;
+        this.createdAt = createdAt;
+    }
+
     /**
      * 추천: JPA Auditing 쓰면 @CreatedDate로 자동 입력 가능
      * (그 경우 nullable=false로 두고, 직접 세팅은 안 함)
      */
-    @Column(name = "created_at")
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    // 수정용 메서드
+    public void updateContent(String content) {
+        this.content = content;
+    }
 
     // 대댓글이 필요해지면 아래처럼 "자기참조"가 가장 깔끔함
     // @ManyToOne(fetch = FetchType.LAZY)
