@@ -5,6 +5,7 @@ import MapPage from './pages/map/MapPage';
 import PinPage from './pages/pin/PinPage';
 import LoginPage from './pages/Login/LoginPage';
 import RegisterPage from './pages/Login/RegisterPage';
+import PostSearchResultPage from './pages/PostSearchResultPage';
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/map" element={<MapPage />} />
           <Route path="/pin" element={<PinPage />} />
+          <Route path="/posts" element={<PostSearchResultPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
         </Routes>

@@ -21,7 +21,7 @@ const MainLayoutContent = ({
   const routeMap = useMemo(
     () => ({
       home: '/',
-      works: '/',
+      works: '/posts',
       route: '/map',
       community: '/',
       mypage: '/',
