@@ -31,7 +31,6 @@
   place-items: center;
   color: #f5f5ff;
   background: rgba(33, 33, 57, 0.95);
-  font-size: 20px;
   transition: background 0.2s ease, transform 0.2s ease;
 }
 
@@ -66,7 +65,9 @@
 
 .searchIcon {
   color: #7f5ad2;
-  font-size: 16px;
+  width: 22px;
+  height: 22px;
+  filter: drop-shadow(0 0 8px rgba(107, 70, 193, 0.5));
   flex-shrink: 0;
 }
 
@@ -100,6 +101,14 @@
   background: linear-gradient(90deg, #6b46c1 0%, #ec4899 100%);
   box-shadow: 0 10px 24px rgba(107, 70, 193, 0.42);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.uploadIcon {
+  width: 16px;
+  height: 16px;
 }
 
 .uploadBtn:hover {

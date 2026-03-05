@@ -1,4 +1,5 @@
 import React from 'react';
+import { Eye, Heart, MessageCircle } from 'lucide-react';
 import styles from '../../styles/Home.module.css';
 
 const posts = [
@@ -29,9 +30,18 @@ const CommunityPostsSection = () => {
               <div className={styles.postMeta}>
                 <span>{post.author}</span>
                 <span>· {post.time}</span>
-                <span>👁 {post.views}</span>
-                <span>❤ {post.likes}</span>
-                <span>💬 {post.comments}</span>
+                <span className={styles.statItem}>
+                  <Eye className={`${styles.statIcon} ${styles.statIconView}`} strokeWidth={2} />
+                  {post.views}
+                </span>
+                <span className={styles.statItem}>
+                  <Heart className={`${styles.statIcon} ${styles.statIconLike}`} strokeWidth={2} />
+                  {post.likes}
+                </span>
+                <span className={styles.statItem}>
+                  <MessageCircle className={`${styles.statIcon} ${styles.statIconComment}`} strokeWidth={2} />
+                  {post.comments}
+                </span>
               </div>
             </div>
           </article>

@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { Bookmark, MapPin, MapPinned } from 'lucide-react';
 import styles from '../../styles/Home.module.css';
 
 const routes = [
@@ -42,7 +43,9 @@ const RecommendedRoutesSection = () => {
       <div className={styles.routeGrid}>
         {items.map((route) => (
           <article key={route.id} className={styles.routeCard}>
-            <div className={styles.routeThumb}>🗺</div>
+            <div className={styles.routeThumb}>
+              <MapPinned className={styles.routeThumbIcon} strokeWidth={2} />
+            </div>
             <h3>{route.title}</h3>
             <div className={styles.routeTags}>
               {route.tags.map((tag) => (
@@ -50,8 +53,14 @@ const RecommendedRoutesSection = () => {
               ))}
             </div>
             <div className={styles.cardStats}>
-              <span>📍 {route.spots}개 장소</span>
-              <span>🔖 {route.bookmarks}</span>
+              <span className={styles.statItem}>
+                <MapPin className={`${styles.statIcon} ${styles.statIconLocation}`} strokeWidth={2} />
+                {route.spots}개 장소
+              </span>
+              <span className={styles.statItem}>
+                <Bookmark className={`${styles.statIcon} ${styles.statIconBookmark}`} strokeWidth={2} />
+                {route.bookmarks}
+              </span>
             </div>
           </article>
         ))}
