@@ -3,7 +3,9 @@
   "semi": true,
   "tabWidth": 2,
   "trailingComma": "all",
-  "printWidth": 80,
+  "printWidth": 150,
+  "singleAttributePerLine": false,
+  "bracketSameLine": true,
   "arrowParens": "always",
   "endOfLine": "auto"
 }

@@ -4,6 +4,7 @@ import Home from './pages/Home';
 import MapPage from './pages/map/MapPage';
 import PinPage from './pages/pin/PinPage';
 import LoginPage from './pages/Login/LoginPage';
+import FindAuthPage from './pages/Login/FindAuthPage';
 import RegisterPage from './pages/Login/RegisterPage';
 
 function App() {
@@ -16,6 +17,7 @@ function App() {
           <Route path="/map" element={<MapPage />} />
           <Route path="/pin" element={<PinPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/find-auth" element={<FindAuthPage />} />
           <Route path="/register" element={<RegisterPage />} />
         </Routes>
       </div>
