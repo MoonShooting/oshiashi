@@ -1,0 +1,20 @@
+.layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #12121a; /* 기본 배경색 */
+  color: #ffffff;
+}
+
+.container {
+  display: flex;
+  flex: 1;
+  position: relative;
+}
+
+.mainContent {
+  flex: 1;
+  padding: 20px;
+  /* 사이드바가 static이 아닐 때 콘텐츠가 밀리지 않도록 설정 */
+  overflow-y: auto;
+}

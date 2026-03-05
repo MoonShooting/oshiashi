@@ -1,0 +1,123 @@
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 24px;
+  height: 64px;
+  background-color: #1c1c28; /* 피그마 다크 배경색 */
+  border-bottom: 1px solid #2d2d3d;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.navLeft {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.menuBtn {
+  background: none;
+  border: none;
+  color: #ffffff;
+  font-size: 28px;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
+
+.logoText {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+
+  /* 방향 설정: 0deg (밑에서 위로) */
+  background: linear-gradient(0deg, #6b46c1 0%, #8b5fd9 30%, #ec4899 100%);
+
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+
+  display: inline-block;
+  white-space: nowrap;
+  letter-spacing: -0.02em;
+
+  /* 텍스트 높이에 그라데이션이 꽉 차도록 설정 */
+  line-height: 1.2;
+}
+
+/* 검색창 영역 */
+.searchWrapper {
+  position: relative;
+  flex: 0 1 400px;
+  margin: 0 20px;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #71717a;
+  font-size: 14px;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 10px 16px 10px 40px;
+  background-color: #12121a;
+  border: 1px solid #333345;
+  border-radius: 20px;
+  color: #ffffff;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.searchInput:focus {
+  border-color: #8b5fd9;
+}
+
+.navRight {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* 피그마 그라데이션 적용 버튼 */
+.uploadBtn {
+  background: linear-gradient(90deg, #6b46c1 0%, #8b5fd9 50%, #ec4899 100%);
+  color: #ffffff;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 50px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition:
+    transform 0.2s,
+    opacity 0.2s;
+}
+
+.uploadBtn:hover {
+  transform: translateY(-1px);
+  opacity: 0.9;
+}
+
+.profileCircle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #8b5fd9 0%, #ec4899 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.profileIcon {
+  color: #ffffff;
+  font-size: 18px;
+}
