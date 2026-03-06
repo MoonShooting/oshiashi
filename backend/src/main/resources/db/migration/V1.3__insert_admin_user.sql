@@ -3,7 +3,8 @@
 -- 관리자 계정 생성
 -- ID: admin / PW: admin1234
 -- 이름(nickname): admin
-INSERT INTO `User` (
+
+INSERT IGNORE INTO `User` (
     `user_id`, 
     `email`, 
     `password`, 

@@ -22,11 +22,7 @@
 .image-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 0.2),
-    rgba(28, 28, 40, 0.9)
-  );
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.2), rgba(28, 28, 40, 0.9));
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -113,23 +109,62 @@
   opacity: 0.9;
 }
 
-/* 기타 링크 */
+/* 로그인 유지 & 찾기 링크 */
 .form-options {
   display: flex;
   justify-content: space-between;
-  font-size: 12px;
+  align-items: center;
+  font-size: 13px;
   color: #71717a;
   margin-top: -10px;
 }
 
+.form-options label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+/* 아이디/비밀번호 찾기 링크 스타일 (피그마 반영) */
+.find-links {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: #71717a; /* 구분선 색상 */
+}
+
+.find-links a {
+  color: #a0a0ab; /* 평소에는 회색 */
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.find-links a:hover {
+  color: #ffffff; /* 호버 시에만 흰색 */
+}
+
+.divider {
+  color: #333345; /* 구분선은 더 어둡게 처리하여 텍스트를 강조 */
+  font-size: 11px;
+}
+
+/* 하단 회원가입 유도 영역 */
 .register-hint {
   margin-top: 24px;
   font-size: 14px;
   color: #71717a;
+  text-align: center;
 }
 
 .register-hint a {
-  color: #9d50bb;
+  color: #9d50bb; /* 포인트 컬러 유지 */
   text-decoration: none;
   font-weight: 600;
+  margin-left: 8px;
+}
+
+.register-hint a:hover {
+  text-decoration: underline;
 }

@@ -157,4 +157,4 @@ CREATE TABLE `Bookmark` (
     CONSTRAINT `FK_Bookmark_Post` FOREIGN KEY (`post_id`) REFERENCES `Post` (`post_id`) ON DELETE CASCADE,
     CONSTRAINT `FK_Bookmark_PostImage` FOREIGN KEY (`post_image_id`) REFERENCES `Post_image` (`post_image_id`) ON DELETE CASCADE,
     CONSTRAINT `FK_Bookmark_Route` FOREIGN KEY (`route_id`) REFERENCES `Route` (`route_id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='게시글 및 루트 북마크 관리 테이블';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='게시글 및 루트 북마크 관리 테이블'; 
