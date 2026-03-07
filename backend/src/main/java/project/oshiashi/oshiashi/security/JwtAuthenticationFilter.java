@@ -31,6 +31,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
 			throws ServletException, IOException {
+		// 요청이 들어오는지부터 확인하기 위해 추가(로그로 바꾸셔도 됩니다)
+		System.out.println("@@DEBUG: Request URI = " + request.getRequestURI());
 
 		// 1. HTTP 요청 헤더에서 "Authorization" 값을 꺼내옴
 		String authHeader = request.getHeader("Authorization");

@@ -30,3 +30,10 @@ board.uploadPath=c:/MyProject/util/upload/
 
 # Google Map API KEY setting
 google.maps.api.key=YOUR_API_KEY_HERE
+
+# Redis 설정(Redis 프로그램 접속용)
+spring.data.redis.host=YOUR_REDIS_HOST
+spring.data.redis.port=YOUR_REDIS_PORT
+
+# 만약 Redis에 비밀번호를 설정했다면 추가 (없으면 생략)
+# spring.data.redis.password=your_password
