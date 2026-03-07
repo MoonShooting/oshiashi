@@ -155,6 +155,14 @@ const RegisterForm = () => {
     <div className="register-container">
       <form className="register-content" onSubmit={handleSignup}>
         <h3>회원가입</h3>
+        <p className="register-subtitle">필수 정보를 입력하고 이메일 인증을 완료하세요.</p>
+        <div className="register-stepper" aria-label="회원가입 단계">
+          <span className="step-chip active">1. 기본정보</span>
+          <span className="step-connector" />
+          <span className="step-chip">2. 이메일 인증</span>
+          <span className="step-connector" />
+          <span className="step-chip">3. 완료</span>
+        </div>
 
         {/* 1. 아이디 중복체크 버튼 있음 */}
         <ActionInputGroup
