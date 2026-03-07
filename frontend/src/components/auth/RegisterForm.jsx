@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import InputGroup from '../common/InputGroup';
 import ActionInputGroup from '../common/ActionInputGroup';
 import SubmitGuide from '../common/SubmitGuide';
@@ -7,6 +8,7 @@ import TermsModal from './TermsModal';
 import './RegisterForm.css';
 
 const RegisterForm = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     userId: '',
     password: '',
@@ -142,7 +144,13 @@ const RegisterForm = () => {
         body: JSON.stringify(formData),
       });
       if (res.ok) {
-        alert('회원가입이 완료되었습니다!');
+        navigate('/register/complete', {
+          state: {
+            userId: formData.userId,
+            nickname: formData.nickname,
+            email: formData.email,
+          },
+        });
       } else {
         alert('가입에 실패했습니다.');
       }

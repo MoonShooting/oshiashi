@@ -6,6 +6,7 @@ import PinPage from './pages/pin/PinPage';
 import LoginPage from './pages/Login/LoginPage';
 import FindAuthPage from './pages/Login/FindAuthPage';
 import RegisterPage from './pages/Login/RegisterPage';
+import RegisterCompletePage from './pages/Login/RegisterCompletePage';
 import PostSearchResultPage from './pages/PostSearchResultPage';
 
 function App() {
@@ -21,6 +22,7 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/find-auth" element={<FindAuthPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/register/complete" element={<RegisterCompletePage />} />
         </Routes>
       </div>
     </Router>
