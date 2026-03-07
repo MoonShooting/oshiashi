@@ -14,5 +14,5 @@
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   overflow: hidden; /* 내부 이미지나 요소가 삐져나오지 않게 함 */
   width: 100%;
-  max-width: 900px; /* 로그인/회원가입 카드 최대 너비 */
+  max-width: 1120px; /* 로그인/회원가입 카드 최대 너비 */
 }

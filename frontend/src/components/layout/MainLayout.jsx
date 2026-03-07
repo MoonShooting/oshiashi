@@ -24,6 +24,7 @@ const MainLayoutContent = ({
       works: '/posts',
       route: '/map',
       community: '/',
+      login: '/login',
       mypage: '/',
       achievements: '/',
       settings: '/',
@@ -34,7 +35,8 @@ const MainLayoutContent = ({
   const computedActiveKey = useMemo(() => {
     if (activeMenuKey) return activeMenuKey;
     if (location.pathname.startsWith('/map')) return 'route';
-    if (location.pathname.startsWith('/login') || location.pathname.startsWith('/register')) return 'mypage';
+    if (location.pathname.startsWith('/login')) return 'login';
+    if (location.pathname.startsWith('/register')) return 'mypage';
     return 'home';
   }, [activeMenuKey, location.pathname]);
 
