@@ -1,4 +1,5 @@
 import React from 'react';
+import { Heart, MapPin } from 'lucide-react';
 import styles from '../../styles/Home.module.css';
 
 const artworks = [
@@ -26,8 +27,14 @@ const PopularArtworksSection = () => {
             <div className={styles.cardType}>{art.type}</div>
             <h3>{art.title}</h3>
             <div className={styles.cardStats}>
-              <span>📍 {art.spots}</span>
-              <span>❤ {art.posts}</span>
+              <span className={styles.statItem}>
+                <MapPin className={`${styles.statIcon} ${styles.statIconLocation}`} strokeWidth={2} />
+                {art.spots}
+              </span>
+              <span className={styles.statItem}>
+                <Heart className={`${styles.statIcon} ${styles.statIconLike}`} strokeWidth={2} />
+                {art.posts}
+              </span>
             </div>
           </article>
         ))}

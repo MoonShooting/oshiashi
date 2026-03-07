@@ -159,6 +159,38 @@
   font-size: 13px;
 }
 
+.statItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.statIcon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
+.statIconLocation {
+  color: #8b5fd9;
+}
+
+.statIconLike {
+  color: #ec4899;
+}
+
+.statIconBookmark {
+  color: #7c63d6;
+}
+
+.statIconView {
+  color: #94a3b8;
+}
+
+.statIconComment {
+  color: #a78bfa;
+}
+
 .filterRow {
   display: flex;
   gap: 8px;
@@ -211,6 +243,12 @@
   place-items: center;
   font-size: 26px;
   border-bottom: 1px solid rgba(112, 108, 176, 0.28);
+}
+
+.routeThumbIcon {
+  width: 38px;
+  height: 38px;
+  color: rgba(236, 233, 255, 0.86);
 }
 
 .routeCard h3 {
