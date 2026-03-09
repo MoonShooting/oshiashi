@@ -10,6 +10,9 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 /**
  * [WebSecurityConfig: 보안 총괄 설정]
@@ -26,6 +29,8 @@ public class WebSecurityConfig {
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 		http
 				// REST API 환경에 최적화된 설정 (무상태성 유지)
+				// CORS 설정: 허용된 도메인(프론트엔드)만 서버 데이터에 접근 가능하게 제한합니다.
+				.cors(cors -> cors.configurationSource(corsConfigurationSource()))
 				.csrf(AbstractHttpConfigurer::disable)
 				.formLogin(AbstractHttpConfigurer::disable)
 				.httpBasic(AbstractHttpConfigurer::disable)
@@ -48,8 +53,27 @@ public class WebSecurityConfig {
 
 		return http.build();
 	}
+
 	/**
-	 * [BCryptPasswordEncoder]
+     * [CORS 상세 설정]
+     * 프론트엔드(Vite) 개발 환경 주소인 http://localhost:5173의 접근을 허용합니다.
+     * 만약 프론트 포트가 변경되면 이 부분의 주소도 반드시 수정되어야 통신이 가능합니다.
+	*/
+	@Bean
+	public CorsConfigurationSource corsConfigurationSource() {
+		CorsConfiguration configuration = new CorsConfiguration();
+		configuration.setAllowedOrigins(java.util.Arrays.asList("http://localhost:5173")); // 프론트 주소
+		configuration.setAllowedMethods(java.util.Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+		configuration.setAllowedHeaders(java.util.Arrays.asList("*"));
+		configuration.setAllowCredentials(true);
+
+		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+		source.registerCorsConfiguration("/**", configuration);
+		return source;
+	}
+
+	/**
+	 * [BCryptPasswordEncoder(비밀번호 암호화)]
 	 * - 회원가입 시 비밀번호를 암호화하고, 로그인 시 대조하는 데 사용함.
 	 * - 단방향 해시 알고리즘을 사용하여 DB가 털려도 비번을 알 수 없게 보호함.
 	 */
