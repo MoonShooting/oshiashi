@@ -1,7 +1,7 @@
 import React from 'react';
 import { Menu, Search, Upload } from 'lucide-react';
-import { SidebarTrigger } from './SidebarContext';
-import styles from '../../styles/Navbar.module.css';
+import { SidebarTrigger } from '@/components/layout/SidebarContext';
+import styles from '@/styles/Navbar.module.css';
 
 const NavBar = () => {
   return (

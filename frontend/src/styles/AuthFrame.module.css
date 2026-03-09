@@ -1,0 +1,18 @@
+/* 중앙 정렬과 내용물(Card)의 규격 설정 */
+
+.authWrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - 64px); /* 헤더 높이를 제외한 중앙 배치 */
+  padding: 40px 20px;
+}
+
+.authCard {
+  background-color: #1c1c28; /* 피그마 카드 배경색 */
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  overflow: hidden; /* 내부 이미지나 요소가 삐져나오지 않게 함 */
+  width: 100%;
+  max-width: 900px; /* 로그인/회원가입 카드 최대 너비 */
+}

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import InputGroup from '../common/InputGroup';
-import { loginAPI } from '../../api/auth';
-import { useAuthStore } from '../../api/useAuthStore';
+import InputGroup from '@/components/input/InputGroup.jsx';
+import { loginAPI } from '@/api/auth.js';
+import { useAuthStore } from '@/stores/useAuthStore.js';
 import './LoginForm.css';
 
 const LoginForm = () => {

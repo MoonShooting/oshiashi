@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import InputGroup from '../common/InputGroup';
-import ActionInputGroup from '../common/ActionInputGroup';
-import SubmitGuide from '../common/SubmitGuide';
-import { TERMS_DATA } from '../../data/termsData';
-import TermsModal from './TermsModal';
+import InputGroup from '@/components/input/InputGroup.jsx';
+import ActionInputGroup from '@/components/input/ActionInputGroup.jsx';
+import SubmitGuide from '@/components/input/SubmitGuide.jsx';
+import { TERMS_DATA } from '@/data/termsData.js';
+import TermsModal from '@/components/auth/TermsModal.jsx';
+import { sendEmailAPI, verifyEmailAPI, registerAPI, checkEmailAPI, checkIdAPI, checkNicknameAPI } from '@/api/Auth.js';
 import './RegisterForm.css';
 
 const RegisterForm = () => {
@@ -22,6 +23,7 @@ const RegisterForm = () => {
 
   const [status, setStatus] = useState({
     isIdChecked: false,
+    isNickNameChecked: false,
     isEmailSent: false,
     isEmailVerified: false,
   });
@@ -32,6 +34,14 @@ const RegisterForm = () => {
       const idRegex = /^[a-z0-9]{4,20}$/;
       if (!idRegex.test(value)) error = '4~20자의 영문 소문자, 숫자만 가능합니다.';
       setStatus((prev) => ({ ...prev, isIdChecked: false })); // 아이디 수정 시 중복체크 초기화
+    }
+    if (name === 'nickname') {
+      const nickRegex = /^[a-zA-Z0-9가-힣]{2,12}$/;
+      if (!nickRegex.test(value)) {
+        error = '2~12자의 한글, 영문, 숫자만 가능합니다.';
+      }
+      // 값이 바뀌면 중복체크 상태 초기화 (다시 버튼 누르게 유도)
+      setStatus((prev) => ({ ...prev, isNickNameChecked: false }));
     }
     if (name === 'password') {
       if (value.length < 8 || value.length > 20) error = '8~20자로 입력해주세요.';
@@ -60,6 +70,7 @@ const RegisterForm = () => {
   //최종 버튼 활성화 조건
   const isFormValid =
     status.isIdChecked &&
+    status.isNickNameChecked &&
     status.isEmailVerified &&
     !Object.values(errors).some((e) => e) &&
     formData.nickname &&
@@ -80,74 +91,76 @@ const RegisterForm = () => {
   const guideMessage = getSubmitGuideMessage();
 
   // ----- API 연동 -----
+  //아이디 중복 체크
   const handleIdCheck = async () => {
     if (errors.userId || !formData.userId) return alert('유효한 아이디를 입력해주세요.');
     try {
-      const res = await fetch(`/api/v1/auth/checkId?userId=${formData.userId}`); // 명세 기반
-      if (res.ok) {
-        alert('사용 가능한 아이디입니다.');
-        setStatus((prev) => ({ ...prev, isIdChecked: true }));
-      } else {
-        alert('이미 사용 중인 아이디입니다.');
-      }
+      await checkIdAPI(formData.userId); // API 함수 사용
+      alert('사용 가능한 아이디입니다.');
+      setStatus((prev) => ({ ...prev, isIdChecked: true }));
     } catch (e) {
-      alert('아이디 확인 중 오류 발생');
+      alert(e.message || '이미 사용 중인 아이디입니다.');
     }
   };
 
+  //닉네임 중복체크 핸들러 (API 연동)
+  const handleNickNameCheck = async () => {
+    // 에러 메시지가 있거나 빈값이면 API 안보냄.
+    if (errors.nickname || !formData.nickname) return alert('유효한 닉네임을 입력해주세요.');
+
+    try {
+      // Auth.js에 설정한 API 함수 호출
+      await checkNicknameAPI(formData.nickname);
+
+      alert('사용 가능한 닉네임입니다.');
+      setStatus((prev) => ({ ...prev, isNickNameChecked: true }));
+    } catch (e) {
+      // 400이나 409 등 에러 응답 시 FetchClient가 던지는 메시지
+      alert(e.message || '이미 사용 중인 닉네임입니다.');
+      setStatus((prev) => ({ ...prev, isNickNameChecked: false }));
+    }
+  };
+
+  // 이메일 중복 체크 및 발송 부분 수정
   const handleEmailCheckAndSend = async () => {
     if (errors.email || !formData.email) return alert('유효한 이메일을 입력해주세요.');
     try {
-      const check = await fetch(`/api/v1/auth/checkEmail?email=${formData.email}`);
-      if (!check.ok) return alert('이미 가입된 이메일입니다.');
+      // checkEmailAPI 함수 사용
+      await checkEmailAPI(formData.email);
+      await sendEmailAPI(formData.email);
 
-      const send = await fetch('/api/v1/auth/emailSend', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: formData.email }),
-      });
-      if (send.ok) {
-        setStatus((prev) => ({ ...prev, isEmailSent: true }));
-        alert('인증번호 발송!');
-      }
+      setStatus((prev) => ({ ...prev, isEmailSent: true }));
+      alert('인증번호 발송!');
     } catch (e) {
-      alert('이메일 처리 중 오류 발생');
+      alert(e.message || '이메일 처리 중 오류 발생');
     }
   };
 
   const handleVerifyCode = async () => {
+    if (!formData.authCode) return alert('인증번호를 입력해주세요.');
+
     try {
-      const res = await fetch('/api/v1/auth/emailVerify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: formData.email, code: formData.authCode }),
-      });
-      if (res.ok) {
-        alert('인증에 성공했습니다.');
-        setStatus((prev) => ({ ...prev, isEmailVerified: true }));
-      } else {
-        alert('인증번호가 일치하지 않습니다.');
-      }
+      // verifyEmailAPI 함수 사용
+      await verifyEmailAPI(formData.email, formData.authCode);
+
+      alert('인증에 성공했습니다.');
+      setStatus((prev) => ({ ...prev, isEmailVerified: true }));
     } catch (e) {
-      alert('인증 확인 중 오류 발생');
+      // FetchClient에서 에러를 던지므로 catch에서 메시지 처리
+      alert(e.message || '인증번호가 일치하지 않습니다.');
+      setStatus((prev) => ({ ...prev, isEmailVerified: false }));
     }
   };
 
+  // 회원가입 제출 부분 수정
   const handleSignup = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch('/api/v1/auth/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-      if (res.ok) {
-        alert('회원가입이 완료되었습니다!');
-      } else {
-        alert('가입에 실패했습니다.');
-      }
+      await registerAPI(formData); // register API 호출하여 사용
+      alert('회원가입이 완료되었습니다!');
+      // 이후 로그인 페이지 이동 로직 등 추가
     } catch (e) {
-      alert('서버 통신 오류');
+      alert(e.message || '가입 실패');
     }
   };
 
@@ -156,7 +169,7 @@ const RegisterForm = () => {
       <form className="register-content" onSubmit={handleSignup}>
         <h3>회원가입</h3>
 
-        {/* 1. 아이디 중복체크 버튼 있음 */}
+        {/* 아이디 중복체크 버튼 */}
         <ActionInputGroup
           label="아이디"
           name="userId"
@@ -178,14 +191,17 @@ const RegisterForm = () => {
           error={errors.confirmPassword}
         />
 
-        {/* 2. 닉네임 버튼 없음 (유효성 검사만 진행) */}
-        <InputGroup
+        {/* 닉네임 버튼 */}
+        <ActionInputGroup
           label="닉네임"
           name="nickname"
           value={formData.nickname}
           onChange={handleChange}
+          btnText="중복확인"
+          onAction={handleNickNameCheck}
           error={errors.nickname}
           placeholder="2~12자의 한글, 영문, 숫자"
+          successMsg={status.isNickNameChecked && '사용 가능한 닉네임입니다.'}
         />
 
         <ActionInputGroup
