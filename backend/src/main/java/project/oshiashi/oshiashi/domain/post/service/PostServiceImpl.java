@@ -48,17 +48,26 @@ public class PostServiceImpl implements PostService{
 	@Override
 	public PostResponse createPost(PostResponse request) {
 		
+		// [테스트 로깅 추가] 제목과 내용 입력값 확인
+		log.debug("======= Post 등록 테스트 =======");
+		log.debug("입력된 제목: {}", request.getTitle());
+		log.debug("입력된 내용: {}", request.getContent());
+		log.debug("================================");
+		
+		// TODO: 에러 핸들링 및 유효성 검사 (현재는 값이 없으므로 테스트를 위해 잠시 주석 처리)
+		/*
 		// 1. 작성자 정보와 루트 정보를 DB에서 먼저 조회
 		UserEntity user = userRepository.findById(request.getUserId())
 				.orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 		
 		RouteEntity route = routeRepository.findById(request.getRouteId())
 				.orElseThrow(() -> new RuntimeException("루트를 찾을 수 없습니다."));
+		*/
 		
 		// DB에 저장할 엔티티 생성
 		PostEntity postEntity = PostEntity.builder()
-				.user(user) // ← "이 유저가 쓴 글이야" 라고 객체를 연결
-				.route(route)
+				//.user(user) // ← "이 유저가 쓴 글이야" 라고 객체를 연결
+				//.route(route)
 				.title(request.getTitle())
 				.content(request.getContent())
 				.status(PostEntity.PostStatus.PUBLIC)
