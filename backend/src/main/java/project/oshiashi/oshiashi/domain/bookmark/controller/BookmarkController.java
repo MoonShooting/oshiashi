@@ -11,11 +11,13 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/bookmarks")
+// API 명세에 맞춰 수정
+@RequestMapping("/api/v1/user/bookmarks")
 public class BookmarkController {
 
     private final BookmarkService bookmarkService;
 
+    // 북마크 생성
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public BookmarkResponse createBookmark(
@@ -25,14 +27,19 @@ public class BookmarkController {
         return bookmarkService.createBookmark(userId, request);
     }
 
+    // 북마크 목록 조회
     @GetMapping
     public List<BookmarkResponse> getBookmarks(@RequestParam String userId) {
         return bookmarkService.getBookmarksByUser(userId);
     }
 
+    // 북마크 삭제
     @DeleteMapping("/{bookmarkId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteBookmark(@PathVariable Long bookmarkId) {
-        bookmarkService.deleteBookmark(bookmarkId);
+    public void deleteBookmark(
+            @PathVariable Long bookmarkId,
+            @RequestParam String userId
+    ) {
+        bookmarkService.deleteBookmark(userId, bookmarkId);
     }
 }
