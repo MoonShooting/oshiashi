@@ -1,13 +1,12 @@
-const BASE_URL = 'http://localhost:9933';
-
 /* 
-[공통 함수로 fetchClient를 만든 이유]
+[공통 함수로 FetchClient 만든 이유]
 - 자동 토큰 주입: 로그인 후 accessToken을 일일이 헤더에 넣을 필요가 없습니다. (자동 처리)
 - 똑똑한 응답 변환: 백엔드가 객체(JSON)를 주면 알아서 자바스크립트 객체로, 문자열을 주면 텍스트로 바꿔줍니다.
 - 에러 조기 발견: 서버 에러(404, 500 등) 발생 시 명확한 에러 메시지를 던져줍니다.
 - 코드 단축: 반복되는 BASE_URL이나 headers 설정을 생략할 수 있어 코드가 깔끔해집니다.
 */
-export const fetchClient = async (endpoint, options = {}) => {
+export const FetchClient = async (endpoint, options = {}) => {
+  const BASE_URL = 'http://localhost:9933';
   const token = localStorage.getItem('accessToken');
 
   // 기본 옵션 설정 (이걸 여러번 안써도 됨.)

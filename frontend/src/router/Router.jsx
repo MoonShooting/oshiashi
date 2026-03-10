@@ -1,11 +1,11 @@
 import React from 'react';
-import { BrowserRouter as Routes, Route } from 'react-router-dom';
-import Home from './pages/Home';
-import MapPage from './pages/map/MapPage';
-import PinPage from './pages/pin/PinPage';
-import LoginPage from './pages/Login/LoginPage';
-import FindAuthPage from './pages/Login/FindAuthPage';
-import RegisterPage from './pages/Login/RegisterPage';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import Home from '@/pages/Home';
+import MapPage from '@/pages/map/MapPage';
+import PinPage from '@/pages/pin/PinPage';
+import LoginPage from '@/pages/Login/LoginPage';
+import FindAuthPage from '@/pages/Login/FindAuthPage';
+import RegisterPage from '@/pages/Login/RegisterPage';
 
 const Router = () => {
   return (
