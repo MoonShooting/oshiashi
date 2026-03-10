@@ -44,3 +44,15 @@ tmdb.api.key=your_api_key
 tmdb.api.base-url=your_base_url
 # 이미지 서버/CDN
 tmdb.api.image-url=your_image_url
+
+# Google STMP 설정
+spring.mail.host=smtp.gmail.com
+spring.mail.port=your_port
+spring.mail.username=your_google_mail@gmail.com
+spring.mail.password=your_password
+# 사용자 인증 설정
+spring.mail.properties.mail.smtp.auth=true
+# 통신 암호화 설정
+spring.mail.properties.mail.smtp.starttls.enable=true
+# debug시 발송 체크용
+spring.mail.properties.mail.debug=true
