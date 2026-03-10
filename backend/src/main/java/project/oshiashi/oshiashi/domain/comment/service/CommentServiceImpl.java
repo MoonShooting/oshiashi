@@ -29,6 +29,7 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     public CommentResponse createComment(Long postId, CommentCreateRequest request) {
+        validateContent(request.getContent());
         UserEntity me = getCurrentUserEntity();
 
         PostEntity post = postRepository.findById(postId)
@@ -56,6 +57,7 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     public CommentResponse updateComment(Long commentId, CommentUpdateRequest request) {
+        validateContent(request.getContent());
         UserEntity me = getCurrentUserEntity();
 
         CommentEntity comment = commentRepository.findById(commentId)
@@ -93,5 +95,16 @@ public class CommentServiceImpl implements CommentService {
             throw new IllegalStateException("인증 정보가 없습니다.");
         }
         return authenticatedUser.user();
+    }
+
+    // 만약 댓글이 비어있거나 255자를 넘었는지를 판단합니다
+    private void validateContent(String content) {
+        if (content == null || content.trim().isEmpty()) {
+            throw new IllegalArgumentException("댓글 내용은 비어 있을 수 없습니다.");
+        }
+
+        if (content.length() > 255) {
+            throw new IllegalArgumentException("댓글 내용은 255자를 초과할 수 없습니다.");
+        }
     }
 }
