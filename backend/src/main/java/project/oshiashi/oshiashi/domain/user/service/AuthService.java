@@ -2,6 +2,7 @@ package project.oshiashi.oshiashi.domain.user.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -9,19 +10,24 @@ import project.oshiashi.oshiashi.domain.user.dto.UserLoginRequest;
 import project.oshiashi.oshiashi.domain.user.dto.UserSignUpRequest;
 import project.oshiashi.oshiashi.domain.user.entity.UserEntity;
 import project.oshiashi.oshiashi.domain.user.repository.UserRepository;
+import project.oshiashi.oshiashi.global.constant.RedisKeys;
 import project.oshiashi.oshiashi.security.JwtProvider;
 import project.oshiashi.oshiashi.security.stmp.EmailVerificationEntity;
 import project.oshiashi.oshiashi.security.stmp.EmailVerificationRepository;
 import project.oshiashi.oshiashi.security.stmp.MailService;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 
 /**
  * [AuthService: 인증 관문 서비스]
  * - 역할: 회원가입 시의 자격 부여, 로그인 시의 자격 검증 및 JWT 발급을 전담함.
  * - 설계서 경로: /api/v1/auth/** 관련 비즈니스 로직 처리함.
+ * - Redis 로컬에서 설치가 완료되었다면, redis-cli ping 을 입력 시, pong 이라고 나옵니다.
+ * - 로직 확인 시, keys *로 하면 3분 후 사라지는 인증 6자리가 발급되는걸 확인 가능합니다.
  */
 @Slf4j
 @Service
@@ -31,7 +37,9 @@ public class AuthService {
 	private final BCryptPasswordEncoder passwordEncoder;
 	private final JwtProvider jwtProvider;
 	private final EmailVerificationRepository verificationRepository;
-	private final MailService mailService;
+	private final MailService mailService; //메일 발송 서비스
+	private final StringRedisTemplate redisTemplate; //redis 템플릿(key-value string)
+
 
 	/** * [아이디 중복 확인]
 	 * - 가입 폼 입력 시 실시간 중복 체크를 위해 사용됨.
@@ -63,16 +71,10 @@ public class AuthService {
 	 * @param email 인증받을 이메일 값
 	 */
 	private void validateEmailVerification(String email) {
-		EmailVerificationEntity verification = verificationRepository.findTopByEmailOrderByExpiryDateDesc(email)
-				.orElseThrow(() -> new IllegalArgumentException("이메일 인증 기록이 없음."));
-
-		if (!verification.isVerified()) {
-			throw new IllegalArgumentException("이메일 인증이 완료되지 않았음.");
-		}
-		// 추가: 인증 완료 후 10분이 지났다면 무효 처리
-		// 컬럼값 expiryDate가 '생성+3분'이므로, 그로부터 10분(총 13분) 뒤인지 체크
-		if (verification.getExpiryDate().plusMinutes(10).isBefore(LocalDateTime.now())) {
-			throw new IllegalArgumentException("인증 세션이 만료되었습니다. 다시 인증해 주세요.");
+		// Redis에 "verified:이메일" 키가 있는지 확인("10분짜리 인증 증표 갖고 오셨나요?" 라고 확인함)
+		Boolean isVerified = redisTemplate.hasKey("verified:" + email);
+		if (!isVerified) {
+			throw new IllegalArgumentException("이메일 인증이 완료되지 않았거나 세션이 만료되었습니다.");
 		}
 	}
 
@@ -199,37 +201,39 @@ public class AuthService {
 		}
 
 		// 1분 재요청 방지 (도배 방지)
-		verificationRepository.findTopByEmailOrderByExpiryDateDesc(email).ifPresent(v -> {
-			// expiryDate(생성+3분)에서 2분을 뺀 시점보다 현재가 빠르면 발송 1분 미경과임
-			if (v.getExpiryDate().minusMinutes(2).isAfter(LocalDateTime.now())) {
-				log.warn("[Email Auth] 발송 거부: 60초 이내 재요청 - Email: {}", email);
-				throw new IllegalArgumentException("이미 인증 메일을 발송했습니다. 잠시 후 다시 시도해주세요. (60초 제한)");
-			}
-		});
-
-		// 이미 가입된 이메일인지 최종 확인 (인증번호 낭비 방지)
-		if (isEmailDuplicated(email)) {
-			log.warn("[Email Auth] 발송 중단: 이미 가입된 계정 - Email: {}", email);
-			throw new IllegalArgumentException("이미 가입된 이메일입니다.");
+		// Redis의 TTL(남은 시간)로 체크하도록 로직 변경
+		// [실제 저장될 때의 모습 예시]
+		// redisTemplate.opsForValue().set(AUTH_CODE_PREFIX + "test1234@gmail.com", "123456");
+		// -> Redis 키: "auth_code:teset1234@gmail.com"
+		Long expireTime = redisTemplate.getExpire(RedisKeys.AUTH_CODE + email, TimeUnit.SECONDS); //상수로 빼 둔 용도(인증코드 발급, auth_code:이메일로 저장.)
+		if (expireTime != null && expireTime > 120) { // 3분(180초) 중 1분도 안 지났다면
+			throw new IllegalArgumentException("이미 인증 메일을 발송했습니다. (60초 제한)");
 		}
 
-		// 6자리 난수 생성
-		// Random Math()보다 ThreadLocalRandom은 멀티 쓰레드 환경에서 훨씬 빠르고 안전합니다.
-		int randomNum = ThreadLocalRandom.current().nextInt(100000, 1000000);
-		String authCode = String.valueOf(randomNum);
+		// 난수 생성: 0으로 시작하는 번호를 위해 String 포맷팅 적용
+		String authCode = String.format("%06d", ThreadLocalRandom.current().nextInt(1000000));
 
-		// DB 저장 (기존 정보가 있다면 덮어쓰거나 새로 생성)
+		// Redis에 인증번호 저장 (3분 후 자동 삭제)
+		/* 곧장 redis 실행 테스트를 하고 싶으면, 우선 로컬단에 redis 설치 후,
+			터미널에서 redis-cli 후, keys * 를 쳐보시면
+			auth_code:이메일 이라는 키가 생겼다가 3분 뒤 사라지는걸 확인 가능합니다.
+		*/
+		redisTemplate.opsForValue().set(
+				RedisKeys.AUTH_CODE + email,
+				authCode,
+				Duration.ofMinutes(3)
+		);
+
+		// DB 에는 이력만 저장 (보안을 위해 코드는 마스킹 처리로 수정)
 		EmailVerificationEntity verification = EmailVerificationEntity.builder()
-				.email(email)
-				.authCode(authCode)
-				.expiryDate(LocalDateTime.now().plusMinutes(3)) // 3분 유효
-				.isVerified(false)
-				.build();
+			  .email(email)
+			  .authCode("******") // Redis에 실제 값이 있으므로 MySQL엔 마스킹
+			  .createdAt(LocalDateTime.now()) // countBy에 필수
+			  .build();
 		verificationRepository.save(verification);
-		log.info("[Email Auth] 신규 인증번호 DB 저장 완료 - Code: {}", authCode);
 
 		// 실제 메일 발송 호출 (비동기)
-		mailService.sendVerificationEmail(email, authCode);
+		mailService.sendVerificationEmail(email, authCode); //양식에 맞춰서 발송
 		log.info("[Email Auth] 메일 발송 서비스(Async) 호출 완료 - To: {}", email);
 	}
 
@@ -240,25 +244,17 @@ public class AuthService {
 	 */
 	@Transactional
 	public void verifyCode(String email, String code) {
-		log.info("[Email Auth] 인증번호 검증 시도 - Email: {}, Code: {}", email, code);
-		EmailVerificationEntity verification = verificationRepository.findTopByEmailOrderByExpiryDateDesc(email)
-				.orElseThrow(() -> {
-					log.error("[Email Auth] 검증 실패: 인증 기록 없음 - Email: {}", email);
-					return new IllegalArgumentException("인증 요청 기록이 없음.");
-				});
+		// Redis 에서 번호 가져오기
+		String savedCode = redisTemplate.opsForValue().get(RedisKeys.AUTH_CODE + email);
+		if (savedCode == null) throw new IllegalArgumentException("인증 시간이 만료되었거나 기록이 없습니다.");
+		if (!savedCode.equals(code)) throw new IllegalArgumentException("인증번호가 일치하지 않습니다.");
 
-		if (verification.getExpiryDate().isBefore(LocalDateTime.now())) {
-			log.warn("[Email Auth] 검증 실패: 시간 만료 - Expiry: {}", verification.getExpiryDate());
-			throw new IllegalArgumentException("인증 시간이 만료됨.");
-		}
+		// 성공 시 Redis 데이터 즉시 삭제 (1회성)
+		redisTemplate.delete(RedisKeys.AUTH_CODE + email);
 
-		if (!verification.getAuthCode().equals(code)) {
-			log.warn("[Email Auth] 검증 실패: 번호 불일치 - Input: {}, Expected: {}", code, verification.getAuthCode());
-			throw new IllegalArgumentException("인증 번호가 일치하지 않음.");
-		}
-		// 인증 성공 마킹
-		verification.markAsVerified();
-		log.info("[Email Auth] 인증 성공 완료 - Email: {}", email);
+		// 가입 시 확인을 위한 '인증 성공 증표'를 Redis에 10분간 보관
+		redisTemplate.opsForValue().set(RedisKeys.VERIFIED_EMAIL + email, "true", Duration.ofMinutes(10));
+		log.info("[Email Auth] 인증 성공 - Email: {}", email);
 	}
 
 }
