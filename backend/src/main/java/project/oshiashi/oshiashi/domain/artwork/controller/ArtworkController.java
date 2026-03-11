@@ -17,7 +17,7 @@ public class ArtworkController {
     private final ArtworkService artworkService;
 
     // 전체 조회
-    @GetMapping
+    @GetMapping("/")
     public List<ArtworkResponse> getArtworks(
             @RequestParam(required = false) Long artworkTypeId
     ) {
@@ -29,18 +29,19 @@ public class ArtworkController {
 
 
     // 단건 조회
-    @GetMapping("artwork/{artworkId}")
+    @GetMapping("/artwork/{artworkId}")
     public ArtworkResponse getArtwork(@PathVariable Long artworkId) {
         return artworkService.getArtwork(artworkId);
     }
 
     // 작품별 촬영지 조회
-    @GetMapping("artwork/{artworkId}/spots")
+    @GetMapping("/artwork/{artworkId}/spots")
     public List<SpotResponse> getSpotsByArtwork(@PathVariable Long artworkId) {
         return artworkService.getSpotsByArtwork(artworkId);
     }
 
-    @GetMapping("artwork/types")
+    //
+    @GetMapping("/artwork/types")
     public List<ArtworkTypeResponse> getArtworkTypes() {
         return artworkService.getArtworkTypes();
     }
