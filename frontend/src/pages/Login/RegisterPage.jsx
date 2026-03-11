@@ -1,7 +1,7 @@
 import React from 'react';
-import MainLayout from '../../components/layout/MainLayout';
-import AuthFrame from '../../components/layout/AuthFrame';
-import RegisterForm from '../../components/auth/RegisterForm';
+import MainLayout from '@/components/layout/MainLayout';
+import AuthFrame from '@/components/layout/AuthFrame';
+import RegisterForm from '@/components/auth/RegisterForm';
 
 const RegisterPage = () => {
   return (
