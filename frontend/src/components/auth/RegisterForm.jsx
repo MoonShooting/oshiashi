@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { BadgeCheck, Mail, ShieldCheck, Sparkles } from 'lucide-react';
 import InputGroup from '../common/InputGroup';
 import ActionInputGroup from '../common/ActionInputGroup';
 import SubmitGuide from '../common/SubmitGuide';
@@ -162,111 +163,167 @@ const RegisterForm = () => {
   return (
     <div className="register-container">
       <form className="register-content" onSubmit={handleSignup}>
-        <h3>회원가입</h3>
-        <p className="register-subtitle">필수 정보를 입력하고 이메일 인증을 완료하세요.</p>
-        <div className="register-stepper" aria-label="회원가입 단계">
-          <span className="step-chip active">1. 기본정보</span>
-          <span className="step-connector" />
-          <span className="step-chip">2. 이메일 인증</span>
-          <span className="step-connector" />
-          <span className="step-chip">3. 완료</span>
+        <div className="register-hero">
+          <div>
+            <span className="register-badge">
+              <Sparkles size={14} />
+              Oshiashi Account
+            </span>
+            <h3>회원가입</h3>
+            <p className="register-subtitle">필수 정보를 입력하고 이메일 인증을 완료하세요.</p>
+          </div>
+          <div className="register-stepper" aria-label="회원가입 단계">
+            <span className="step-chip active">1. 기본정보</span>
+            <span className="step-connector" />
+            <span className="step-chip">2. 이메일 인증</span>
+            <span className="step-connector" />
+            <span className="step-chip">3. 완료</span>
+          </div>
         </div>
 
-        {/* 1. 아이디 중복체크 버튼 있음 */}
-        <ActionInputGroup
-          label="아이디"
-          name="userId"
-          value={formData.userId}
-          onChange={handleChange}
-          btnText="중복확인"
-          onAction={handleIdCheck}
-          error={errors.userId}
-          successMsg={status.isIdChecked && '사용 가능한 아이디입니다.'}
-        />
-
-        <InputGroup label="비밀번호" type="password" name="password" value={formData.password} onChange={handleChange} error={errors.password} />
-        <InputGroup
-          label="비밀번호 확인"
-          type="password"
-          name="confirmPassword"
-          value={formData.confirmPassword}
-          onChange={handleChange}
-          error={errors.confirmPassword}
-        />
-
-        {/* 2. 닉네임 버튼 없음 (유효성 검사만 진행) */}
-        <InputGroup
-          label="닉네임"
-          name="nickname"
-          value={formData.nickname}
-          onChange={handleChange}
-          error={errors.nickname}
-          placeholder="2~12자의 한글, 영문, 숫자"
-        />
-
-        <ActionInputGroup
-          label="이메일"
-          name="email"
-          value={formData.email}
-          onChange={handleChange}
-          btnText={status.isEmailSent ? '재발송' : '인증요청'}
-          onAction={handleEmailCheckAndSend}
-          error={errors.email}
-          disabled={status.isEmailVerified}
-        />
-
-        {status.isEmailSent && (
-          <ActionInputGroup
-            placeholder="인증번호 6자리"
-            name="authCode"
-            value={formData.authCode}
-            onChange={handleChange}
-            btnText="확인"
-            onAction={handleVerifyCode}
-            disabled={status.isEmailVerified}
-            successMsg={status.isEmailVerified && '인증 성공'}
-          />
-        )}
-
-        <div className="agreement-section">
-          <div className="check-item all-check">
-            <input
-              type="checkbox"
-              checked={agreements.service && agreements.privacy}
-              onChange={(e) => {
-                const checked = e.target.checked;
-                setAgreements({ service: checked, privacy: checked });
-              }}
-              id="all"
-            />
-            <label htmlFor="all">전체 동의</label>
+        <section className="register-section">
+          <div className="section-heading">
+            <BadgeCheck size={18} />
+            <div>
+              <h4>기본 정보</h4>
+              <p>로그인과 프로필 생성에 필요한 기본 정보를 입력합니다.</p>
+            </div>
           </div>
-          <hr />
-          {['service', 'privacy'].map((type) => (
-            <div className="check-item" key={type}>
+
+          <div className="register-grid two-columns">
+            {/* 아이디 중복 체크는 회원가입 전 필수 검증 단계입니다. */}
+            <ActionInputGroup
+              label="아이디"
+              name="userId"
+              value={formData.userId}
+              onChange={handleChange}
+              btnText="중복확인"
+              onAction={handleIdCheck}
+              error={errors.userId}
+              successMsg={status.isIdChecked && '사용 가능한 아이디입니다.'}
+            />
+
+            <InputGroup
+              label="닉네임"
+              name="nickname"
+              value={formData.nickname}
+              onChange={handleChange}
+              error={errors.nickname}
+              placeholder="2~12자의 한글, 영문, 숫자"
+            />
+          </div>
+
+          <div className="register-grid two-columns">
+            <InputGroup
+              label="비밀번호"
+              type="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              error={errors.password}
+              placeholder="8~20자 입력"
+            />
+            <InputGroup
+              label="비밀번호 확인"
+              type="password"
+              name="confirmPassword"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              error={errors.confirmPassword}
+              placeholder="비밀번호를 다시 입력"
+            />
+          </div>
+        </section>
+
+        <section className="register-section">
+          <div className="section-heading">
+            <Mail size={18} />
+            <div>
+              <h4>이메일 인증</h4>
+              <p>가입 완료 전에 이메일 중복 여부와 인증번호를 확인합니다.</p>
+            </div>
+          </div>
+
+          <ActionInputGroup
+            label="이메일"
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
+            btnText={status.isEmailSent ? '재발송' : '인증요청'}
+            onAction={handleEmailCheckAndSend}
+            error={errors.email}
+            disabled={status.isEmailVerified}
+          />
+
+          {status.isEmailSent ? (
+            <div className="verification-state success">
+              인증번호가 발송되었습니다. 메일함에서 6자리 코드를 확인해 주세요.
+            </div>
+          ) : null}
+
+          {status.isEmailSent && (
+            <ActionInputGroup
+              label="인증번호"
+              placeholder="인증번호 6자리"
+              name="authCode"
+              value={formData.authCode}
+              onChange={handleChange}
+              btnText="확인"
+              onAction={handleVerifyCode}
+              disabled={status.isEmailVerified}
+              successMsg={status.isEmailVerified && '인증 성공'}
+            />
+          )}
+        </section>
+
+        <section className="register-section">
+          <div className="section-heading">
+            <ShieldCheck size={18} />
+            <div>
+              <h4>약관 동의</h4>
+              <p>서비스 이용을 위해 필수 약관에 모두 동의해야 합니다.</p>
+            </div>
+          </div>
+
+          <div className="agreement-section">
+            <div className="check-item all-check">
               <input
                 type="checkbox"
-                checked={agreements[type]}
-                onChange={() => setAgreements((prev) => ({ ...prev, [type]: !prev[type] }))}
-                id={type}
+                checked={agreements.service && agreements.privacy}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setAgreements({ service: checked, privacy: checked });
+                }}
+                id="all"
               />
-              <label htmlFor={type}>(필수) {type === 'service' ? '이용약관 동의' : '개인정보 처리방침 동의'}</label>
-              <button
-                type="button"
-                className="btn-view"
-                onClick={() => {
-                  const title = type === 'service' ? '이용약관' : '개인정보 처리방침';
-                  const content = type === 'service' ? TERMS_DATA.serviceTerms : TERMS_DATA.privacyPolicy;
-                  setModal({ isOpen: true, title, content });
-                }}>
-                보기
-              </button>
+              <label htmlFor="all">전체 동의</label>
             </div>
-          ))}
-        </div>
+            <hr />
+            {['service', 'privacy'].map((type) => (
+              <div className="check-item" key={type}>
+                <input
+                  type="checkbox"
+                  checked={agreements[type]}
+                  onChange={() => setAgreements((prev) => ({ ...prev, [type]: !prev[type] }))}
+                  id={type}
+                />
+                <label htmlFor={type}>(필수) {type === 'service' ? '이용약관 동의' : '개인정보 처리방침 동의'}</label>
+                <button
+                  type="button"
+                  className="btn-view"
+                  onClick={() => {
+                    const title = type === 'service' ? '이용약관' : '개인정보 처리방침';
+                    const content = type === 'service' ? TERMS_DATA.serviceTerms : TERMS_DATA.privacyPolicy;
+                    setModal({ isOpen: true, title, content });
+                  }}>
+                  보기
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
 
-        {/* 가이드 메시지 및 버튼 영역 */}
-        <div className="submit-area" style={{ marginTop: '20px', textAlign: 'center' }}>
+        <div className="submit-area">
           <SubmitGuide message={guideMessage} />
           <button type="submit" className="btn-submit" disabled={!isFormValid}>
             가입하기
