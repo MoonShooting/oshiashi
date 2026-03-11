@@ -1,11 +1,14 @@
 import React from "react";
+import { Bookmark, MapPin } from "lucide-react";
 
 function MyRouteGrid({ routeCards }) {
   return (
     <section className="my-route-grid">
       {routeCards.map((card) => (
         <article key={card.title} className="my-route-card">
-          <div className="my-route-hero">📍</div>
+          <div className="my-route-hero">
+            <MapPin size={74} strokeWidth={1.7} />
+          </div>
           <div className="my-route-body">
             <h3>{card.title}</h3>
             <div className="my-route-tags">
@@ -13,8 +16,14 @@ function MyRouteGrid({ routeCards }) {
               <small>{card.date}</small>
             </div>
             <div className="my-route-metrics">
-              <span>📍 {card.spots}</span>
-              <span>🔖 {card.saves}</span>
+              <span>
+                <MapPin size={12} strokeWidth={2.2} />
+                {card.spots}
+              </span>
+              <span>
+                <Bookmark size={12} strokeWidth={2.2} />
+                {card.saves}
+              </span>
             </div>
           </div>
         </article>

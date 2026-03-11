@@ -2352,7 +2352,9 @@ textarea {
   border-radius: 999px;
   padding: 0 24px;
   color: #fff;
+  font-size: 15px;
   font-weight: 600;
+  box-shadow: 0 8px 24px rgba(107, 70, 193, 0.24);
   background: linear-gradient(180deg, #6b46c1 0%, #ec4899 100%);
 }
 
@@ -2362,63 +2364,65 @@ textarea {
   border: 2px solid #6b46c1;
   border-radius: 50%;
   background: linear-gradient(180deg, #6b46c1 0%, #ec4899 100%);
+  box-shadow: 0 4px 18px rgba(107, 70, 193, 0.28);
 }
 
 .my-main {
-  max-width: 1520px;
+  max-width: 1124px;
   margin: 0 auto;
-  padding: 106px 24px 40px;
+  padding: 106px 0 40px;
   display: grid;
-  gap: 26px;
+  gap: 32px;
 }
 
 .my-profile-card {
   border: 1px solid #2d2d44;
-  border-radius: 30px;
+  border-radius: 34px;
   background:
     radial-gradient(circle at 10% 0%, rgba(107, 70, 193, 0.2), transparent 30%),
     radial-gradient(circle at 95% 90%, rgba(236, 72, 153, 0.2), transparent 30%),
     #1a1a2e;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-  padding: 30px;
+  box-shadow: 0 11px 45px rgba(0, 0, 0, 0.4);
+  padding: 44px 45px;
   display: grid;
   grid-template-columns: 1.2fr 1fr;
-  gap: 26px;
+  gap: 45px;
 }
 
 .my-profile-left {
   display: flex;
-  gap: 24px;
+  gap: 34px;
 }
 
 .my-profile-avatar {
-  width: 96px;
-  height: 96px;
+  width: 136px;
+  height: 136px;
   border-radius: 50%;
-  border: 2px solid #6b46c1;
-  box-shadow: 0 8px 24px rgba(107, 70, 193, 0.4);
+  border: 3px solid #6b46c1;
+  box-shadow: 0 11px 34px rgba(107, 70, 193, 0.4);
   display: grid;
   place-items: center;
-  font-size: 44px;
+  color: #ffffff;
   background: linear-gradient(180deg, #6b46c1 0%, #ec4899 100%);
 }
 
 .my-profile-meta h2 {
   margin: 0;
-  font-size: 42px;
+  font-size: 34px;
+  line-height: 1.4;
 }
 
 .my-profile-topline {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 8px;
+  gap: 16px;
+  margin-bottom: 16px;
 }
 
 .my-profile-topline .badge-normal,
 .my-profile-topline .badge-active {
   border-radius: 999px;
-  padding: 4px 10px;
+  padding: 6px 12px;
   font-size: 14px;
   font-weight: 700;
 }
@@ -2434,56 +2438,67 @@ textarea {
 }
 
 .my-profile-meta p {
-  margin: 4px 0;
+  margin: 0 0 6px;
   color: #a0a0b8;
-  font-size: 17px;
+  font-size: 20px;
+  line-height: 1.5;
 }
 
-.my-profile-meta p:nth-child(5),
-.my-profile-meta p:nth-child(6) {
+.my-profile-meta p:nth-child(4),
+.my-profile-meta p:nth-child(5) {
   color: #6d6d8e;
 }
 
 .my-profile-actions {
-  margin-top: 14px;
+  margin-top: 22px;
   display: flex;
-  gap: 10px;
+  gap: 16px;
 }
 
 .my-edit-btn {
-  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 62px;
   border: 0;
   border-radius: 999px;
-  padding: 0 22px;
+  padding: 0 28px;
   color: #fff;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
   background: linear-gradient(160deg, #6b46c1 0%, #ec4899 100%);
+  box-shadow: 0 6px 24px rgba(107, 70, 193, 0.3);
 }
 
 .my-setting-btn {
-  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 62px;
   border: 1px solid #2d2d44;
   border-radius: 999px;
-  padding: 0 20px;
+  padding: 0 26px;
   color: #a0a0b8;
   background: transparent;
-  font-size: 16px;
+  font-size: 18px;
+  font-weight: 700;
 }
 
 .my-stats-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 22px;
 }
 
 .my-stat-item {
-  min-height: 122px;
+  min-height: 149px;
   border: 1px solid #2d2d44;
-  border-radius: 20px;
+  border-radius: 28px;
   background: #16162a;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
-  padding: 16px 18px;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.3);
+  padding: 24px;
 }
 
 .my-stat-head {
@@ -2491,89 +2506,90 @@ textarea {
   align-items: center;
   justify-content: space-between;
   color: #a0a0b8;
-  font-size: 14px;
+  font-size: 17px;
 }
 
-.my-stat-head b {
-  font-size: 24px;
+.my-stat-head svg {
+  color: #f7d84a;
 }
 
 .my-stat-item strong {
   display: block;
-  margin-top: 6px;
-  font-size: 42px;
+  margin-top: 10px;
+  font-size: 34px;
+  line-height: 1.4;
 }
 
 .my-tabs {
   border: 1px solid #2d2d44;
-  border-radius: 24px;
+  border-radius: 34px;
   background: #1a1a2e;
-  padding: 10px;
+  padding: 12px;
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 8px;
+  gap: 11px;
 }
 
 .my-tabs button {
-  height: 52px;
+  height: 68px;
   border: 0;
-  border-radius: 18px;
+  border-radius: 28px;
   background: transparent;
   color: #a0a0b8;
-  font-size: 16px;
+  font-size: 20px;
   font-weight: 700;
 }
 
 .my-tabs button.active {
   color: #fff;
   background: rgba(107, 70, 193, 0.12);
-  border-bottom: 2px solid #6b46c1;
+  border-bottom: 3px solid #6b46c1;
 }
 
 .my-route-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
+  gap: 34px;
 }
 
 .my-route-card {
   border: 1px solid #2d2d44;
-  border-radius: 20px;
+  border-radius: 28px;
   overflow: hidden;
   background: #1a1a2e;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.3);
 }
 
 .my-route-hero {
-  height: 180px;
+  height: 254px;
   display: grid;
   place-items: center;
-  font-size: 70px;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.42);
   background: linear-gradient(180deg, #6b46c1 0%, #ec4899 100%);
 }
 
 .my-route-body {
-  padding: 16px;
+  padding: 22px;
 }
 
 .my-route-body h3 {
   margin: 0;
-  font-size: 35px;
-  line-height: 1.35;
+  min-height: 71px;
+  font-size: 25px;
+  line-height: 1.4;
 }
 
 .my-route-tags {
-  margin-top: 8px;
+  margin-top: 12px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 11px;
 }
 
 .my-route-tags span {
   border-radius: 999px;
-  padding: 3px 8px;
-  font-size: 12px;
+  padding: 6px 11px;
+  font-size: 14px;
   font-weight: 700;
 }
 
@@ -2589,15 +2605,21 @@ textarea {
 
 .my-route-tags small {
   color: #6d6d8e;
-  font-size: 13px;
+  font-size: 17px;
 }
 
 .my-route-metrics {
-  margin-top: 8px;
+  margin-top: 18px;
   display: flex;
-  gap: 14px;
+  gap: 22px;
   color: #a0a0b8;
-  font-size: 14px;
+  font-size: 17px;
+}
+
+.my-route-metrics span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 /* Account Recovery Page */
@@ -2760,14 +2782,8 @@ textarea {
 }
 
 @media (max-width: 1400px) {
-  .my-header {
-    grid-template-columns: 1fr;
-    height: auto;
-    padding: 12px 14px;
-  }
-
   .my-main {
-    padding-top: 138px;
+    padding: 106px 24px 40px;
   }
 
   .my-profile-card {
@@ -2776,6 +2792,56 @@ textarea {
 
   .my-route-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .my-profile-left {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .my-profile-avatar {
+    width: 108px;
+    height: 108px;
+  }
+
+  .my-profile-meta h2 {
+    font-size: 28px;
+  }
+
+  .my-profile-meta p {
+    font-size: 16px;
+  }
+
+  .my-profile-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .my-edit-btn,
+  .my-setting-btn {
+    width: 100%;
+    height: 54px;
+    font-size: 16px;
+  }
+
+  .my-tabs {
+    grid-template-columns: 1fr;
+  }
+
+  .my-tabs button {
+    height: 56px;
+    font-size: 16px;
+  }
+
+  .my-route-hero {
+    height: 200px;
+  }
+
+  .my-route-body h3 {
+    min-height: 0;
+    font-size: 22px;
   }
 }
 

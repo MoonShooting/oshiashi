@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Bookmark, FileText, MapPinned, Trophy } from "lucide-react";
 import SharedSidebar from "../components/SharedSidebar";
 import SharedHeader from "../components/SharedHeader";
 import MyProfileSummary from "../components/mypage/MyProfileSummary";
@@ -6,10 +7,10 @@ import MyPageTabs from "../components/mypage/MyPageTabs";
 import MyRouteGrid from "../components/mypage/MyRouteGrid";
 
 const statCards = [
-  { label: "내 루트", value: "12", icon: "🗺️" },
-  { label: "내 게시글", value: "24", icon: "📝" },
-  { label: "북마크", value: "8", icon: "🔖" },
-  { label: "업적", value: "15", icon: "🏆" },
+  { label: "내 루트", value: "12", icon: MapPinned },
+  { label: "내 게시글", value: "24", icon: FileText },
+  { label: "북마크", value: "8", icon: Bookmark },
+  { label: "업적", value: "15", icon: Trophy },
 ];
 
 const tabs = ["내 루트", "내 게시글", "북마크", "업적", "루트 생성"];

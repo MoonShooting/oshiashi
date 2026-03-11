@@ -1,10 +1,13 @@
 import React from "react";
+import { CircleUserRound, Settings, SquarePen } from "lucide-react";
 
 function MyProfileSummary({ statCards }) {
   return (
     <section className="my-profile-card">
       <div className="my-profile-left">
-        <div className="my-profile-avatar">👤</div>
+        <div className="my-profile-avatar">
+          <CircleUserRound size={52} strokeWidth={1.8} />
+        </div>
         <div className="my-profile-meta">
           <div className="my-profile-topline">
             <h2>오시러버</h2>
@@ -16,8 +19,14 @@ function MyProfileSummary({ statCards }) {
           <p>가입일: 2024-01-15</p>
           <p>마지막 로그인: 2026-02-26 14:30</p>
           <div className="my-profile-actions">
-            <button className="my-edit-btn">프로필 편집</button>
-            <button className="my-setting-btn">설정</button>
+            <button className="my-edit-btn">
+              <SquarePen size={16} strokeWidth={2} />
+              <span>프로필 편집</span>
+            </button>
+            <button className="my-setting-btn">
+              <Settings size={16} strokeWidth={2} />
+              <span>설정</span>
+            </button>
           </div>
         </div>
       </div>
@@ -27,7 +36,7 @@ function MyProfileSummary({ statCards }) {
           <article key={card.label} className="my-stat-item">
             <div className="my-stat-head">
               <span>{card.label}</span>
-              <b>{card.icon}</b>
+              <card.icon size={22} strokeWidth={2} />
             </div>
             <strong>{card.value}</strong>
           </article>
