@@ -1,10 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronDown, RotateCcw, SearchX, X } from 'lucide-react';
 import MainLayout from '../components/layout/MainLayout';
-import EmptyState from '../components/post-search/EmptyState';
-import PostGrid from '../components/post-search/PostGrid';
-import SearchHeader from '../components/post-search/SearchHeader';
-import SortDropdown from '../components/post-search/SortDropdown';
-import TagFilters from '../components/post-search/TagFilters';
+import PostCard from '../components/post/PostCard';
 import {
   buildMockPosts,
   DEFAULT_SELECTED_TAGS,
@@ -25,6 +22,91 @@ import styles from '../styles/PostSearchResultPage.module.css';
  * @property {number} commentCount
  * @property {string} createdAt
  */
+
+// 검색 결과 헤더/필터/정렬은 현재 이 페이지에서만 사용하는 전용 UI입니다.
+// 공용 컴포넌트 디렉토리로 빼기보다 페이지 내부에 두는 편이 책임이 더 분명합니다.
+const SearchHeader = ({ searchedTag, resultCount }) => (
+  <section className={styles.searchHeader}>
+    <h2 className={styles.searchTitle}>#{searchedTag} 검색 결과</h2>
+    <p className={styles.searchCount}>총 {resultCount.toLocaleString()}개의 게시글</p>
+  </section>
+);
+
+const TagFilters = ({ tags, onRemove, onClear }) => (
+  <section className={styles.tagFilterRow}>
+    <div className={styles.tagList}>
+      {tags.map((tag) => (
+        <button
+          key={tag}
+          className={styles.activeTagChip}
+          onClick={() => onRemove(tag)}
+          type="button"
+          aria-label={`${tag} 태그 제거`}>
+          <span>#{tag}</span>
+          <X className={styles.tagRemoveIcon} strokeWidth={2.2} />
+        </button>
+      ))}
+    </div>
+    <button className={styles.resetFilterBtn} onClick={onClear} type="button">
+      <RotateCcw className={styles.resetIcon} strokeWidth={2} />
+      필터 초기화
+    </button>
+  </section>
+);
+
+const SortDropdown = ({ value, onChange }) => (
+  <div className={styles.sortWrapper}>
+    <label htmlFor="post-sort" className={styles.sortLabel}>
+      정렬
+    </label>
+    <div className={styles.sortSelectWrapper}>
+      <select
+        id="post-sort"
+        className={styles.sortSelect}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}>
+        <option value="latest">최신순</option>
+        <option value="popular">인기순</option>
+        <option value="views">조회순</option>
+      </select>
+      <ChevronDown className={styles.sortChevron} strokeWidth={2} />
+    </div>
+  </div>
+);
+
+const EmptyState = ({ onReset }) => (
+  <section className={styles.emptyState}>
+    <SearchX className={styles.emptyIcon} strokeWidth={1.8} />
+    <h3>검색 결과가 없습니다</h3>
+    <p>선택한 태그 조건을 변경해서 다시 찾아보세요.</p>
+    <button type="button" className={styles.emptyActionBtn} onClick={onReset}>
+      다른 태그 검색
+    </button>
+  </section>
+);
+
+const PostGrid = ({ posts, loading }) => (
+  <section className={styles.postGridSection}>
+    <div className={styles.postGrid}>
+      {posts.map((post) => (
+        <PostCard key={post.id} post={post} />
+      ))}
+
+      {loading
+        ? Array.from({ length: 3 }).map((_, idx) => (
+            <div key={`skeleton-${idx}`} className={styles.skeletonCard}>
+              <div className={styles.skeletonImage} />
+              <div className={styles.skeletonBody}>
+                <div className={styles.skeletonLineLg} />
+                <div className={styles.skeletonLineMd} />
+                <div className={styles.skeletonLineSm} />
+              </div>
+            </div>
+          ))
+        : null}
+    </div>
+  </section>
+);
 
 const PostSearchResultPage = () => {
   const PAGE_SIZE = 9;
