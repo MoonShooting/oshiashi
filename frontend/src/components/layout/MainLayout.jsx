@@ -34,7 +34,7 @@ const MainLayoutContent = ({
   const computedActiveKey = useMemo(() => {
     if (activeMenuKey) return activeMenuKey;
     if (location.pathname.startsWith('/map')) return 'route';
-    if (location.pathname.startsWith('/login') || location.pathname.startsWith('/register')) return 'mypage';
+    if (location.pathname.startsWith('/login') || location.pathname.startsWith('/signup')) return 'mypage';
     return 'home';
   }, [activeMenuKey, location.pathname]);
 
@@ -52,12 +52,7 @@ const MainLayoutContent = ({
 
   return (
     <div className={styles.layoutWrapper}>
-      <Sidebar
-        isOpen={open}
-        onClose={() => setOpen(false)}
-        activeKey={computedActiveKey}
-        onNavigate={handleNavigate}
-      />
+      <Sidebar isOpen={open} onClose={() => setOpen(false)} activeKey={computedActiveKey} onNavigate={handleNavigate} />
 
       <div className={styles.mainArea}>
         <Navbar />
