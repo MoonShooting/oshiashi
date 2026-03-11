@@ -23,7 +23,8 @@ public class CommentController {
             @PathVariable Long postId,
             @RequestBody CommentCreateRequest request
     ) {
-        return ResponseEntity.ok(commentService.createComment(postId, request));
+        // 생성 API는 보통 201이 더 자연스럽다
+        return ResponseEntity.status(201).body(commentService.createComment(postId, request));
     }
 
     // 2) 댓글 목록: GET /api/posts/{postId}/comments

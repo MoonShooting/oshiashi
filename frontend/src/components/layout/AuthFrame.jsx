@@ -1,5 +1,5 @@
 import React from 'react';
-import styles from './AuthFrame.module.css';
+import styles from '@/styles/AuthFrame.module.css';
 
 const AuthFrame = ({ children }) => {
   return (

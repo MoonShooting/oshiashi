@@ -10,8 +10,10 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-@Getter
+@Data // Getter + Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor // 빌더를 쓰기 위해 추가 필수!
+@Builder // 이제 서비스에서 .builder()를 호출할 수 있습니다.
 @Entity
 @Table(name = "Post")
 public class PostEntity {

@@ -11,5 +11,6 @@ public interface BookmarkService {
 
     List<BookmarkResponse> getBookmarksByUser(String userId);
 
-    void deleteBookmark(Long bookmarkId);
+    // ID를 받아와 본인거만 지울 수 있도록
+    void deleteBookmark(String userId, Long bookmarkId);
 }

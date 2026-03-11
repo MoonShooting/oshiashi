@@ -1,6 +1,7 @@
 import React from 'react';
 import './TermsModal.css';
 
+//이용약관 모달
 const TermsModal = ({ isOpen, title, content, onClose }) => {
   if (!isOpen) return null;
 

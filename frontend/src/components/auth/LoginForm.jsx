@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import InputGroup from '../common/InputGroup'; // 아까 만든 공통 컴포넌트
+import InputGroup from '@/components/input/InputGroup.jsx';
+import { loginAPI } from '@/api/auth.js';
+import { useAuthStore } from '@/stores/useAuthStore.js';
 import './LoginForm.css';
 
 const LoginForm = () => {
@@ -8,39 +10,37 @@ const LoginForm = () => {
   const [loginData, setLoginData] = useState({ userId: '', password: '' });
   const [rememberMe, setRememberMe] = useState(false);
 
-  // 입력 핸들러
+  // 구조 분해 할당으로 깔끔하게 가져오기
+  const { login } = useAuthStore();
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    try {
+      // fetchClient가 에러 발생 시 알아서 throw 하므로 성공 케이스에만 집중
+      const token = await loginAPI(loginData);
+
+      // 닉네임 정보가 오기 전까지 사용할 임시 데이터
+      const tempUser = { userId: loginData.userId };
+
+      // Zustand 스토어 업데이트
+      login(tempUser, token);
+
+      // 성공 로직
+      navigate('/');
+    } catch (error) {
+      console.error('로그인 에러:', error);
+      // fetchClient에서 throw한 new Error(errorMsg)의 메시지가 출력됩니다.
+      alert(error.message || '아이디 또는 비밀번호를 확인해주세요.');
+    }
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setLoginData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // 로그인 제출 이벤트 (Fetch API)
-  const handleLogin = async (e) => {
-    e.preventDefault();
-
-    try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(loginData),
-      });
-
-      if (response.ok) {
-        const data = await response.json(); // JWT 토큰이 들어있다고 가정
-        localStorage.setItem('accessToken', data.token); // 토큰 저장
-        alert('환영합니다!');
-        navigate('/'); // 메인으로 이동
-      } else {
-        alert('아이디 또는 비밀번호가 일치하지 않습니다.');
-      }
-    } catch (error) {
-      alert('서버와 통신 중 오류가 발생했습니다.');
-    }
-  };
-
   return (
     <div className="login-container">
-      {/* 좌측 이미지 섹션 (동일) */}
       <div className="login-image-side">
         <div className="image-overlay">
           <h2>다시, 덕질을 이어가요</h2>
@@ -57,9 +57,7 @@ const LoginForm = () => {
         <p className="subtitle">서비스 이용을 위해 로그인이 필요합니다.</p>
 
         <form className="auth-form" onSubmit={handleLogin}>
-          {/* 공통 컴포넌트 적용 - 속성을 가로로 나열해도 정렬이 유지됩니다! */}
           <InputGroup label="아이디" name="userId" value={loginData.userId} onChange={handleChange} placeholder="user_id 또는 email 입력" />
-
           <InputGroup label="비밀번호" type="password" name="password" value={loginData.password} onChange={handleChange} placeholder="••••••••" />
 
           <div className="form-options">

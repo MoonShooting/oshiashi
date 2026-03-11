@@ -1,6 +1,5 @@
 package project.oshiashi.oshiashi.domain.bookmark.service;
 
-import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -10,8 +9,14 @@ import project.oshiashi.oshiashi.domain.bookmark.entity.BookmarkEntity;
 import project.oshiashi.oshiashi.domain.bookmark.repository.BookmarkRepository;
 import project.oshiashi.oshiashi.domain.post.entity.PostEntity;
 import project.oshiashi.oshiashi.domain.post.entity.PostImageEntity;
+import project.oshiashi.oshiashi.domain.post.repository.PostImageRepository;
+import project.oshiashi.oshiashi.domain.post.repository.PostRepository;
 import project.oshiashi.oshiashi.domain.route.entity.RouteEntity;
+import project.oshiashi.oshiashi.domain.route.repository.RouteRepository;
 import project.oshiashi.oshiashi.domain.user.entity.UserEntity;
+import project.oshiashi.oshiashi.domain.user.repository.UserRepository;
+import project.oshiashi.oshiashi.global.exception.BusinessException;
+import project.oshiashi.oshiashi.global.exception.ErrorCode;
 
 import java.util.List;
 
@@ -21,34 +26,56 @@ import java.util.List;
 public class BookmarkServiceImpl implements BookmarkService {
 
     private final BookmarkRepository bookmarkRepository;
-    private final EntityManager entityManager;
+    private final UserRepository userRepository;
+    private final PostRepository postRepository;
+    private final PostImageRepository postImageRepository;
+    private final RouteRepository routeRepository;
 
     @Override
     @Transactional
     public BookmarkResponse createBookmark(String userId, BookmarkCreateRequest request) {
-        validateExactlyOneTarget(request);
+        validateRequest(request);
 
-        UserEntity userRef = entityManager.getReference(UserEntity.class, userId);
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "존재하지 않는 사용자입니다."));
 
-        PostEntity postRef = null;
-        PostImageEntity postImageRef = null;
-        RouteEntity routeRef = null;
+        PostEntity post = null;
+        PostImageEntity postImage = null;
+        RouteEntity route = null;
 
         if (request.getPostId() != null) {
-            postRef = entityManager.getReference(PostEntity.class, request.getPostId());
-        } else if (request.getPostImageId() != null) {
-            postImageRef = entityManager.getReference(PostImageEntity.class, request.getPostImageId());
-        } else {
-            routeRef = entityManager.getReference(RouteEntity.class, request.getRouteId());
+            if (bookmarkRepository.existsByUser_UserIdAndPost_PostId(userId, request.getPostId())) {
+                throw new BusinessException(ErrorCode.DUPLICATE_RESOURCE, "이미 북마크한 게시글입니다.");
+            }
+
+            post = postRepository.findById(request.getPostId())
+                    .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
+        }
+
+        if (request.getPostImageId() != null) {
+            if (bookmarkRepository.existsByUser_UserIdAndPostImage_PostImageId(userId, request.getPostImageId())) {
+                throw new BusinessException(ErrorCode.DUPLICATE_RESOURCE, "이미 북마크한 게시글 이미지입니다.");
+            }
+
+            postImage = postImageRepository.findById(request.getPostImageId())
+                    .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "존재하지 않는 게시글 이미지입니다."));
+        }
+
+        if (request.getRouteId() != null) {
+            if (bookmarkRepository.existsByUser_UserIdAndRoute_RouteId(userId, request.getRouteId())) {
+                throw new BusinessException(ErrorCode.DUPLICATE_RESOURCE, "이미 북마크한 루트입니다.");
+            }
+
+            route = routeRepository.findById(request.getRouteId())
+                    .orElseThrow(() -> new BusinessException(ErrorCode.ROUTE_NOT_FOUND));
         }
 
         BookmarkEntity bookmark = BookmarkEntity.builder()
                 .bookmarkName(request.getBookmarkName())
-                .user(userRef)
-                .post(postRef)
-                .postImage(postImageRef)
-                .route(routeRef)
-                // createdAt은 @PrePersist에서 자동 세팅됨
+                .user(user)
+                .post(post)
+                .postImage(postImage)
+                .route(route)
                 .build();
 
         BookmarkEntity saved = bookmarkRepository.save(bookmark);
@@ -57,6 +84,10 @@ public class BookmarkServiceImpl implements BookmarkService {
 
     @Override
     public List<BookmarkResponse> getBookmarksByUser(String userId) {
+        if (!userRepository.existsById(userId)) {
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "존재하지 않는 사용자입니다.");
+        }
+
         return bookmarkRepository.findByUser_UserIdOrderByCreatedAtDesc(userId)
                 .stream()
                 .map(BookmarkResponse::fromEntity)
@@ -65,18 +96,29 @@ public class BookmarkServiceImpl implements BookmarkService {
 
     @Override
     @Transactional
-    public void deleteBookmark(Long bookmarkId) {
-        bookmarkRepository.deleteById(bookmarkId);
+    public void deleteBookmark(String userId, Long bookmarkId) {
+        BookmarkEntity bookmark = bookmarkRepository.findByBookmarkIdAndUser_UserId(bookmarkId, userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "해당 사용자의 북마크가 존재하지 않습니다."));
+
+        bookmarkRepository.delete(bookmark);
     }
 
-    private void validateExactlyOneTarget(BookmarkCreateRequest request) {
-        int count = 0;
-        if (request.getPostId() != null) count++;
-        if (request.getPostImageId() != null) count++;
-        if (request.getRouteId() != null) count++;
+    private void validateRequest(BookmarkCreateRequest request) {
+        if (request.getBookmarkName() == null || request.getBookmarkName().isBlank()) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "북마크 이름은 필수입니다.");
+        }
 
-        if (count != 1) {
-            throw new IllegalArgumentException("postId, postImageId, routeId 중 정확히 1개만 입력해야 합니다.");
+        if (request.getBookmarkName().length() > 100) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "북마크 이름은 100자 이하여야 합니다.");
+        }
+
+        int targetCount = 0;
+        if (request.getPostId() != null) targetCount++;
+        if (request.getPostImageId() != null) targetCount++;
+        if (request.getRouteId() != null) targetCount++;
+
+        if (targetCount != 1) {
+            throw new BusinessException(ErrorCode.BOOKMARK_TARGET_INVALID);
         }
     }
 }

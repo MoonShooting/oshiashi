@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class BookmarkResponse {
-	private Long bookmarkId;     // 명세서에 int로 되어있으므로 Integer
+	private Long bookmarkId;
 	private String bookmarkName;
 	private String userId;
 	
@@ -30,6 +30,9 @@ public class BookmarkResponse {
 				.bookmarkName(bookmarkEntity.getBookmarkName())
 				.userId(bookmarkEntity.getUser().getUserId())
 				// null 체크를 포함하여 안전하게 매핑?
+				// 비어있는 항목을 달라하면 에러가 나기 때문에
+				// -> 내용물이 있는지 확인하고 있을 때만 번호를 가져온다는 안전장치를 걸어둔 것입니다.
+				// -> 혹시나 값이 비어있다면 에러 대신 null을 반환하게 한것입니다
 				.postId(bookmarkEntity.getPost() != null ? bookmarkEntity.getPost().getPostId() : null)
 				.postImageId(bookmarkEntity.getPostImage() != null ? bookmarkEntity.getPostImage().getPostImageId() : null)
 				.routeId(bookmarkEntity.getRoute() != null ? bookmarkEntity.getRoute().getRouteId() : null)

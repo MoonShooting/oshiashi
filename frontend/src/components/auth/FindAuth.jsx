@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import InputGroup from '../common/InputGroup';
-import ActionInputGroup from '../common/ActionInputGroup';
-import SubmitGuide from '../common/SubmitGuide';
+import InputGroup from '../input/InputGroup';
+import ActionInputGroup from '../input/ActionInputGroup';
+import SubmitGuide from '../input/SubmitGuide';
 import './FindAuth.css';
 
 const FindAuth = () => {

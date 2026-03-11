@@ -1,6 +1,6 @@
 import React from 'react';
 import { Film, House, MapPinned, MessageSquare, Settings, Trophy, UserRound, X } from 'lucide-react';
-import styles from '../../styles/Sidebar.module.css';
+import styles from '@/styles/Sidebar.module.css';
 
 const menuItems = [
   { key: 'home', icon: House, label: '홈' },
@@ -18,10 +18,7 @@ const bottomItems = [
 const Sidebar = ({ isOpen = false, onClose, activeKey = 'home', onNavigate }) => {
   return (
     <>
-      <div
-        className={isOpen ? `${styles.backdrop} ${styles.open}` : styles.backdrop}
-        onClick={onClose}
-      />
+      <div className={isOpen ? `${styles.backdrop} ${styles.open}` : styles.backdrop} onClick={onClose} />
 
       <aside className={isOpen ? `${styles.sidebar} ${styles.open}` : styles.sidebar}>
         <div className={styles.topBar}>
@@ -37,8 +34,7 @@ const Sidebar = ({ isOpen = false, onClose, activeKey = 'home', onNavigate }) =>
                 onClick={() => {
                   onNavigate?.(item.key);
                   onClose?.();
-                }}
-              >
+                }}>
                 <span className={styles.itemIcon}>
                   <item.icon className={styles.iconSvg} strokeWidth={1.9} />
                 </span>

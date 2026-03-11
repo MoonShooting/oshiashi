@@ -1,30 +1,17 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Home from './pages/Home';
-import MapPage from './pages/map/MapPage';
-import PinPage from './pages/pin/PinPage';
-import LoginPage from './pages/Login/LoginPage';
-import FindAuthPage from './pages/Login/FindAuthPage';
-import RegisterPage from './pages/Login/RegisterPage';
-import PostSearchResultPage from './pages/PostSearchResultPage';
+import { useEffect } from 'react';
+import { useAuthStore } from '@/stores/useAuthStore';
+import Router from './router/Router';
 
 function App() {
-  return (
-    <Router>
-      <div className="App">
-        <Routes>
-          {/* 각 페이지 컴포넌트 내부에서 MainLayout을 사용하므로 여기선 경로만 설정합니다 */}
-          <Route path="/" element={<Home />} />
-          <Route path="/map" element={<MapPage />} />
-          <Route path="/pin" element={<PinPage />} />
-          <Route path="/posts" element={<PostSearchResultPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/find-auth" element={<FindAuthPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-        </Routes>
-      </div>
-    </Router>
-  );
+  const { fetchMe, isInitialized } = useAuthStore();
+
+  // 로그인 되어 있던 경우, 유저 정보 확인 및 복구 시도
+  useEffect(() => {
+    fetchMe(); // 사이트 접속 시 1회 호출
+  }, []);
+
+  return <Router />;
 }
 
 export default App;
