@@ -28,6 +28,12 @@ public class PostServiceImpl implements PostService{
 	private final UserRepository userRepository;
 	private final RouteRepository routeRepository;
 	
+	/**
+	 * 1. 게시글 전체 조회
+	 * @return List<PostResponse>
+	 * - 필수 반환: 모든 필드 (postId, title, content, userId, routeId, status, viewCount, likeCount, createdAt, updateAt)
+	 * - 특징: 데이터가 없으면 빈 리스트 [] 반환
+	 */
 	@Override
 	public List<PostResponse> getAllPost() {
 		return postRepository.findAll().stream()
@@ -37,6 +43,13 @@ public class PostServiceImpl implements PostService{
 		//추가(add), 삭제(remove), 수정(set)이 불가능한 리스트를 반환. (원본의 게시글은 유지하는 느낌)
 	}
 	
+	/**
+	 * 2. 게시글 단건 조회
+	 * @param postId  (필수) 조회할 게시글 고유 ID
+	 * @return PostResponse
+	 * - 필수 반환: 해당 ID의 모든 게시글 데이터
+	 * - 예외: ID가 존재하지 않을 경우 RuntimeException 발생
+	 */
 	@Override
 	public PostResponse getPostById(Long postId) {
 		return postRepository.findById(postId)
@@ -44,7 +57,15 @@ public class PostServiceImpl implements PostService{
 				.orElseThrow(() -> new RuntimeException("게시글을 찾을 수 없습니다."));
 	}
 	
-	// 3. 게시글 작성 (컨트롤러의 빌더 로직을 서비스로 이동)
+	/**
+	 * 3. 게시글 작성
+	 * @param request (DTO)
+	 * - [필수 입력]: title (제목), content (내용)
+	 * - [현재 미구현]: userId, routeId (현재 서비스 로직에서 주석 처리됨)
+	 * @return PostResponse
+	 * - 필수 반환: DB에 저장된 최종 데이터 (자동 생성된 postId 포함)
+	 * - 특징: 작성 시 viewCount, likeCount는 0으로, status는 PUBLIC으로 강제 초기화됨
+	 */
 	@Override
 	public PostResponse createPost(PostResponse request) {
 		
@@ -54,7 +75,9 @@ public class PostServiceImpl implements PostService{
 		log.debug("입력된 내용: {}", request.getContent());
 		log.debug("================================");
 		
-		// TODO: 에러 핸들링 및 유효성 검사 (현재는 값이 없으므로 테스트를 위해 잠시 주석 처리)
+		// TODO: 에러 핸들링 및 유효성 검사 (현재는 값이 없으므로 테스트를 위해 잠시 주석 처리),
+		//  엔티티 생성시 원래는 필수값이나 임시 주석 처리 user, route
+		
 		/*
 		// 1. 작성자 정보와 루트 정보를 DB에서 먼저 조회
 		UserEntity user = userRepository.findById(request.getUserId())
@@ -83,6 +106,12 @@ public class PostServiceImpl implements PostService{
 	
 	}
 	
+	/**
+     * 4. 게시글 삭제
+     * @param postId (필수) 삭제할 게시글 고유 ID
+     * @return void (성공 시 리턴값 없음, 컨트롤러에서 성공 메시지 처리)
+     * - 예외: ID가 존재하지 않을 경우 RuntimeException 발생
+     */
 	@Override
 	public void deletePost(Long postId) {
 		if (!postRepository.existsById(postId)) {
@@ -94,6 +123,15 @@ public class PostServiceImpl implements PostService{
 		log.debug(">>> [Service] ID : {} 데이터가  삭제되었습니다.", postId);
 	}
 	
+	/**
+	 * 5. 게시글 수정
+	 * @param postId (필수) 수정할 게시글 고유 ID
+	 * @param request (DTO)
+	 * - [필수 입력]: title, content, status (수정할 데이터들)
+	 * @return PostResponse
+	 * - 필수 반환: 수정이 완료된 후의 최신 데이터 (변경된 updateAt 포함)
+	 * - 예외: 수정 대상 게시글이 없을 경우 RuntimeException 발생
+	 */
 	@Override
 	public PostResponse updatePost(Long postId, PostResponse request) {
 		// 1. 기존 게시글 조회 (없으면 예외 발생)
@@ -113,6 +151,13 @@ public class PostServiceImpl implements PostService{
 		return postResponse;
 	}
 	
+	/**
+	 * 6. 게시글 좋아요 증감
+	 * @param postId (필수) 좋아요를 누를 게시글 고유 ID
+	 * @return PostResponse
+	 * - 필수 반환: likeCount가 +1 된 후의 전체 게시글 정보
+	 * - 예외: 게시글이 없을 경우 EntityNotFoundException 발생
+	 */
 	@Override
 	public PostResponse likePost(Long postId) {
 		// 1. DB에서 해당 게시글 조회 (없으면 예외 발생)
