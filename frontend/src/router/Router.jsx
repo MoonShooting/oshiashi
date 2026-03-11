@@ -6,6 +6,7 @@ import PinPage from '@/pages/pin/PinPage';
 import LoginPage from '@/pages/Login/LoginPage';
 import FindAuthPage from '@/pages/Login/FindAuthPage';
 import RegisterPage from '@/pages/Login/RegisterPage';
+import PostSearchResultPage from '@/pages/PostSearchResultPage';
 
 const Router = () => {
   return (
@@ -19,6 +20,7 @@ const Router = () => {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/find-auth" element={<FindAuthPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/posts" element={<PostSearchResultPage />} />
       </Routes>
     </BrowserRouter>
   );
