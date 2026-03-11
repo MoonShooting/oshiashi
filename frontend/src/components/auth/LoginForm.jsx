@@ -44,27 +44,42 @@ const LoginForm = () => {
 
     setIsSubmitting(true);
     try {
+      // 로그인 API 호출은 컴포넌트가 직접 fetch하지 않고 공통 api 레이어에 위임합니다.
       const token = await loginAPI(loginData);
 
-      // 로그인 성공 시 전역 인증 상태와 저장소를 동시에 맞춥니다.
-      // 이후 Header/Sidebar가 저장소를 읽어도 즉시 같은 결과를 보게 됩니다.
-      login({ userId: loginData.userId }, token, rememberMe);
+      // 닉네임/프로필 조회 API가 아직 분리되지 않았으므로
+      // 현재는 userId만 우선 store에 저장해 로그인 상태를 복구합니다.
+      const tempUser = { userId: loginData.userId };
+
+      // 로그인 유지 여부에 따라 local/session 저장소를 분기합니다.
+      login(tempUser, token, rememberMe);
       setLoginAttempts(0);
       setErrorMessage('');
       navigate('/');
     } catch (error) {
-      setLoginAttempts((prev) => prev + 1);
+      const nextAttempts = loginAttempts + 1;
+      setLoginAttempts(nextAttempts);
 
-      if (isLocked) {
-        setErrorMessage('로그인 시도가 제한되었습니다. 비밀번호 찾기를 이용해 주세요.');
-        return;
+      // 실패 횟수가 한도에 도달하면 다음 시도부터는 입력 자체를 잠급니다.
+      if (nextAttempts >= MAX_LOGIN_ATTEMPTS) {
+        setErrorMessage('로그인 시도가 5회 초과되었습니다. 비밀번호 찾기를 이용해 주세요.');
+      } else {
+        // FetchClient가 던진 서버 메시지를 우선 노출하고,
+        // 메시지가 없으면 공통 안내 문구로 대체합니다.
+        console.error('로그인 에러:', error);
+        setErrorMessage(error.message || '아이디 또는 비밀번호를 확인해주세요.');
       }
-
-      setErrorMessage(error.message || '서버와 통신 중 오류가 발생했습니다.');
     } finally {
+      // 버튼 중복 클릭을 막기 위해 제출 상태는 항상 마지막에 해제합니다.
       setIsSubmitting(false);
     }
   };
+
+  const userIdError =
+    errorMessage && !loginData.userId ? '아이디 또는 이메일을 입력해주세요.' : '';
+
+  const passwordError =
+    errorMessage && !loginData.password ? '비밀번호를 입력해주세요.' : '';
 
   return (
     <section className="login-shell">
@@ -108,7 +123,7 @@ const LoginForm = () => {
               onChange={handleChange}
               placeholder="user_id 또는 email 입력"
               disabled={isLocked}
-              error=""
+              error={userIdError}
               inputClassName="login-input with-icon"
             />
           </div>
@@ -136,14 +151,13 @@ const LoginForm = () => {
               onChange={handleChange}
               placeholder="••••••••"
               disabled={isLocked}
-              error=""
+              error={passwordError}
               inputClassName="login-input with-icon with-action"
             />
-            <p className="login-helper-text">8자 이상 비밀번호를 입력하세요.</p>
           </div>
 
-          {errorMessage ? <p className="login-error-text">{errorMessage}</p> : null}
-
+          {errorMessage && !userIdError && !passwordError ? <p className="login-error-text">{errorMessage}</p> : null}
+ 
           <div className="form-options">
             <label className="remember-me">
               <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} />
