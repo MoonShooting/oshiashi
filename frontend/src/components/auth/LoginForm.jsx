@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { LockKeyhole, UserRound } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import InputGroup from '@/components/input/InputGroup.jsx';
 import { loginAPI } from '@/api/auth.js';
@@ -9,34 +10,51 @@ const LoginForm = () => {
   const navigate = useNavigate();
   const [loginData, setLoginData] = useState({ userId: '', password: '' });
   const [rememberMe, setRememberMe] = useState(false);
+  const [formError, setFormError] = useState('');
 
-  // 구조 분해 할당으로 깔끔하게 가져오기
+  // Zustand 스토어에서는 로그인 성공 후 "사용자 정보 + 토큰 저장 정책"만 반영합니다.
+  // 실제 인증 요청은 api 레이어가, 화면 전환은 이 컴포넌트가 담당하도록 역할을 분리합니다.
   const { login } = useAuthStore();
 
   const handleLogin = async (e) => {
     e.preventDefault();
+
+    // 사용자가 입력을 수정하며 다시 시도할 수 있도록, 제출 직전 이전 에러를 비웁니다.
+    setFormError('');
+
     try {
-      // fetchClient가 에러 발생 시 알아서 throw 하므로 성공 케이스에만 집중
+      // LoginForm은 fetch를 직접 호출하지 않고, 팀 공통 api 레이어만 사용합니다.
+      // 이렇게 해야 엔드포인트 변경이나 에러 처리 규칙이 한 곳에 모입니다.
       const token = await loginAPI(loginData);
 
-      // 닉네임 정보가 오기 전까지 사용할 임시 데이터
+      // 현재 로그인 응답은 토큰 중심이므로, 화면에서 즉시 필요한 최소 사용자 정보만 임시로 구성합니다.
+      // 추후 /me 응답이 확장되면 이 부분은 fetchMe 결과로 대체할 수 있습니다.
       const tempUser = { userId: loginData.userId };
 
-      // Zustand 스토어 업데이트
-      login(tempUser, token);
+      // 로그인 유지 체크 여부에 따라 저장소가 local/session으로 갈리므로
+      // rememberMe 값을 함께 넘겨 실제 저장 정책까지 맞춥니다.
+      login(tempUser, token, rememberMe);
 
-      // 성공 로직
+      // 인증 상태가 반영되면 홈으로 이동합니다.
       navigate('/');
     } catch (error) {
       console.error('로그인 에러:', error);
-      // fetchClient에서 throw한 new Error(errorMsg)의 메시지가 출력됩니다.
-      alert(error.message || '아이디 또는 비밀번호를 확인해주세요.');
+      // 서버가 내려준 메시지를 폼 내부에 보여주면 사용자가 다시 입력하기가 더 수월합니다.
+      setFormError(error.message || '아이디 또는 비밀번호를 확인해주세요.');
     }
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+
+    // 공통 InputGroup은 name/value 기반으로 동작하므로,
+    // 모든 입력 필드를 동일한 패턴으로 갱신할 수 있습니다.
     setLoginData((prev) => ({ ...prev, [name]: value }));
+
+    // 사용자가 값을 다시 입력하기 시작하면 기존 폼 에러는 지워 UX를 단순하게 유지합니다.
+    if (formError) {
+      setFormError('');
+    }
   };
 
   return (
@@ -57,12 +75,46 @@ const LoginForm = () => {
         <p className="subtitle">서비스 이용을 위해 로그인이 필요합니다.</p>
 
         <form className="auth-form" onSubmit={handleLogin}>
-          <InputGroup label="아이디" name="userId" value={loginData.userId} onChange={handleChange} placeholder="user_id 또는 email 입력" />
-          <InputGroup label="비밀번호" type="password" name="password" value={loginData.password} onChange={handleChange} placeholder="••••••••" />
+          {/* 공통 InputGroup을 유지하되, 페이지 전용 아이콘/여백은 감싸는 div와 CSS로 해결합니다. */}
+          <div className="login-field">
+            <span className="login-field-icon" aria-hidden="true">
+              <UserRound size={16} />
+            </span>
+            <InputGroup
+              label="아이디"
+              name="userId"
+              value={loginData.userId}
+              onChange={handleChange}
+              placeholder="user_id 또는 email 입력"
+              autoComplete="username"
+              inputClassName="login-input"
+            />
+          </div>
+
+          <div className="login-field">
+            <span className="login-field-icon" aria-hidden="true">
+              <LockKeyhole size={16} />
+            </span>
+            <InputGroup
+              label="비밀번호"
+              type="password"
+              name="password"
+              value={loginData.password}
+              onChange={handleChange}
+              placeholder="••••••••"
+              autoComplete="current-password"
+              inputClassName="login-input"
+            />
+          </div>
 
           <div className="form-options">
             <label className="remember-me">
-              <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} /> 로그인 유지
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+              />{' '}
+              로그인 유지
             </label>
             <div className="find-links">
               {/* state에 tab 정보를 담아서 보냅니다 */}
@@ -76,7 +128,12 @@ const LoginForm = () => {
             </div>
           </div>
 
-          <button type="submit" className="btn-login" disabled={!loginData.userId || !loginData.password}>
+          {formError ? <p className="login-form-error">{formError}</p> : null}
+
+          <button
+            type="submit"
+            className="btn-login"
+            disabled={!loginData.userId || !loginData.password}>
             로그인
           </button>
         </form>

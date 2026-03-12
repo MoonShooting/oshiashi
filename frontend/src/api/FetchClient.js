@@ -7,7 +7,10 @@
 */
 export const FetchClient = async (endpoint, options = {}) => {
   const BASE_URL = 'http://localhost:9933';
-  const token = localStorage.getItem('accessToken');
+  // 로그인 유지 여부에 따라 localStorage 또는 sessionStorage 중 한 곳에만 토큰이 저장됩니다.
+  // 공통 fetch 계층에서는 두 저장소를 모두 확인해, 페이지 코드가 저장 위치를 알 필요 없게 만듭니다.
+  const token =
+    localStorage.getItem('accessToken') ?? sessionStorage.getItem('accessToken');
 
   // 기본 옵션 설정 (이걸 여러번 안써도 됨.)
   const defaultOptions = {

@@ -1,9 +1,45 @@
-import React from 'react';
-import { Menu, Search, Upload } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { ChevronDown, Menu, Search, Upload } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { SidebarTrigger } from '@/components/layout/SidebarContext';
+import { useAuthStore } from '@/stores/useAuthStore';
 import styles from '@/styles/Navbar.module.css';
 
 const NavBar = () => {
+  const navigate = useNavigate();
+  const profileMenuRef = useRef(null);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const { isLoggedIn, logout } = useAuthStore();
+
+  // 프로필 메뉴는 버튼 외부를 누르면 닫히도록 처리해, 상단 UI가 계속 열린 채 남지 않게 합니다.
+  useEffect(() => {
+    const handlePointerDown = (event) => {
+      if (!profileMenuRef.current?.contains(event.target)) {
+        setIsProfileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => document.removeEventListener('mousedown', handlePointerDown);
+  }, []);
+
+  const handleProfilePrimaryAction = () => {
+    setIsProfileMenuOpen(false);
+
+    if (isLoggedIn) {
+      // 마이페이지 라우트가 아직 없으므로, 버튼 표시는 먼저 맞추고 실제 연결은 추후 마이페이지 병합 시 교체합니다.
+      return;
+    }
+
+    navigate('/login');
+  };
+
+  const handleLogout = () => {
+    logout();
+    setIsProfileMenuOpen(false);
+    navigate('/login');
+  };
+
   return (
     <nav className={styles.navbar}>
       <div className={styles.leftSection}>
@@ -25,7 +61,32 @@ const NavBar = () => {
           <Upload className={styles.uploadIcon} strokeWidth={2.1} />
           <span>루트 공유</span>
         </button>
-        <button className={styles.profileCircle} aria-label="profile" />
+
+        <div className={styles.profileMenuWrap} ref={profileMenuRef}>
+          <button
+            type="button"
+            className={styles.profileTrigger}
+            aria-label="profile menu"
+            aria-expanded={isProfileMenuOpen}
+            onClick={() => setIsProfileMenuOpen((prev) => !prev)}>
+            <span className={styles.profileCircle} />
+            <ChevronDown className={styles.profileChevron} strokeWidth={2.1} />
+          </button>
+
+          {isProfileMenuOpen ? (
+            <div className={styles.profileDropdown}>
+              <button type="button" className={styles.profileDropdownItem} onClick={handleProfilePrimaryAction}>
+                {isLoggedIn ? '마이페이지' : '로그인하기'}
+              </button>
+
+              {isLoggedIn ? (
+                <button type="button" className={styles.profileDropdownItemMuted} onClick={handleLogout}>
+                  로그아웃
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
       </div>
     </nav>
   );
