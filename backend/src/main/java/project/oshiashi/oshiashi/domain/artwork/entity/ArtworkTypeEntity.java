@@ -7,7 +7,7 @@ import lombok.*;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(
-        name = "Artwork_type"
+        name = "artwork_type"
         // UNIQUE 없어서 주석처리
         /*,uniqueConstraints = {
                 @UniqueConstraint(name = "UX_artwork_type_name", columnNames = "artwork_type_name")
