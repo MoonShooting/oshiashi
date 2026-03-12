@@ -4,8 +4,10 @@ import jakarta.persistence.*;
 import lombok.*;
 import project.oshiashi.oshiashi.domain.artwork.entity.ArtworkEntity;
 
-@Getter
+@Data
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor // 빌더를 사용하기 위해
+@Builder             // 빌더
 @Entity
 @Table(
         name = "Tag",
