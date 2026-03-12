@@ -1,0 +1,210 @@
+.pageShell {
+  width: 100%;
+}
+
+.pageCard {
+  display: grid;
+  gap: 28px;
+  padding: 36px;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top right, rgba(236, 72, 153, 0.12), transparent 28%),
+    radial-gradient(circle at top left, rgba(124, 58, 237, 0.18), transparent 32%),
+    rgba(14, 13, 38, 0.92);
+  border: 1px solid rgba(128, 90, 213, 0.18);
+  box-shadow: 0 22px 44px rgba(5, 7, 24, 0.26);
+}
+
+.headerBlock {
+  display: grid;
+  gap: 10px;
+}
+
+.eyebrow {
+  margin: 0;
+  color: #f07acc;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.headerBlock h1 {
+  margin: 0;
+  color: #f5f7ff;
+  font-size: 36px;
+  line-height: 1.12;
+}
+
+.description {
+  margin: 0;
+  max-width: 760px;
+  color: #b8bfdb;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.toolbar {
+  display: grid;
+  gap: 18px;
+}
+
+.searchField {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.searchField input {
+  width: 100%;
+  min-height: 56px;
+  padding: 0 18px 0 52px;
+  border: 1px solid rgba(124, 90, 237, 0.22);
+  border-radius: 18px;
+  background: rgba(12, 14, 36, 0.82);
+  color: #f5f7ff;
+  font-size: 15px;
+}
+
+.searchField input:focus {
+  outline: none;
+  border-color: rgba(236, 72, 153, 0.5);
+  box-shadow: 0 0 0 4px rgba(236, 72, 153, 0.12);
+}
+
+.searchIcon {
+  position: absolute;
+  left: 18px;
+  width: 18px;
+  height: 18px;
+  color: #8c94b5;
+}
+
+.filterBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.filterChip {
+  min-height: 38px;
+  padding: 0 16px;
+  border: 1px solid rgba(124, 90, 237, 0.22);
+  border-radius: 999px;
+  background: rgba(20, 22, 52, 0.82);
+  color: #dce2ff;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.filterChip.active {
+  border-color: transparent;
+  background: linear-gradient(135deg, #7c3aed, #ec4899);
+  color: #ffffff;
+}
+
+.stateBlock {
+  padding: 30px 24px;
+  border-radius: 20px;
+  background: rgba(17, 19, 46, 0.78);
+  border: 1px solid rgba(124, 90, 237, 0.16);
+  color: #d8ddf3;
+  text-align: center;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.card {
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid rgba(124, 90, 237, 0.18);
+  border-radius: 24px;
+  background: rgba(18, 18, 44, 0.88);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(236, 72, 153, 0.35);
+  box-shadow: 0 18px 30px rgba(5, 7, 24, 0.26);
+}
+
+.poster {
+  display: block;
+  width: 100%;
+  height: 280px;
+  object-fit: cover;
+}
+
+.posterFallback {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 280px;
+  background:
+    radial-gradient(circle at top, rgba(236, 72, 153, 0.2), transparent 30%),
+    linear-gradient(180deg, rgba(40, 41, 89, 0.98), rgba(18, 18, 44, 1));
+}
+
+.posterFallbackIcon {
+  width: 36px;
+  height: 36px;
+  color: #d5dcff;
+}
+
+.cardBody {
+  display: grid;
+  gap: 12px;
+  padding: 18px 18px 22px;
+}
+
+.typeBadge {
+  width: fit-content;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(124, 90, 237, 0.16);
+  color: #f3d6ff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.cardBody h2 {
+  margin: 0;
+  color: #f5f7ff;
+  font-size: 20px;
+  line-height: 1.3;
+}
+
+.cardBody p {
+  margin: 0;
+  color: #b6bedc;
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+@media (max-width: 1100px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .pageCard {
+    padding: 24px;
+    gap: 22px;
+  }
+
+  .headerBlock h1 {
+    font-size: 28px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
