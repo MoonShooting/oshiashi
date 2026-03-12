@@ -91,6 +91,10 @@
   gap: 14px;
 }
 
+.profileMenuWrap {
+  position: relative;
+}
+
 .uploadBtn {
   height: 44px;
   padding: 0 20px;
@@ -116,6 +120,17 @@
   box-shadow: 0 14px 30px rgba(107, 70, 193, 0.5);
 }
 
+.profileTrigger {
+  height: 42px;
+  padding: 0 8px 0 0;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(17, 17, 34, 0.88);
+  border: 1px solid #2d2d44;
+}
+
 .profileCircle {
   width: 42px;
   height: 42px;
@@ -123,6 +138,47 @@
   border: 2px solid #6b46c1;
   background: linear-gradient(140deg, #6b46c1, #ec4899);
   box-shadow: 0 0 22px rgba(107, 70, 193, 0.5);
+}
+
+.profileChevron {
+  width: 16px;
+  height: 16px;
+  color: #d8d9ef;
+}
+
+.profileDropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  min-width: 160px;
+  border-radius: 16px;
+  border: 1px solid #2d2d44;
+  background: rgba(20, 20, 38, 0.98);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+  padding: 8px;
+  display: grid;
+  gap: 6px;
+}
+
+.profileDropdownItem,
+.profileDropdownItemMuted {
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 12px;
+  text-align: left;
+  color: #f5f5ff;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.profileDropdownItem:hover,
+.profileDropdownItemMuted:hover {
+  background: rgba(107, 70, 193, 0.18);
+}
+
+.profileDropdownItemMuted {
+  color: #c5c7dd;
 }
 
 @media (max-width: 1280px) {

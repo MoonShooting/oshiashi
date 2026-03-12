@@ -1,8 +1,9 @@
 import React from 'react';
 import { Film, House, MapPinned, MessageSquare, Settings, Trophy, UserRound, X } from 'lucide-react';
+import { useAuthStore } from '@/stores/useAuthStore';
 import styles from '@/styles/Sidebar.module.css';
 
-const menuItems = [
+const loggedInMenuItems = [
   { key: 'home', icon: House, label: '홈' },
   { key: 'works', icon: Film, label: '작품 탐색' },
   { key: 'route', icon: MapPinned, label: '루트 생성' },
@@ -10,12 +11,31 @@ const menuItems = [
   { key: 'mypage', icon: UserRound, label: '마이페이지' },
 ];
 
-const bottomItems = [
+const guestMenuItems = [
+  { key: 'home', icon: House, label: '홈' },
+  { key: 'works', icon: Film, label: '작품 탐색' },
+  { key: 'route', icon: MapPinned, label: '루트 생성' },
+  { key: 'community', icon: MessageSquare, label: '커뮤니티' },
+];
+
+const loggedInBottomItems = [
   { key: 'achievements', icon: Trophy, label: '업적' },
   { key: 'settings', icon: Settings, label: '설정' },
 ];
 
+const guestBottomItems = [
+  { key: 'login', icon: UserRound, label: '로그인 페이지' },
+  { key: 'settings', icon: Settings, label: '설정' },
+];
+
 const Sidebar = ({ isOpen = false, onClose, activeKey = 'home', onNavigate }) => {
+  const { isLoggedIn } = useAuthStore();
+
+  // 사이드바는 로그인 여부에 따라 메뉴 자체를 다르게 노출합니다.
+  // 비로그인 상태에서는 마이페이지를 숨기고, 업적 대신 로그인 진입 버튼을 보여줍니다.
+  const menuItems = isLoggedIn ? loggedInMenuItems : guestMenuItems;
+  const bottomItems = isLoggedIn ? loggedInBottomItems : guestBottomItems;
+
   return (
     <>
       <div className={isOpen ? `${styles.backdrop} ${styles.open}` : styles.backdrop} onClick={onClose} />
@@ -46,7 +66,12 @@ const Sidebar = ({ isOpen = false, onClose, activeKey = 'home', onNavigate }) =>
 
         <div className={styles.bottomMenu}>
           {bottomItems.map((item) => (
-            <button key={item.key} onClick={onClose}>
+            <button
+              key={item.key}
+              onClick={() => {
+                onNavigate?.(item.key);
+                onClose?.();
+              }}>
               <span className={styles.itemIcon}>
                 <item.icon className={styles.iconSvg} strokeWidth={1.9} />
               </span>
