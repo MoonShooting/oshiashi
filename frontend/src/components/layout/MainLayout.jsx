@@ -21,11 +21,11 @@ const MainLayoutContent = ({
   const routeMap = useMemo(
     () => ({
       home: '/',
-      works: '/',
+      works: '/artworks',
       route: '/map',
-      community: '/',
-      mypage: '/',
-      achievements: '/',
+      community: '/posts',
+      mypage: '/mypage',
+      achievements: '/achievements',
       settings: '/',
       login: '/login',
     }),
@@ -34,7 +34,11 @@ const MainLayoutContent = ({
 
   const computedActiveKey = useMemo(() => {
     if (activeMenuKey) return activeMenuKey;
+    if (location.pathname.startsWith('/artworks')) return 'works';
     if (location.pathname.startsWith('/map')) return 'route';
+    if (location.pathname.startsWith('/posts')) return 'community';
+    if (location.pathname.startsWith('/mypage')) return 'mypage';
+    if (location.pathname.startsWith('/achievements')) return 'achievements';
     if (location.pathname.startsWith('/login') || location.pathname.startsWith('/signup')) return 'login';
     return 'home';
   }, [activeMenuKey, location.pathname]);
