@@ -9,7 +9,9 @@ const NavBar = () => {
   const navigate = useNavigate();
   const profileMenuRef = useRef(null);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
-  const { isLoggedIn, logout } = useAuthStore();
+  const { isLoggedIn, isInitialized, user, logout } = useAuthStore();
+  const hasAuthenticatedUser = Boolean(user?.userId || user?.nickname || user?.email);
+  const showProfileMenu = isLoggedIn && isInitialized && hasAuthenticatedUser;
 
   // 프로필 메뉴는 버튼 외부를 누르면 닫히도록 처리해, 상단 UI가 계속 열린 채 남지 않게 합니다.
   useEffect(() => {
@@ -25,13 +27,7 @@ const NavBar = () => {
 
   const handleProfilePrimaryAction = () => {
     setIsProfileMenuOpen(false);
-
-    if (isLoggedIn) {
-      // 마이페이지 라우트가 아직 없으므로, 버튼 표시는 먼저 맞추고 실제 연결은 추후 마이페이지 병합 시 교체합니다.
-      return;
-    }
-
-    navigate('/login');
+    navigate('/mypage');
   };
 
   const handleLogout = () => {
@@ -62,31 +58,31 @@ const NavBar = () => {
           <span>루트 공유</span>
         </button>
 
-        <div className={styles.profileMenuWrap} ref={profileMenuRef}>
-          <button
-            type="button"
-            className={styles.profileTrigger}
-            aria-label="profile menu"
-            aria-expanded={isProfileMenuOpen}
-            onClick={() => setIsProfileMenuOpen((prev) => !prev)}>
-            <span className={styles.profileCircle} />
-            <ChevronDown className={styles.profileChevron} strokeWidth={2.1} />
-          </button>
+        {showProfileMenu ? (
+          <div className={styles.profileMenuWrap} ref={profileMenuRef}>
+            <button
+              type="button"
+              className={styles.profileTrigger}
+              aria-label="profile menu"
+              aria-expanded={isProfileMenuOpen}
+              onClick={() => setIsProfileMenuOpen((prev) => !prev)}>
+              <span className={styles.profileCircle} />
+              <ChevronDown className={styles.profileChevron} strokeWidth={2.1} />
+            </button>
 
-          {isProfileMenuOpen ? (
-            <div className={styles.profileDropdown}>
-              <button type="button" className={styles.profileDropdownItem} onClick={handleProfilePrimaryAction}>
-                {isLoggedIn ? '마이페이지' : '로그인하기'}
-              </button>
+            {isProfileMenuOpen ? (
+              <div className={styles.profileDropdown}>
+                <button type="button" className={styles.profileDropdownItem} onClick={handleProfilePrimaryAction}>
+                  마이페이지
+                </button>
 
-              {isLoggedIn ? (
                 <button type="button" className={styles.profileDropdownItemMuted} onClick={handleLogout}>
                   로그아웃
                 </button>
-              ) : null}
-            </div>
-          ) : null}
-        </div>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </nav>
   );

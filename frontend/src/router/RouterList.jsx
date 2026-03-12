@@ -5,6 +5,7 @@ import PinPage from '@/pages/pin/PinPage';
 import LoginPage from '@/pages/Login/LoginPage';
 import FindAuthPage from '@/pages/Login/FindAuthPage';
 import SignupPage from '@/pages/Login/RegisterPage';
+import MyPage from '@/pages/MyPage';
 
 const authList = [
   { path: '/login', element: <LoginPage /> },
@@ -25,4 +26,8 @@ export const RouterList = [
   },
   ...authList,
   ...mapList,
+  {
+    path: '/mypage',
+    element: <MyPage />,
+  },
 ];
