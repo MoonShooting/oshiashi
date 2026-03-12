@@ -1,0 +1,78 @@
+.page {
+  width: min(1124px, 100%);
+  margin: 0 auto;
+  display: grid;
+  gap: 28px;
+}
+
+.heroCard,
+.emptyCard {
+  border: 1px solid #2d2d44;
+  border-radius: 28px;
+  background: #1a1a2e;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+}
+
+.heroCard {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  gap: 24px;
+  align-items: center;
+  padding: 32px;
+}
+
+.heroIconWrap {
+  width: 104px;
+  height: 104px;
+  display: grid;
+  place-items: center;
+  border-radius: 28px;
+  background: linear-gradient(180deg, #6b46c1 0%, #ec4899 100%);
+  box-shadow: 0 10px 30px rgba(107, 70, 193, 0.34);
+}
+
+.heroIcon {
+  width: 44px;
+  height: 44px;
+  color: #fff;
+}
+
+.heroText h2 {
+  margin: 0 0 10px;
+  font-size: 34px;
+  line-height: 1.2;
+  font-weight: 800;
+  color: #fff;
+}
+
+.heroText p,
+.emptyCard p {
+  margin: 0;
+  color: #a0a0b8;
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.emptyCard {
+  min-height: 280px;
+  padding: 34px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  gap: 12px;
+}
+
+.emptyCard strong {
+  color: #fff;
+  font-size: 24px;
+  line-height: 1.4;
+  font-weight: 800;
+}
+
+@media (max-width: 900px) {
+  .heroCard {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+  }
+}

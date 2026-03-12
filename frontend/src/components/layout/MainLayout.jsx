@@ -25,7 +25,7 @@ const MainLayoutContent = ({
       route: '/map',
       community: '/',
       mypage: '/mypage',
-      achievements: '/mypage',
+      achievements: '/achievements',
       settings: '/',
       login: '/login',
     }),
@@ -36,6 +36,7 @@ const MainLayoutContent = ({
     if (activeMenuKey) return activeMenuKey;
     if (location.pathname.startsWith('/map')) return 'route';
     if (location.pathname.startsWith('/mypage')) return 'mypage';
+    if (location.pathname.startsWith('/achievements')) return 'achievements';
     if (location.pathname.startsWith('/login') || location.pathname.startsWith('/signup')) return 'login';
     return 'home';
   }, [activeMenuKey, location.pathname]);

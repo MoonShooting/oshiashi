@@ -164,6 +164,18 @@
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
 }
 
+.summaryCardLink {
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.summaryCardLink:hover,
+.summaryCardLink:focus-visible {
+  transform: translateY(-1px);
+  border-color: rgba(107, 70, 193, 0.7);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.34);
+}
+
 .summaryHeader {
   display: flex;
   align-items: center;
@@ -236,6 +248,13 @@
   gap: 26px;
 }
 
+.contentHeaderRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
 .contentHeader {
   display: grid;
   gap: 8px;
@@ -254,6 +273,58 @@
   color: #8f90a6;
   font-size: 16px;
   line-height: 1.6;
+}
+
+.previewActionButton {
+  flex-shrink: 0;
+  height: 48px;
+  padding: 0 22px;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #6b46c1 0%, #ec4899 100%);
+  box-shadow: 0 8px 24px rgba(107, 70, 193, 0.32);
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.previewActionButton:hover {
+  transform: translateY(-1px);
+  opacity: 0.96;
+}
+
+.achievementPreview {
+  min-height: 288px;
+  border: 1px solid rgba(107, 70, 193, 0.32);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top left, rgba(107, 70, 193, 0.14), transparent 34%),
+    radial-gradient(circle at bottom right, rgba(236, 72, 153, 0.1), transparent 32%),
+    #141426;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 32px;
+}
+
+.achievementPreviewText {
+  display: grid;
+  gap: 10px;
+}
+
+.achievementPreviewText strong {
+  color: #fff;
+  font-size: 24px;
+  line-height: 1.4;
+  font-weight: 800;
+}
+
+.achievementPreviewText p {
+  max-width: 600px;
+  margin: 0;
+  color: #a0a0b8;
+  font-size: 16px;
+  line-height: 1.7;
 }
 
 .emptyState {
@@ -342,6 +413,12 @@
 
   .tabList {
     grid-template-columns: 1fr;
+  }
+
+  .contentHeaderRow,
+  .achievementPreview {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 

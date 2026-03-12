@@ -6,6 +6,7 @@ import LoginPage from '@/pages/Login/LoginPage';
 import FindAuthPage from '@/pages/Login/FindAuthPage';
 import SignupPage from '@/pages/Login/RegisterPage';
 import MyPage from '@/pages/MyPage';
+import AchievementsPage from '@/pages/AchievementsPage';
 
 const authList = [
   { path: '/login', element: <LoginPage /> },
@@ -29,5 +30,9 @@ export const RouterList = [
   {
     path: '/mypage',
     element: <MyPage />,
+  },
+  {
+    path: '/achievements',
+    element: <AchievementsPage />,
   },
 ];

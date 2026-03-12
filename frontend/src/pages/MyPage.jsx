@@ -47,11 +47,14 @@ const MyPage = () => {
   );
 
   const handleTabClick = (tabKey) => {
+    // 루트 생성은 마이페이지 내부 탭 콘텐츠가 아니라 별도 작성 화면으로 이어지는 진입점입니다.
     if (tabKey === 'create-route') {
       navigate('/map');
       return;
     }
 
+    // 업적 탭은 전용 업적 페이지로 바로 이동시키지 않고,
+    // 마이페이지 안에서 "나의 업적 미리보기"를 먼저 보여주도록 유지합니다.
     setActiveTab(tabKey);
   };
 
@@ -99,9 +102,27 @@ const MyPage = () => {
           <div className={styles.summaryGrid}>
             {summaryItems.map((item) => {
               const Icon = item.icon;
+              const isAchievementsCard = item.key === 'achievements';
 
               return (
-                <article key={item.key} className={styles.summaryCard}>
+                <article
+                  key={item.key}
+                  className={isAchievementsCard ? `${styles.summaryCard} ${styles.summaryCardLink}` : styles.summaryCard}
+                  role={isAchievementsCard ? 'button' : undefined}
+                  tabIndex={isAchievementsCard ? 0 : undefined}
+                  // 상단 업적 요약 카드는 업적 전용 페이지로 보내지 않고,
+                  // 같은 화면에서 업적 preview 섹션을 활성화하는 용도로만 사용합니다.
+                  onClick={isAchievementsCard ? () => setActiveTab('achievements') : undefined}
+                  onKeyDown={
+                    isAchievementsCard
+                      ? (event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            setActiveTab('achievements');
+                          }
+                        }
+                      : undefined
+                  }>
                   <div className={styles.summaryHeader}>
                     <span>{item.label}</span>
                     <Icon className={styles.summaryIcon} strokeWidth={2} />
@@ -130,27 +151,52 @@ const MyPage = () => {
         </section>
 
         <section className={styles.contentCard}>
-          <div className={styles.contentHeader}>
-            <h3>{currentTabLabel}</h3>
-            <p>현재는 mock 없이 연결되어 있어 실제 데이터가 들어오면 이 영역에 바로 반영됩니다.</p>
-          </div>
-
-          <div className={styles.emptyState}>
-            <div className={styles.emptyIconWrap}>
-              {activeTab === 'routes' ? (
-                <MapPinned className={styles.emptyIcon} strokeWidth={2} />
-              ) : activeTab === 'posts' ? (
-                <FileText className={styles.emptyIcon} strokeWidth={2} />
-              ) : activeTab === 'bookmarks' ? (
-                <Bookmark className={styles.emptyIcon} strokeWidth={2} />
-              ) : (
-                <Trophy className={styles.emptyIcon} strokeWidth={2} />
-              )}
+          <div className={styles.contentHeaderRow}>
+            <div className={styles.contentHeader}>
+              <h3>{currentTabLabel}</h3>
+              <p>현재는 mock 없이 연결되어 있어 실제 데이터가 들어오면 이 영역에 바로 반영됩니다.</p>
             </div>
 
-            <strong>{currentTabLabel} 데이터가 아직 없습니다.</strong>
-            <p>API가 연결되면 별도의 mock 교체 없이 이 화면 구조에 그대로 출력되도록 만들었습니다.</p>
+            {activeTab === 'achievements' ? (
+              // 업적 탭이 열렸을 때만 "전체보기" 버튼을 노출해
+              // preview -> 전용 페이지 이동 흐름이 분명하게 보이도록 합니다.
+              <button type="button" className={styles.previewActionButton} onClick={() => navigate('/achievements')}>
+                업적 전체보기
+              </button>
+            ) : null}
           </div>
+
+          {activeTab === 'achievements' ? (
+            // 마이페이지의 업적 영역은 상세 목록이 아니라 preview 전용입니다.
+            // 실제 전체 업적 목록은 /achievements 전용 페이지에서 보여주도록 역할을 분리했습니다.
+            <div className={styles.achievementPreview}>
+              <div className={styles.emptyIconWrap}>
+                <Trophy className={styles.emptyIcon} strokeWidth={2} />
+              </div>
+
+              <div className={styles.achievementPreviewText}>
+                <strong>나의 업적 미리보기</strong>
+                <p>업적 요약은 이 영역에서 먼저 확인하고, 상세 업적 목록은 `업적 전체보기` 버튼으로 전용 페이지에서 이어서 확인합니다.</p>
+              </div>
+            </div>
+          ) : (
+            <div className={styles.emptyState}>
+              <div className={styles.emptyIconWrap}>
+                {activeTab === 'routes' ? (
+                  <MapPinned className={styles.emptyIcon} strokeWidth={2} />
+                ) : activeTab === 'posts' ? (
+                  <FileText className={styles.emptyIcon} strokeWidth={2} />
+                ) : activeTab === 'bookmarks' ? (
+                  <Bookmark className={styles.emptyIcon} strokeWidth={2} />
+                ) : (
+                  <Trophy className={styles.emptyIcon} strokeWidth={2} />
+                )}
+              </div>
+
+              <strong>{currentTabLabel} 데이터가 아직 없습니다.</strong>
+              <p>API가 연결되면 별도의 mock 교체 없이 이 화면 구조에 그대로 출력되도록 만들었습니다.</p>
+            </div>
+          )}
         </section>
       </div>
     </MainLayout>
