@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import InputGroup from '@/components/input/InputGroup.jsx';
 import ActionInputGroup from '@/components/input/ActionInputGroup.jsx';
 import SubmitGuide from '@/components/input/SubmitGuide.jsx';
+import Button from '@/components/common/Button.jsx';
 import { TERMS_DATA } from '@/data/termsData.js';
 import TermsModal from '@/components/auth/TermsModal.jsx';
 import { sendEmailAPI, verifyEmailAPI, registerAPI, checkEmailAPI, checkIdAPI, checkNicknameAPI } from '@/api/Auth.js';
@@ -213,6 +214,7 @@ const RegisterForm = () => {
           onAction={handleEmailCheckAndSend}
           error={errors.email}
           disabled={status.isEmailVerified}
+          buttonDisabled={status.isEmailVerified}
         />
 
         {status.isEmailSent && (
@@ -224,6 +226,7 @@ const RegisterForm = () => {
             btnText="확인"
             onAction={handleVerifyCode}
             disabled={status.isEmailVerified}
+            buttonDisabled={status.isEmailVerified}
             successMsg={status.isEmailVerified && '인증 성공'}
           />
         )}
@@ -268,9 +271,9 @@ const RegisterForm = () => {
         {/* 가이드 메시지 및 버튼 영역 */}
         <div className="submit-area" style={{ marginTop: '20px', textAlign: 'center' }}>
           <SubmitGuide message={guideMessage} />
-          <button type="submit" className="btn-submit" disabled={!isFormValid}>
+          <Button type="submit" className="register-submit-button" variant="primary" size="lg" disabled={!isFormValid}>
             가입하기
-          </button>
+          </Button>
         </div>
       </form>
       <TermsModal isOpen={modal.isOpen} title={modal.title} content={modal.content} onClose={() => setModal({ ...modal, isOpen: false })} />

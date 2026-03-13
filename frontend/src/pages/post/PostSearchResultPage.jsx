@@ -101,6 +101,7 @@ const PostSearchResultPage = () => {
 
           <div className={styles.controlRow}>
             <div className={styles.controlLeft}>
+              {/* 태그 입력창은 현재 페이지 안에서 selectedTags 상태를 바꾸는 역할만 담당합니다. */}
               <div className={styles.tagSearchWrap}>
                 <div className={styles.tagSearchInputWrap}>
                   <Hash className={styles.tagSearchIcon} strokeWidth={2} />
@@ -124,6 +125,7 @@ const PostSearchResultPage = () => {
               </div>
 
               <div className={styles.filterBar}>
+                {/* 선택된 태그를 chip 형태로 보여주고, 개별 제거 또는 전체 초기화를 제공합니다. */}
                 <div className={styles.filterChipGroup}>
                   {selectedTags.map((tag) => (
                     <button key={tag} type="button" className={styles.filterChip} onClick={() => handleRemoveTag(tag)}>
@@ -166,6 +168,7 @@ const PostSearchResultPage = () => {
           ) : (
             <div className={styles.postGrid}>
               {filteredPosts.map((post) => (
+                // 검색 결과 카드는 제목, 본문 요약, 태그, 작성자, 반응 수치를 한 카드에 모아 보여줍니다.
                 <article key={post.id} className={styles.postCard}>
                   <div className={styles.cardImageWrap}>
                     <div className={styles.cardImageFallback} />

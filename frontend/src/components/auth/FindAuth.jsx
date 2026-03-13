@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import InputGroup from '../input/InputGroup';
 import ActionInputGroup from '../input/ActionInputGroup';
 import SubmitGuide from '../input/SubmitGuide';
+import Button from '@/components/common/Button.jsx';
 import './FindAuth.css';
 
 const FindAuth = () => {
@@ -70,9 +71,9 @@ const FindAuth = () => {
             <InputGroup label="이름" name="name" value={formData.name} onChange={handleChange} placeholder="이름 입력" />
             <InputGroup label="이메일" name="email" value={formData.email} onChange={handleChange} placeholder="가입 시 이메일" />
             <SubmitGuide message={!isIdFormValid && '이름과 이메일을 모두 입력해 주세요.'} />
-            <button type="button" className="btn-login" disabled={!isIdFormValid}>
+            <Button type="button" className="find-auth-submit-button" variant="primary" size="md" fullWidth disabled={!isIdFormValid}>
               아이디 찾기
-            </button>
+            </Button>
           </>
         ) : (
           <>
@@ -104,13 +105,16 @@ const FindAuth = () => {
               placeholder="비밀번호 재확인"
             />
             <SubmitGuide message={pwGuideMessage} />
-            <button
+            <Button
               type="button"
-              className="btn-login"
+              className="find-auth-submit-button"
+              variant="primary"
+              size="md"
+              fullWidth
               // 버튼 활성화 조건도 "일치"여부를 포함해야 안전합니다.
               disabled={!isPwFormValid || formData.newPassword !== formData.confirmPassword}>
               비밀번호 변경하기
-            </button>
+            </Button>
           </>
         )}
       </div>

@@ -2,6 +2,8 @@ import React from 'react';
 import { Eye, Heart, MessageCircle } from 'lucide-react';
 import styles from '../../styles/Home.module.css';
 
+// 홈 화면에서 "커뮤니티 최신 글" 영역을 확인하기 위한 목업 데이터입니다.
+// 이 섹션은 검색 결과 페이지와 달리, 최신 글을 짧게 미리 보여주는 목적의 축약형 리스트입니다.
 const posts = [
   { id: 1, category: '후기', title: '교토 성지 다녀왔습니다! 너무 아름다웠어요', author: '교토러버', time: '2시간 전', views: 1234, likes: 89, comments: 23 },
   { id: 2, category: '질문', title: '카마쿠라 교통편 문의드립니다', author: '첫일본여행', time: '5시간 전', views: 567, likes: 12, comments: 34 },
@@ -22,6 +24,7 @@ const CommunityPostsSection = () => {
 
       <div className={styles.postList}>
         {posts.map((post) => (
+          // 홈 미리보기는 목록 밀도를 높이기 위해 썸네일, 카테고리, 메타를 한 줄에 압축해서 보여줍니다.
           <article key={post.id} className={styles.postItem}>
             <div className={styles.postThumb} />
             <div className={styles.postBody}>

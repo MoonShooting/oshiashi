@@ -29,7 +29,7 @@ const ArtworkSearchPage = () => {
    * 1. 사용자는 사이드바 "작품 탐색" 메뉴를 통해 이 페이지에 진입합니다.
    * 2. 이 페이지는 작품 대표 이미지/유형/설명을 먼저 보여주는 진입 화면입니다.
    * 3. 사용자가 작품을 선택하면, 해당 작품과 연결된 검색 기준으로 검색 결과 페이지(/posts)로 이동합니다.
-   * 4. 실제 작품 목록 데이터와 작품-태그 연결 규칙은 추후 백엔드 명세에 맞춰 연결합니다.
+   * 4. 현재는 화면 구조 검토 단계이므로, 작품 목록/유형/설명은 목업 데이터로만 표현합니다.
    */
   const selectedType = searchParams.get('type') ?? '';
 
@@ -70,8 +70,8 @@ const ArtworkSearchPage = () => {
   };
 
   const handleArtworkClick = () => {
-    // 현재는 작품 클릭 후 이동 흐름만 기획 차원에서 남깁니다.
-    // 실제 구현 시에는 선택한 작품의 대표 태그 또는 작품과 연결된 검색 조건을 받아 /posts로 연결하면 됩니다.
+    // 현재 브랜치에서는 작품 카드 클릭 시 "검색 결과 페이지로 이어지는 진입 흐름"만 확인합니다.
+    // 아직 작품-태그 매핑 규칙이 확정되지 않았기 때문에, 상세 query 없이 /posts로만 이동합니다.
     navigate('/posts');
   };
 
@@ -118,6 +118,7 @@ const ArtworkSearchPage = () => {
 
           <div className={styles.grid}>
             {filteredArtworks.map((artwork) => (
+              // 작품 탐색 카드는 홈 카드보다 설명량이 많아, 작품명/유형/설명을 한 번에 보여주는 구조를 직접 렌더합니다.
               <button key={artwork.id} type="button" className={styles.card} onClick={handleArtworkClick}>
                 <div className={styles.posterFallback}>
                   <Film className={styles.posterFallbackIcon} strokeWidth={1.8} />

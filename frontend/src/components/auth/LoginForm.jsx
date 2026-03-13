@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { LockKeyhole, UserRound } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import InputGroup from '@/components/input/InputGroup.jsx';
+import Button from '@/components/common/Button.jsx';
 import { loginAPI } from '@/api/auth.js';
 import { useAuthStore } from '@/stores/useAuthStore.js';
 import './LoginForm.css';
@@ -130,12 +131,15 @@ const LoginForm = () => {
 
           {formError ? <p className="login-form-error">{formError}</p> : null}
 
-          <button
+          <Button
             type="submit"
-            className="btn-login"
+            className="login-submit-button"
+            variant="primary"
+            size="md"
+            fullWidth
             disabled={!loginData.userId || !loginData.password}>
             로그인
-          </button>
+          </Button>
         </form>
 
         <p className="register-hint">
