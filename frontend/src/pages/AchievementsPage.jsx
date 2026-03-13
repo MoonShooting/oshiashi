@@ -5,7 +5,7 @@ import styles from '@/styles/AchievementsPage.module.css';
 
 const AchievementsPage = () => {
   return (
-    <MainLayout isMapPage={false} activeMenuKey="achievements">
+    <MainLayout isMapPage={false} activeMenuKey="achievement">
       <div className={styles.page}>
         <section className={styles.heroCard}>
           <div className={styles.heroIconWrap}>

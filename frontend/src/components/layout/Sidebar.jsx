@@ -5,7 +5,7 @@ import styles from '@/styles/Sidebar.module.css';
 
 const loggedInMenuItems = [
   { key: 'home', icon: House, label: '홈' },
-  { key: 'works', icon: Film, label: '작품 탐색' },
+  { key: 'artwork', icon: Film, label: '작품 탐색' },
   { key: 'route', icon: MapPinned, label: '루트 생성' },
   { key: 'community', icon: MessageSquare, label: '커뮤니티' },
   { key: 'mypage', icon: UserRound, label: '마이페이지' },
@@ -13,13 +13,13 @@ const loggedInMenuItems = [
 
 const guestMenuItems = [
   { key: 'home', icon: House, label: '홈' },
-  { key: 'works', icon: Film, label: '작품 탐색' },
+  { key: 'artwork', icon: Film, label: '작품 탐색' },
   { key: 'route', icon: MapPinned, label: '루트 생성' },
   { key: 'community', icon: MessageSquare, label: '커뮤니티' },
 ];
 
 const loggedInBottomItems = [
-  { key: 'achievements', icon: Trophy, label: '업적' },
+  { key: 'achievement', icon: Trophy, label: '업적' },
   { key: 'settings', icon: Settings, label: '설정' },
 ];
 

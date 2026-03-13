@@ -6,7 +6,7 @@ import { useAuthStore } from '@/stores/useAuthStore';
 import styles from '@/styles/MyPage.module.css';
 
 const TAB_ITEMS = [
-  { key: 'routes', label: '내 루트' },
+  { key: 'spots', label: '내 루트' },
   { key: 'posts', label: '내 게시글' },
   { key: 'bookmarks', label: '북마크' },
   { key: 'achievements', label: '업적' },
@@ -14,7 +14,7 @@ const TAB_ITEMS = [
 ];
 
 const SUMMARY_ITEMS = [
-  { key: 'routes', label: '내 루트', icon: MapPinned },
+  { key: 'spots', label: '내 루트', icon: MapPinned },
   { key: 'posts', label: '내 게시글', icon: FileText },
   { key: 'bookmarks', label: '북마크', icon: Bookmark },
   { key: 'achievements', label: '업적', icon: Trophy },
@@ -23,7 +23,7 @@ const SUMMARY_ITEMS = [
 const MyPage = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const [activeTab, setActiveTab] = useState('routes');
+  const [activeTab, setActiveTab] = useState('spots');
 
   // mock 데이터를 두지 않기 위해 사용자 정보는 store 값만 사용하고,
   // 아직 API가 연결되지 않은 통계/목록은 0과 빈 상태 UI로 표현합니다.
@@ -182,7 +182,7 @@ const MyPage = () => {
           ) : (
             <div className={styles.emptyState}>
               <div className={styles.emptyIconWrap}>
-                {activeTab === 'routes' ? (
+                {activeTab === 'spots' ? (
                   <MapPinned className={styles.emptyIcon} strokeWidth={2} />
                 ) : activeTab === 'posts' ? (
                   <FileText className={styles.emptyIcon} strokeWidth={2} />
