@@ -1,24 +1,5 @@
-.btn-login {
-  background: linear-gradient(90deg, #6e48aa, #9d50bb) !important;
-  border-radius: 50px !important; /* 완벽한 반원 형태 */
-  height: 50px; /* 고정 높이 */
-  width: 100%;
-  color: white;
-  font-weight: bold;
-  border: none;
-  cursor: pointer;
+.find-auth-submit-button {
   margin-top: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  transition: opacity 0.2s;
-}
-
-.btn-login:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  background: #333345 !important; /* 비활성화 시 색상 변경 */
 }
 
 /* 탭 스타일 */

@@ -1,0 +1,104 @@
+/* InputGroup / ActionInputGroup이 공통으로 쓰는 바깥 래퍼입니다.
+ * 페이지별 레이아웃은 각 페이지 CSS가 담당하고, 기본 폼 간격만 여기서 맞춥니다. */
+.input-group {
+  margin: 0;
+}
+
+/* 라벨은 인증 페이지 전반에서 같은 위계와 간격을 유지하도록 공통 규칙으로 묶습니다. */
+.input-group label {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #e5e5f0;
+}
+
+/* 공통 입력 필드의 기본 표현입니다.
+ * 페이지가 별도 class를 주입하더라도, 기본 border/background/focus 규칙은 여기서 시작합니다. */
+.input-group input {
+  width: 100%;
+  height: 52px;
+  padding: 0 16px;
+  box-sizing: border-box;
+  border: 1px solid #2d2d44;
+  border-radius: 16px;
+  background: #16162a;
+  color: #e5e5f0;
+  font-size: 16px;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
+}
+
+/* placeholder 톤을 통일해 입력 전/후 상태 대비를 유지합니다. */
+.input-group input::placeholder {
+  color: #8f90a6;
+}
+
+/* 포커스 링은 현재 입력 중인 필드를 명확히 보여주기 위한 공통 피드백입니다. */
+.input-group input:focus {
+  outline: none;
+  border-color: #6b46c1;
+  box-shadow: 0 0 0 4px rgba(107, 70, 193, 0.16);
+  background: #1b1b31;
+}
+
+/* 인증 완료 후 입력 잠금처럼 disabled 상태를 한 눈에 읽히게 합니다. */
+.input-group input:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* ActionInputGroup에서 입력창과 보조 버튼을 같은 줄에 배치할 때 사용하는 공통 레이아웃입니다. */
+.input-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.input-row input {
+  flex: 1;
+}
+
+/* 에러/성공 메시지는 모든 폼에서 같은 위치와 폰트 규칙을 따릅니다. */
+.error-msg,
+.success-msg {
+  display: block;
+  margin-top: 10px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.error-msg {
+  color: #ff8f8f;
+}
+
+.success-msg {
+  color: #6ee7b7;
+}
+
+/* SubmitGuide는 폼 제출 버튼 위에 노출되는 안내 문구입니다.
+ * 버튼이 비활성화된 이유를 바로 읽히게 하는 데 목적이 있습니다. */
+.submit-guide {
+  display: block;
+  margin-bottom: 12px;
+  color: #ff8f8f;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* 안내 문구가 갑자기 튀지 않도록 짧은 페이드 인만 적용합니다. */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

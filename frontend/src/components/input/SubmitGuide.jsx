@@ -1,23 +1,12 @@
 import React from 'react';
+import './FormControls.css';
 
 const SubmitGuide = ({ message }) => {
-  if (!message) return null; // 메시지가 없으면 아무것도 렌더링하지 않음
+  // 제출 조건이 모두 맞으면 안내 문구를 숨겨 시선을 CTA에만 집중시킵니다.
+  if (!message) return null;
 
-  return (
-    <p
-      className="submit-guide"
-      style={{
-        display: 'block',
-        color: '#ff4d4d',
-        fontSize: '12px',
-        fontWeight: '500',
-        marginBottom: '10px',
-        textAlign: 'center',
-        animation: 'fadeIn 0.3s ease-in-out',
-      }}>
-      {message}
-    </p>
-  );
+  // 이 컴포넌트는 "왜 버튼이 비활성화되어 있는지"를 짧게 설명하는 역할만 담당합니다.
+  return <p className="submit-guide">{message}</p>;
 };
 
 export default SubmitGuide;
