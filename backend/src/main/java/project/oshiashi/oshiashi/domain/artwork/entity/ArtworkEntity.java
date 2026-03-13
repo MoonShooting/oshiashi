@@ -7,7 +7,7 @@ import lombok.*;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(
-        name = "Artwork"
+        name = "artwork"
         // title UNIQUE 없음에따라 주석처리
         /*,
         uniqueConstraints = {
@@ -45,4 +45,21 @@ public class ArtworkEntity {
             ,foreignKey = @ForeignKey(name = "FK_artwork_artwork_type")
     )
     private ArtworkTypeEntity artworkType;
+
+    // tmdb 값을 저장하기 위한 정적 메서드(builder 안써도 됨)
+    public static ArtworkEntity of(
+            String title,
+            String posterUrl,
+            String description,
+            String spotifyAlbumId,
+            ArtworkTypeEntity artworkType
+    ) {
+        ArtworkEntity entity = new ArtworkEntity();
+        entity.title = title;
+        entity.posterUrl = posterUrl;
+        entity.description = description;
+        entity.spotifyAlbumId = spotifyAlbumId;
+        entity.artworkType = artworkType;
+        return entity;
+    }
 }
