@@ -7,6 +7,8 @@ import FindAuthPage from '@/pages/Login/FindAuthPage';
 import SignupPage from '@/pages/Login/RegisterPage';
 import MyPage from '@/pages/MyPage';
 import AchievementsPage from '@/pages/AchievementsPage';
+import ArtworkSearchPage from '@/pages/post/ArtworkSearchPage';
+import PostSearchResultPage from '@/pages/post/PostSearchResultPage';
 
 const authList = [
   { path: '/login', element: <LoginPage /> },
@@ -19,7 +21,17 @@ const mapList = [
   { path: '/pin', element: <PinPage /> },
 ];
 
-//기본 메인 화면 제외하고 각 페이지에 맞추어서 그룹핑 하여 ...그룹핑한 변수명으로 작성하시면 됩니다.
+const postList = [
+  { path: '/artworks', element: <ArtworkSearchPage /> },
+  { path: '/posts', element: <PostSearchResultPage /> },
+];
+
+const mypageList = [
+  { path: '/mypage', element: <MyPage /> },
+  { path: '/achievements', element: <AchievementsPage /> },
+];
+
+// 기본 메인 화면 제외하고 각 페이지에 맞추어서 그룹핑 하여 ...그룹핑한 변수명으로 작성하시면 됩니다.
 export const RouterList = [
   {
     path: '/',
@@ -27,12 +39,6 @@ export const RouterList = [
   },
   ...authList,
   ...mapList,
-  {
-    path: '/mypage',
-    element: <MyPage />,
-  },
-  {
-    path: '/achievements',
-    element: <AchievementsPage />,
-  },
+  ...postList,
+  ...mypageList,
 ];
