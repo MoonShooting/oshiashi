@@ -2,7 +2,9 @@ package project.oshiashi.oshiashi.domain.post.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import project.oshiashi.oshiashi.domain.bookmark.service.BookmarkService;
 import project.oshiashi.oshiashi.domain.post.dto.PostResponse;
 import project.oshiashi.oshiashi.domain.post.entity.PostEntity;
 import project.oshiashi.oshiashi.domain.post.service.PostService;
@@ -17,6 +19,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class PostController {
 	private final PostService postService;
+	private final BookmarkService bookmarkService; // 북마크 서비스 주입
 	
 	// DB 연동 전까지 데이터를 담아둘 임시 리스트 (테스트용)
 	// 0. 임시 리스트 (static 유지)
@@ -74,7 +77,21 @@ public class PostController {
 		return updatedPost;
 	}
 	
+	
+	// 7. 북마크 기능
+	// GET /api/v1/posts/{postId}/bookmark-status?userId=유저정보
+	@GetMapping("/{postId}/bookmark-status")
+	public ResponseEntity<Boolean> checkBookmarkStatus(
+			@PathVariable Long postId,
+			@RequestParam String userId
+	) {
+		// PostService 에게 맡깁니다.
+		boolean isBookmarked = postService.isPostBookmarkedByUser(userId, postId);
+		return ResponseEntity.ok(isBookmarked);
+	}
 
+
+	
 	
 	
 	

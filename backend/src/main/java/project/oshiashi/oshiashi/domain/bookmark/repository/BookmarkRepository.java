@@ -15,7 +15,7 @@ public interface BookmarkRepository extends JpaRepository<BookmarkEntity, Long> 
     // 북마크 삭제/수정 시 본인 북마크인지 검증하기 위해 bookmarkId + userId로 조회
     Optional<BookmarkEntity> findByBookmarkIdAndUser_UserId(Long bookmarkId, String userId);
 
-    // 특정 유저가 해당 게시글(post)을 이미 북마크했는지 여부 확인 (중복 북마크 방지)
+    // 특정 유저가 해당 게시글(post)을 이미 북마크했는지 여부 확인 (중복 북마크 방지)  Y or N
     boolean existsByUser_UserIdAndPost_PostId(String userId, Long postId);
 
     // 특정 유저가 해당 게시글 이미지(postImage)를 이미 북마크했는지 여부 확인 (중복 북마크 방지)

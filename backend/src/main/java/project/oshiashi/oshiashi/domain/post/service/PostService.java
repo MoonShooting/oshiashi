@@ -19,6 +19,8 @@ public interface PostService {
 	
 	//좋아요
 	PostResponse likePost(Long postId);
+	
+	boolean isPostBookmarkedByUser(String userId, Long postId);
 }
 /*
   인터페이스를 이용함으로써 사용법(Interface)과 실제 기능(Impl) 을 분리

@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import project.oshiashi.oshiashi.domain.bookmark.entity.BookmarkEntity;
+import project.oshiashi.oshiashi.domain.bookmark.repository.BookmarkRepository;
 import project.oshiashi.oshiashi.domain.post.dto.PostResponse;
 import project.oshiashi.oshiashi.domain.post.entity.PostEntity;
 import project.oshiashi.oshiashi.domain.post.repository.PostRepository;
@@ -27,6 +29,7 @@ public class PostServiceImpl implements PostService{
 	private final PostRepository postRepository;
 	private final UserRepository userRepository;
 	private final RouteRepository routeRepository;
+	private final BookmarkRepository bookmarkRepository;
 	
 	/**
 	 * 1. 게시글 전체 조회
@@ -175,6 +178,31 @@ public class PostServiceImpl implements PostService{
 		
 		// 3. DTO로 변환하여 반환 (DB에 반영됨)
 		return PostResponse.fromEntity(postEntity);
+	}
+	
+	
+	/**
+	 * 7. 게시글 북마크 여부 확인
+	 * @param userId (필수) 현재 로그인한 사용자 ID
+	 * @param postId (필수) 확인할 게시글 고유 ID
+	 * @return boolean
+	 * - true: 사용자가 이미 북마크(저장)한 게시글
+	 * - false: 북마크하지 않은 게시글
+	 * - 북마크 버튼의 '활성화 상태'를 결정할 때 사용
+	 * @throws RuntimeException 유저 정보가 없거나 게시글이 존재하지 않을 경우 발생
+	 */
+	@Override
+	public boolean isPostBookmarkedByUser(String userId, Long postId) {
+		// 1. 유저 검증
+		userRepository.findById(userId)
+				.orElseThrow(() -> new RuntimeException("누구세요? 로그인 정보가 없어요!"));
+		
+		// 2. 게시글 검증
+		postRepository.findById(postId) // post 변수에 담을 필요도 없으면 그냥 존재 확인만!
+				.orElseThrow(() -> new RuntimeException("찾으시는 게시글이 사라졌어요!"));
+		
+		// 3. 바로 결과 리턴 (Yes or No)
+		return bookmarkRepository.existsByUser_UserIdAndPost_PostId(userId, postId);
 	}
 	
 }
