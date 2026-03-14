@@ -1,6 +1,7 @@
 package project.oshiashi.oshiashi.domain.comment.service;
 
 //import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -19,6 +20,7 @@ import project.oshiashi.oshiashi.security.AuthenticatedUser;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -29,19 +31,26 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     public CommentResponse createComment(Long postId, CommentCreateRequest request) {
-        validateContent(request.getContent());
+        
+        log.debug("======= Comment 등록 테스트 =======");
+        log.debug("입력된 내용: {}", request.getContent());
+        log.debug("================================");
+        
+        // 현재 로그인한 사용자 정보 가져오기
         UserEntity me = getCurrentUserEntity();
 
+        // 게시글 존재 여부 확인
         PostEntity post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다. postId=" + postId));
-
+        
+        // Comment 엔티티 생성 (Builder 패턴 사용)
         CommentEntity comment = CommentEntity.builder()
                 .post(post)
                 .user(me)
                 .content(request.getContent())
                 .createdAt(LocalDateTime.now())
                 .build();
-
+        
         CommentEntity saved = commentRepository.save(comment);
         return CommentResponse.fromEntity(saved);
     }
