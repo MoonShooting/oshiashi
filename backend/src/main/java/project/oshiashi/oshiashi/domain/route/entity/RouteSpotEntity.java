@@ -7,7 +7,7 @@ import project.oshiashi.oshiashi.domain.spot.entity.SpotEntity;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
-@Table(name = "Route_spot",
+@Table(name = "route_spot",
         indexes = {
                 @Index(name = "IX_route_spot_route", columnList = "route_id"),
                 @Index(name = "IX_route_spot_spot", columnList = "spot_id")

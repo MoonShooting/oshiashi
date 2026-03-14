@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(
-        name = "Comment",
+        name = "comment",
         indexes = {
                 @Index(name = "IX_comment_post", columnList = "post_id"),
                 @Index(name = "IX_comment_user", columnList = "user_id"),
