@@ -2,8 +2,11 @@ import React, { useMemo, useState } from 'react';
 import { ChevronDown, Hash, RotateCcw, Search, SearchX, X } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import MainLayout from '@/components/layout/MainLayout';
+import PostCard from '@/components/post/PostCard';
 import styles from '@/styles/PostSearchResultPage.module.css';
 
+// 사용자가 "#도쿄", "도쿄", " 도쿄 "처럼 입력해도
+// 내부 비교는 항상 같은 기준으로 처리되도록 정규화합니다.
 const normalizeKeyword = (value) => value.replace(/^#/, '').trim();
 
 // MOCK: 검색 결과 페이지 검토용 게시글 10개입니다.
@@ -30,7 +33,7 @@ const PostSearchResultPage = () => {
    * 화면 흐름
    * 1. 사용자는 작품 탐색 페이지에서 작품을 선택하거나, tags query가 포함된 링크로 이 페이지에 진입합니다.
    * 2. 페이지는 현재 선택된 태그와 정렬값을 기준으로 어떤 결과를 보여줄지 표현합니다.
-   * 3. 이후 백엔드가 태그 기준 게시글 목록을 내려주면, 이 페이지는 그 데이터를 그대로 카드 목록으로 렌더링합니다.
+   * 3. 이후 백엔드가 태그 기준 게시글 목록을 내려주면, 이 페이지는 그 데이터를 카드 목록으로 렌더링합니다.
    * 4. 사용자는 여기서 태그 추가/제거, 정렬 변경, 게시글 상세 진입을 하게 됩니다.
    */
   const selectedTags = useMemo(() => {
@@ -99,6 +102,8 @@ const PostSearchResultPage = () => {
             </p>
           </header>
 
+          {/* 검색 조건 분리 제안은 frontend/POST_SEARCH_CONTROLS_PROPOSAL.md 문서에 정리해 두고,
+              현재 코드는 흐름 보존을 위해 페이지 안에 유지합니다. */}
           <div className={styles.controlRow}>
             <div className={styles.controlLeft}>
               {/* 태그 입력창은 현재 페이지 안에서 selectedTags 상태를 바꾸는 역할만 담당합니다. */}
@@ -168,38 +173,17 @@ const PostSearchResultPage = () => {
           ) : (
             <div className={styles.postGrid}>
               {filteredPosts.map((post) => (
-                // 검색 결과 카드는 제목, 본문 요약, 태그, 작성자, 반응 수치를 한 카드에 모아 보여줍니다.
-                <article key={post.id} className={styles.postCard}>
-                  <div className={styles.cardImageWrap}>
-                    <div className={styles.cardImageFallback} />
-                  </div>
-
-                  <div className={styles.cardBody}>
-                    <h3>{post.title}</h3>
-                    <p>{post.content}</p>
-
-                    <div className={styles.cardTags}>
-                      {post.tags.map((tag) => (
-                        <span key={tag} className={styles.cardTag}>
-                          #{tag}
-                        </span>
-                      ))}
-                    </div>
-
-                    <div className={styles.cardFooter}>
-                      <div className={styles.cardAuthor}>
-                        <span className={styles.cardAuthorAvatar} />
-                        <span>{post.userId}</span>
-                      </div>
-
-                      <div className={styles.cardStats}>
-                        <span className={styles.cardStat}>조회 {post.viewCount}</span>
-                        <span className={styles.cardStat}>좋아요 {post.likeCount}</span>
-                        <span className={styles.cardStat}>댓글 {post.commentCount}</span>
-                      </div>
-                    </div>
-                  </div>
-                </article>
+                <PostCard
+                  key={post.id}
+                  variant="default"
+                  title={post.title}
+                  excerpt={post.content}
+                  author={post.userId}
+                  tags={post.tags}
+                  viewCount={post.viewCount}
+                  likeCount={post.likeCount}
+                  commentCount={post.commentCount}
+                />
               ))}
             </div>
           )}
