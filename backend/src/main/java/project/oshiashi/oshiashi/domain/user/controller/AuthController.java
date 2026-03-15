@@ -88,4 +88,5 @@ public class AuthController {
 		}
 	}
 //	TODO: 회원 탈퇴 (DELETE /api/v1/user/withdraw)
+//	TODO: 개인정보 수정 (PATCH /api/v1/user/update)
 }

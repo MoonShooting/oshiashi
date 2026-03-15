@@ -68,4 +68,20 @@ public class UserEntity {
     public enum Role {user, admin}
 
     public enum UserStatus {active, dormant}
+
+	/**
+	 * [비밀번호 변경] -> 위의 User 선언들이 대부분 readonly이기 때문에 매서드 추가
+	 * - 엔티티의 불변성을 유지하기 위해 Setter 대신 명확한 의미의 메서드를 사용.
+	 */
+	public void changePassword(String encodedPassword) {
+		this.password = encodedPassword;
+	}
+
+	/**
+	 * [회원 상태 변경] -> 위의 User 선언들이 대부분 readonly이기 때문에 매서드 추가
+	 * - 탈퇴나 휴면 상태 전환 시 사용.
+	 */
+	public void changeStatus(UserStatus status) {
+		this.status = status;
+	}
 }

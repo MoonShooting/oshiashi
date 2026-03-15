@@ -3,6 +3,7 @@ package project.oshiashi.oshiashi.security;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -28,27 +29,30 @@ public class WebSecurityConfig {
 	@Bean
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 		http
-				// REST API 환경에 최적화된 설정 (무상태성 유지)
-				// CORS 설정: 허용된 도메인(프론트엔드)만 서버 데이터에 접근 가능하게 제한합니다.
 				.cors(cors -> cors.configurationSource(corsConfigurationSource()))
 				.csrf(AbstractHttpConfigurer::disable)
 				.formLogin(AbstractHttpConfigurer::disable)
 				.httpBasic(AbstractHttpConfigurer::disable)
-				// 세션 정책: 서버에 세션을 절대 생성하지 않음 (JWT 방식의 핵심)
 				.sessionManagement(session -> session
 						.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
 				)
-				// URL별 접근 권한 설정 (설계서 v1 기준)
 				.authorizeHttpRequests(auth -> auth
-						// 회원가입, 로그인, 중복확인 등은 통행증 없이도 가능
+						// 1. 통행증 없이 허용하는 경로
 						.requestMatchers("/api/v1/auth/**").permitAll()
-						// 마이페이지, 프로필 수정 등은 반드시 유효한 토큰이 있어야 함
+
+						// [추가] 게시글/댓글 조회(GET)는 로그인을 안 해도 가능하게 설정 (선택 사항)
+						.requestMatchers(HttpMethod.GET, "/api/v1/posts/**", "/api/v1/comments/**").permitAll()
+
+						// 2. 반드시 유효한 토큰이 있어야 하는 경로
 						.requestMatchers("/api/v1/user/**").authenticated()
-						// 그 외 모든 요청도 일단은 인증을 요구함
+
+						// [추가] 게시글/댓글 작성, 수정, 삭제(POST, PUT, DELETE 등)는 인증 필수
+						.requestMatchers("/api/v1/posts/**").authenticated()
+						.requestMatchers("/api/v1/comments/**").authenticated()
+
+						// 그 외 모든 요청도 인증을 요구함
 						.anyRequest().authenticated()
 				)
-				// [핵심] JWT 검문소를 시큐리티 기본 필터 앞에 배치함
-				// 사용자가 보낸 토큰을 먼저 확인해서 인증을 마쳐야 뒤의 요청이 정상 처리됨.
 				.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
 		return http.build();
