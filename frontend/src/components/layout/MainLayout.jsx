@@ -31,7 +31,9 @@ const MainLayoutContent = ({
     () => ({
       home: '/',
       artwork: '/artworks',
-      route: '/map',
+      works: '/',
+      map: '/map', // 지도 전체 보기
+      spot: '/spot', // 경로 만들기
       community: '/',
       post: '/posts',
       mypage: '/mypage',
@@ -48,7 +50,7 @@ const MainLayoutContent = ({
   const computedActiveKey = useMemo(() => {
     if (activeMenuKey) return activeMenuKey;
     if (location.pathname.startsWith('/artworks')) return 'artwork';
-    if (location.pathname.startsWith('/map')) return 'route';
+    if (location.pathname.startsWith('/map')) return 'map';
     if (location.pathname.startsWith('/posts')) return 'post';
     if (location.pathname.startsWith('/mypage')) return 'mypage';
     if (location.pathname.startsWith('/achievements')) return 'achievement';
