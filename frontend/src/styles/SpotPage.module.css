@@ -1,0 +1,204 @@
+/**
+ * @file SpotPage.module.css
+ * @description 경로 생성 페이지 반응형 스타일
+ *
+ * 브레이크포인트:
+ *   < 768px  : 모바일 — 지도 풀스크린 + 하단 슬라이드업 패널
+ *   768~1199px: 태블릿 — 지도 + 우측 220px, 교통수단은 지도 우하단 pill
+ *   ≥ 1200px  : 데스크탑 — 지도 + 우측 300px, 교통수단은 사이드 패널 하단 가로 탭
+ */
+
+/*  레이아웃 및 사이드 패널 */
+.sidePanel {
+  width: 320px; /* GNB 사이드바와 폭을 동일하게 설정 (추천) */
+  height: 100%;
+  background: var(--bg-dark); /* 메인 배경색 */
+  border-right: 1px solid rgba(157, 80, 187, 0.15);
+  display: flex;
+  flex-direction: column;
+  z-index: 10; /* GNB 사이드바(보통 1000+)보다 낮게 설정 */
+}
+
+/* 리스트 헤더 */
+.listHeader {
+  padding: 24px 20px 16px;
+}
+
+.listHeader h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.count {
+  font-size: 13px;
+  color: var(--primary-purple);
+  font-weight: 500;
+}
+
+/*  장소 리스트 (Scroll 영역) */
+.placeList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 개별 아이템 스타일 */
+.spotItem {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px;
+  transition: all 0.2s ease;
+  cursor: grab;
+}
+
+.spotItem:active {
+  cursor: grabbing;
+}
+
+.spotItemOver {
+  border-color: var(--primary-purple);
+  background: rgba(157, 80, 187, 0.08);
+  transform: translateY(-2px);
+}
+
+.spotNum {
+  width: 22px;
+  height: 22px;
+  background: var(--primary-purple);
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  margin-right: 10px;
+}
+
+.dragHandle {
+  color: rgba(255, 255, 255, 0.2);
+  margin-right: 10px;
+}
+
+.spotInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.spotTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.spotWork {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 2px;
+}
+
+.spotLeg {
+  font-size: 11px;
+  color: #00e676; /* 형광 그린 (경로 정보 강조) */
+  margin-top: 4px;
+}
+
+/* 하단 CTA 버튼 (고정 영역) */
+.panelFooter {
+  padding: 20px;
+  background: linear-gradient(to top, var(--bg-dark) 80%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 경로 탐색 버튼 (기본 보라) */
+.exploreBtn {
+  width: 100%;
+  padding: 14px;
+  background: var(--primary-purple);
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+/* 경로 저장 버튼 (그라데이션 강조) */
+.saveBtn {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #9d50bb 0%, #e91e8c 100%);
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(233, 30, 140, 0.3);
+  animation: pulse 2s infinite; /* 시선 집중 효과 */
+}
+
+.clearBtn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.5);
+  padding: 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(233, 30, 140, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(233, 30, 140, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(233, 30, 140, 0);
+  }
+}
+
+/* 기타 요소 */
+.empty {
+  text-align: center;
+  padding: 40px 0;
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 13px;
+}
+
+.removeBtn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 20px;
+  cursor: pointer;
+  margin-left: 8px;
+}
+
+.removeBtn:hover {
+  color: #ff5252;
+}
+
+.svBtn {
+  background: rgba(255, 255, 255, 0.05);
+  border: none;
+  border-radius: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+}

@@ -1,0 +1,47 @@
+/**
+ * @file MapLegend.module.css
+ */
+
+.legend {
+  position: absolute;
+  bottom: 20px;
+  left: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(16, 16, 26, 0.88);
+  border: 1px solid rgba(157, 80, 187, 0.18);
+  border-radius: 20px;
+  padding: 7px 14px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 10;
+  flex-wrap: wrap;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+  white-space: nowrap;
+}
+
+.countBadge {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  padding-left: 12px;
+  white-space: nowrap;
+}
