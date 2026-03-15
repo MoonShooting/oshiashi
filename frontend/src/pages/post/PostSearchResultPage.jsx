@@ -1,30 +1,17 @@
 import React, { useMemo, useState } from 'react';
 import { ChevronDown, Hash, RotateCcw, Search, SearchX, X } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import MainLayout from '@/components/layout/MainLayout';
 import PostCard from '@/components/post/PostCard';
+import { mockPostSummaries } from '@/components/post/postMockData';
 import styles from '@/styles/PostSearchResultPage.module.css';
 
 // 사용자가 "#도쿄", "도쿄", " 도쿄 "처럼 입력해도
 // 내부 비교는 항상 같은 기준으로 처리되도록 정규화합니다.
 const normalizeKeyword = (value) => value.replace(/^#/, '').trim();
 
-// MOCK: 검색 결과 페이지 검토용 게시글 10개입니다.
-// 실제 연동 시에는 태그/정렬 조건을 포함한 백엔드 응답으로 교체하고, 이 배열은 제거합니다.
-const mockPosts = [
-  { id: 'post-1', title: '도쿄 배경으로 따라간 너의 이름은 루트 정리', content: '도쿄 시내 장면을 중심으로 걸어본 동선과 촬영 포인트를 정리한 게시글입니다.', userId: 'mitsuha_fan', viewCount: 2310, likeCount: 540, commentCount: 31, tags: ['도쿄', '너의이름은', '성지순례'] },
-  { id: 'post-2', title: '아카바네에서 찾은 토라도라 분위기', content: '토라도라 배경으로 자주 언급되는 골목과 역 주변을 정리했습니다.', userId: 'taiga_route', viewCount: 1890, likeCount: 422, commentCount: 18, tags: ['아카바네', '토라도라', '학원물'] },
-  { id: 'post-3', title: '도쿄 야경 위주로 본 날씨의 아이 스팟', content: '날씨의 아이 장면과 겹쳐 보이는 야경 포인트만 골라서 정리한 결과입니다.', userId: 'sunshine_runner', viewCount: 1605, likeCount: 311, commentCount: 14, tags: ['도쿄', '날씨의아이', '야경'] },
-  { id: 'post-4', title: '러브라이브 성지 초보용 아키하바라 동선', content: '반나절 기준으로 이동 가능한 초심자용 루트를 정리했습니다.', userId: 'idol_trip', viewCount: 2742, likeCount: 630, commentCount: 42, tags: ['아키하바라', '러브라이브', '도쿄'] },
-  { id: 'post-5', title: '너의 이름은 카페 배경과 실제 장소 비교', content: '작중 장면과 실제 장소 사진을 비교하면서 정리한 게시글입니다.', userId: 'kiminonawa_map', viewCount: 1450, likeCount: 298, commentCount: 11, tags: ['너의이름은', '도쿄', '카페'] },
-  { id: 'post-6', title: '토라도라 감성으로 걷는 겨울 저녁 루트', content: '겨울 분위기를 살려볼 수 있는 도심 동선 위주로 추려봤습니다.', userId: 'winter_walk', viewCount: 1320, likeCount: 245, commentCount: 9, tags: ['토라도라', '도쿄', '야경'] },
-  { id: 'post-7', title: '아카바네 근처 실내 위주 게시글 모음', content: '비 오는 날에도 보기 쉬운 실내 포인트를 중심으로 정리했습니다.', userId: 'rainy_trip', viewCount: 980, likeCount: 164, commentCount: 7, tags: ['아카바네', '도쿄', '실내'] },
-  { id: 'post-8', title: '스즈메의 문단속 도쿄 구간 게시글 추천', content: '스즈메의 문단속 중 도쿄 장면을 기준으로 참고할 만한 포인트를 추렸습니다.', userId: 'door_keeper', viewCount: 1160, likeCount: 210, commentCount: 8, tags: ['스즈메의문단속', '도쿄', '영화'] },
-  { id: 'post-9', title: '봇치 더 록 라이브하우스 태그 기반 게시글', content: '실제 공연장 느낌을 살릴 수 있는 포인트를 중심으로 기록했습니다.', userId: 'band_route', viewCount: 870, likeCount: 153, commentCount: 6, tags: ['봇치더록', '음악', '도쿄'] },
-  { id: 'post-10', title: '케이온 풍경 태그로 묶어본 게시글 리스트', content: '학교, 거리, 공연 테마로 나눠 확인하기 쉽게 묶었습니다.', userId: 'tea_time', viewCount: 740, likeCount: 121, commentCount: 5, tags: ['케이온', '애니', '풍경'] },
-];
-
 const PostSearchResultPage = () => {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [sortBy, setSortBy] = useState('views');
   const [inputValue, setInputValue] = useState('');
@@ -46,8 +33,8 @@ const PostSearchResultPage = () => {
 
   const filteredPosts = useMemo(() => {
     const results = selectedTags.length
-      ? mockPosts.filter((post) => selectedTags.every((tag) => post.tags.includes(tag)))
-      : mockPosts;
+      ? mockPostSummaries.filter((post) => selectedTags.every((tag) => post.tags.includes(tag)))
+      : mockPostSummaries;
 
     const sorted = [...results];
 
@@ -183,6 +170,9 @@ const PostSearchResultPage = () => {
                   viewCount={post.viewCount}
                   likeCount={post.likeCount}
                   commentCount={post.commentCount}
+                  imageUrl={post.imageUrl}
+                  publishedAt={post.publishedAt}
+                  onClick={() => navigate(`/posts/${post.id}`)}
                 />
               ))}
             </div>
