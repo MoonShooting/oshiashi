@@ -37,7 +37,8 @@ public class CommentServiceImpl implements CommentService {
         log.debug("================================");
         
         // 현재 로그인한 사용자 정보 가져오기
-        UserEntity me = getCurrentUserEntity();
+        // TODO : 누군지 확인이 되면(보안통과) UserEntity 객체로 변환
+        UserEntity userEntity = getCurrentUserEntity();
 
         // 게시글 존재 여부 확인
         PostEntity post = postRepository.findById(postId)
@@ -46,7 +47,7 @@ public class CommentServiceImpl implements CommentService {
         // Comment 엔티티 생성 (Builder 패턴 사용)
         CommentEntity comment = CommentEntity.builder()
                 .post(post)
-                .user(me)
+                .user(userEntity)
                 .content(request.getContent())
                 .createdAt(LocalDateTime.now())
                 .build();
@@ -96,15 +97,21 @@ public class CommentServiceImpl implements CommentService {
         commentRepository.delete(comment);
     }
 
+    //TODO : 서큐리티 보안단 post 랑 연동해서 보안 통과한 사람만 게시물 작성 가능한 부분
     private UserEntity getCurrentUserEntity() {
+        // TODO : 실제 사용자 정보 확인
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-
+        log.debug("현재 로그인 상태 검사 : {}", principal);
         // 인증 안 된 상태면 principal이 String("anonymousUser")일 수 있음
         if (!(principal instanceof AuthenticatedUser authenticatedUser)) {
             throw new IllegalStateException("인증 정보가 없습니다.");
         }
+        log.debug("통과 여부 체크 : {}", principal);
         return authenticatedUser.user();
     }
+    // TODO: 보안 설정(SecurityConfig)이 완료되기 전까지는
+    //  SecurityContextHolder에 아무 값도 들어있지 않아 NullPointerException이 발생할 수 있음.
+    //  또는 로그인하지 않은 상태면 principal이  ClassCastException 발생.
 
     // 만약 댓글이 비어있거나 255자를 넘었는지를 판단합니다
     private void validateContent(String content) {
