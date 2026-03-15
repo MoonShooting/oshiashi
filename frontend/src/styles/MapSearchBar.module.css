@@ -1,0 +1,131 @@
+/**@description 지도 검색창 스타일
+ * UI 캡처본 기준: 상단 중앙 배치, 어두운 반투명 배경
+ */
+
+.wrapper {
+  position: relative;
+  width: 400px;
+  max-width: calc(100vw - 320px);
+  z-index: 15;
+}
+
+/* 검색 입력 행 */
+.inputRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(20, 20, 32, 0.92);
+  border: 1px solid rgba(157, 80, 187, 0.3);
+  border-radius: 24px;
+  padding: 9px 14px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.inputRow:focus-within {
+  border-color: rgba(157, 80, 187, 0.7);
+  box-shadow: 0 0 0 3px rgba(157, 80, 187, 0.12);
+}
+
+.searchIcon {
+  color: rgba(255, 255, 255, 0.4);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #ffffff;
+  font-size: 13px;
+  font-family: var(--font-body);
+  min-width: 0;
+}
+
+.input::placeholder {
+  color: rgba(255, 255, 255, 0.38);
+}
+
+.clearBtn {
+  color: rgba(255, 255, 255, 0.4);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  padding: 0;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+
+.clearBtn:hover {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* 드롭다운 */
+.dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: rgba(20, 20, 32, 0.97);
+  border: 1px solid rgba(157, 80, 187, 0.25);
+  border-radius: 12px;
+  overflow: hidden;
+  max-height: 260px;
+  overflow-y: auto;
+  list-style: none;
+  padding: 4px 0;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 100;
+}
+
+.dropdown::-webkit-scrollbar {
+  width: 4px;
+}
+.dropdown::-webkit-scrollbar-track {
+  background: transparent;
+}
+.dropdown::-webkit-scrollbar-thumb {
+  background: rgba(157, 80, 187, 0.3);
+  border-radius: 2px;
+}
+
+.dropdownItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.dropdownItem:hover,
+.dropdownItem.active {
+  background: rgba(157, 80, 187, 0.18);
+}
+
+.placeName {
+  font-size: 13px;
+  font-weight: 500;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.placeAddr {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

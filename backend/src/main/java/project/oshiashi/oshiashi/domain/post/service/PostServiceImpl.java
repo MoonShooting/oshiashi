@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import project.oshiashi.oshiashi.domain.artwork.entity.ArtworkEntity;
 import project.oshiashi.oshiashi.domain.artwork.service.ArtworkResolveService;
 import project.oshiashi.oshiashi.domain.post.dto.PostCreateRequest;
+import project.oshiashi.oshiashi.domain.bookmark.entity.BookmarkEntity;
+import project.oshiashi.oshiashi.domain.bookmark.repository.BookmarkRepository;
 import project.oshiashi.oshiashi.domain.post.dto.PostResponse;
 import project.oshiashi.oshiashi.domain.post.entity.PostEntity;
 import project.oshiashi.oshiashi.domain.post.repository.PostRepository;
@@ -33,6 +35,7 @@ public class PostServiceImpl implements PostService{
 	private final ArtworkResolveService artworkResolveService;
 	private final TagService tagService;
 	
+	
 	/**
 	 * 1. 게시글 전체 조회
 	 * @return List<PostResponse>
@@ -41,7 +44,11 @@ public class PostServiceImpl implements PostService{
 	 */
 	@Override
 	public List<PostResponse> getAllPost() {
-		return postRepository.findAll().stream()
+		log.debug("[Service] 게시글 전체 조회 요청 발생");
+		List<PostEntity> posts = postRepository.findAll();
+		log.debug("[Service] 조회된 게시글 총 개수: {}개", posts.size());
+		
+		return posts.stream()
 				.map(PostResponse::fromEntity)
 				.collect(Collectors.toUnmodifiableList());
 		//Collectors.toUnmodifiableList()는 스트림의 결과를 수집할 때,
@@ -57,9 +64,17 @@ public class PostServiceImpl implements PostService{
 	 */
 	@Override
 	public PostResponse getPostById(Long postId) {
+		log.debug("[Service] 게시글 단건 조회 시작 - ID: {}", postId);
+		
 		return postRepository.findById(postId)
-				.map(PostResponse::fromEntity)
-				.orElseThrow(() -> new RuntimeException("게시글을 찾을 수 없습니다."));
+				.map(entity -> {
+					log.debug("[Service] 게시글 조회 성공: {}", entity.getTitle());
+					return PostResponse.fromEntity(entity);
+				})
+				.orElseThrow(() -> {
+					log.debug("[Service] 조회 실패: {}번 게시글이 존재하지 않음", postId);
+					return new RuntimeException("게시글을 찾을 수 없습니다.");
+				});
 	}
 	
 	/**
@@ -109,8 +124,7 @@ public class PostServiceImpl implements PostService{
 				.build();
 
 		PostEntity savedPost = postRepository.save(postEntity);
-
-		log.debug(">>> [Service] post 저장 성공! (자동 생성된 postId: {})", savedPost.getPostId());
+		log.debug("[Service] post 저장 성공! (자동 생성된 postId: {})", savedPost.getPostId());
 		return PostResponse.fromEntity(savedPost);
 	}
 	
@@ -128,7 +142,7 @@ public class PostServiceImpl implements PostService{
 		}
 		
 		postRepository.deleteById(postId);
-		log.debug(">>> [Service] ID : {} 데이터가  삭제되었습니다.", postId);
+		log.debug("[Service] ID : {} 데이터가  삭제되었습니다.", postId);
 	}
 	
 	/**
@@ -157,7 +171,7 @@ public class PostServiceImpl implements PostService{
 		
 		// 3. 수정된 엔티티를 다시 DTO로 변환해서 반환
 		PostResponse postResponse = PostResponse.fromEntity(postEntity);
-		log.debug(">>> [Service] 최종 변환된 응답 DTO: {}", postResponse);
+		log.debug("[Service] 최종 변환된 응답 DTO: {}", postResponse);
 		return postResponse;
 	}
 	
@@ -173,7 +187,7 @@ public class PostServiceImpl implements PostService{
 		// 1. DB에서 해당 게시글 조회 (없으면 예외 발생)
 		PostEntity postEntity = postRepository.findById(postId)
 				.orElseThrow(() -> {
-					log.debug("!!! [Service] 좋아요 실패: {}번 게시글이 DB에 없습니다.", postId);
+					log.debug("!!! [Service] 좋아요 실패: {}번 게시글이 없습니다.", postId);
 					return new EntityNotFoundException("게시글 없음: " + postId);
 				});
 		
@@ -181,10 +195,12 @@ public class PostServiceImpl implements PostService{
 		int oldLikes = (postEntity.getLikeCount() == null) ? 0 : postEntity.getLikeCount();
 		postEntity.setLikeCount(oldLikes + 1);
 		
-		log.debug(">>> [Service] 좋아요 반영 완료: {} -> {}", oldLikes, postEntity.getLikeCount());
+		log.debug("[Service] 좋아요 반영 완료: {} -> {}", oldLikes, postEntity.getLikeCount());
 		
 		// 3. DTO로 변환하여 반환 (DB에 반영됨)
 		return PostResponse.fromEntity(postEntity);
 	}
+	
+	
 	
 }
