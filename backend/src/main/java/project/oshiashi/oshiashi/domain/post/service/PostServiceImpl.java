@@ -6,11 +6,15 @@ import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import project.oshiashi.oshiashi.domain.artwork.entity.ArtworkEntity;
+import project.oshiashi.oshiashi.domain.artwork.service.ArtworkResolveService;
+import project.oshiashi.oshiashi.domain.post.dto.PostCreateRequest;
 import project.oshiashi.oshiashi.domain.post.dto.PostResponse;
 import project.oshiashi.oshiashi.domain.post.entity.PostEntity;
 import project.oshiashi.oshiashi.domain.post.repository.PostRepository;
 import project.oshiashi.oshiashi.domain.route.entity.RouteEntity;
 import project.oshiashi.oshiashi.domain.route.repository.RouteRepository;
+import project.oshiashi.oshiashi.domain.tag.service.TagService;
 import project.oshiashi.oshiashi.domain.user.entity.UserEntity;
 import project.oshiashi.oshiashi.domain.user.repository.UserRepository;
 
@@ -20,13 +24,14 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@Builder
 @RequiredArgsConstructor
 @Transactional
 public class PostServiceImpl implements PostService{
 	private final PostRepository postRepository;
 	private final UserRepository userRepository;
 	private final RouteRepository routeRepository;
+	private final ArtworkResolveService artworkResolveService;
+	private final TagService tagService;
 	
 	/**
 	 * 1. 게시글 전체 조회
@@ -60,50 +65,53 @@ public class PostServiceImpl implements PostService{
 	/**
 	 * 3. 게시글 작성
 	 * @param request (DTO)
-	 * - [필수 입력]: title (제목), content (내용)
-	 * - [현재 미구현]: userId, routeId (현재 서비스 로직에서 주석 처리됨)
+	 *  - [입력]: userId, routeId, artworkTitle, title, content, status
+	 *  - [동작]: 작성자/루트 조회 후 작품 정보를 확보하고 게시글을 저장
 	 * @return PostResponse
 	 * - 필수 반환: DB에 저장된 최종 데이터 (자동 생성된 postId 포함)
 	 * - 특징: 작성 시 viewCount, likeCount는 0으로, status는 PUBLIC으로 강제 초기화됨
 	 */
 	@Override
-	public PostResponse createPost(PostResponse request) {
+	public PostResponse createPost(PostCreateRequest request) {
 		
 		// [테스트 로깅 추가] 제목과 내용 입력값 확인
 		log.debug("======= Post 등록 테스트 =======");
 		log.debug("입력된 제목: {}", request.getTitle());
 		log.debug("입력된 내용: {}", request.getContent());
 		log.debug("================================");
-		
-		// TODO: 에러 핸들링 및 유효성 검사 (현재는 값이 없으므로 테스트를 위해 잠시 주석 처리),
-		//  엔티티 생성시 원래는 필수값이나 임시 주석 처리 user, route
-		
-		/*
-		// 1. 작성자 정보와 루트 정보를 DB에서 먼저 조회
+
+		// TODO: 입력값 유효성 검사 및 예외 처리 고도화
+
+		// 1. 작성자 정보와 루트 정보를 DB에서 조회
 		UserEntity user = userRepository.findById(request.getUserId())
 				.orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
-		
+
 		RouteEntity route = routeRepository.findById(request.getRouteId())
 				.orElseThrow(() -> new RuntimeException("루트를 찾을 수 없습니다."));
-		*/
-		
-		// DB에 저장할 엔티티 생성
+
+		// 2. 작품 정보 확보
+		ArtworkEntity artwork = artworkResolveService.getOrCreateArtwork(request.getArtworkTitle());
+
+		// 3. 작품 태그 확보
+		tagService.getOrCreateArtworkTag(artwork);
+
+		// 4. DB에 저장할 엔티티 생성
 		PostEntity postEntity = PostEntity.builder()
-				//.user(user) // ← "이 유저가 쓴 글이야" 라고 객체를 연결
-				//.route(route)
+				.user(user)
+				.route(route)
 				.title(request.getTitle())
 				.content(request.getContent())
-				.status(PostEntity.PostStatus.PUBLIC)
+				.status(request.getStatus() != null ? request.getStatus() : PostEntity.PostStatus.PUBLIC)
 				.viewCount(0)
 				.likeCount(0)
 				.createdAt(LocalDateTime.now())
 				.updateAt(LocalDateTime.now())
 				.build();
-		
+
 		PostEntity savedPost = postRepository.save(postEntity);
+
 		log.debug(">>> [Service] post 저장 성공! (자동 생성된 postId: {})", savedPost.getPostId());
 		return PostResponse.fromEntity(savedPost);
-	
 	}
 	
 	/**
@@ -133,7 +141,7 @@ public class PostServiceImpl implements PostService{
 	 * - 예외: 수정 대상 게시글이 없을 경우 RuntimeException 발생
 	 */
 	@Override
-	public PostResponse updatePost(Long postId, PostResponse request) {
+	public PostResponse updatePost(Long postId, PostCreateRequest request) {
 		// 1. 기존 게시글 조회 (없으면 예외 발생)
 		PostEntity postEntity = postRepository.findById(postId)
 				.orElseThrow(() -> new RuntimeException("수정할 게시글을 찾을 수 없습니다."));
@@ -142,7 +150,9 @@ public class PostServiceImpl implements PostService{
 		// 실제로는 route 객체도 새로 찾아와서 수정하는거 고려
 		postEntity.setTitle(request.getTitle());
 		postEntity.setContent(request.getContent());
-		postEntity.setStatus(request.getStatus());
+		postEntity.setStatus(
+				request.getStatus() != null ? request.getStatus() : postEntity.getStatus()
+		);
 		postEntity.setUpdateAt(LocalDateTime.now());
 		
 		// 3. 수정된 엔티티를 다시 DTO로 변환해서 반환

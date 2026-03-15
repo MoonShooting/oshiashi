@@ -37,7 +37,7 @@ public class CommentServiceImpl implements CommentService {
 
         CommentEntity comment = CommentEntity.builder()
                 .post(post)
-                .user(me)
+                .user(me) // 이거 뭐임?
                 .content(request.getContent())
                 .createdAt(LocalDateTime.now())
                 .build();

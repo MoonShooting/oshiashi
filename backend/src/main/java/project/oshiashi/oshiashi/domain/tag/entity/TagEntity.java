@@ -40,4 +40,12 @@ public class TagEntity {
 
     @Column(name = "tag_name", length = 100, nullable = false, unique = true) // 유니크 추가
     private String tagName;
+
+    // 작품 기반 태그 생성
+    public static TagEntity of(ArtworkEntity artwork, String tagName) {
+        TagEntity entity = new TagEntity();
+        entity.artwork = artwork;
+        entity.tagName = tagName;
+        return entity;
+    }
 }

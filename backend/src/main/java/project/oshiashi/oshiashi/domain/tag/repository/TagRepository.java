@@ -10,7 +10,10 @@ import java.util.Optional;
 
 @Repository
 public interface TagRepository extends JpaRepository<TagEntity, Long> {
-	
+
+	// 작품 기준으로 이미 연결된 태그가 있는지 확인
+	Optional<TagEntity> findByArtwork_ArtworkId(Long artworkId);
+
 	// 태그 이름으로  찾기 (중복 체크용)
 	Optional<TagEntity> findByTagName(String tagName);
 	

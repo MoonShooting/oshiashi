@@ -89,8 +89,23 @@ public class TagServiceImpl implements TagService {
 		log.debug("[Tag 검색 완료] 검색 결과 수: {}건", results.size());
 		return results;
 	}
-	
-	
+
+	// 4. 작품 기준 태그 조회/생성
+	@Override
+	public TagEntity getOrCreateArtworkTag(ArtworkEntity artwork) {
+		log.debug("[작품 태그 조회/생성] artworkId: {}, title: {}", artwork.getArtworkId(), artwork.getTitle());
+
+		return tagRepository.findByArtwork_ArtworkId(artwork.getArtworkId())
+				.orElseGet(() -> {
+					log.debug("[작품 태그 없음] 새 태그 생성 진행: {}", artwork.getTitle());
+
+					TagEntity newTag = TagEntity.of(artwork, artwork.getTitle());
+					TagEntity savedTag = tagRepository.save(newTag);
+
+					log.debug("[작품 태그 생성 완료] tagId: {}, tagName: {}", savedTag.getTagId(), savedTag.getTagName());
+					return savedTag;
+				});
+	}
 	
 }
 
