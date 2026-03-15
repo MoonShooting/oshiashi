@@ -1,10 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import {
-  Map,
-  AdvancedMarker,
-  useMap,
-  useMapsLibrary,
-} from '@vis.gl/react-google-maps';
+import { Map, AdvancedMarker, useMap, useMapsLibrary } from '@vis.gl/react-google-maps';
 
 // 🛣️ 경로를 그려주는 내부 컴포넌트
 function Directions({ pins }) {
@@ -47,7 +42,7 @@ function Directions({ pins }) {
           stopover: true,
         })), // 중간 지점들 (2번, 3번...)
         travelMode: google.maps.TravelMode.WALKING, // 성지순례니까 도보 모드
-        optimizeWaypoints: false, // ❗ 입력한 순서 그대로 경로 유지
+        optimizeWaypoints: false, // 입력한 순서 그대로 경로 유지
       },
       (result, status) => {
         if (status === 'OK') {
@@ -72,8 +67,7 @@ export default function PinMapDisplay({ pins, focusLocation }) {
       defaultZoom={13}
       mapId={mapId} // 👈 변수로 넣기
       gestureHandling={'greedy'}
-      disableDefaultUI={false}
-    >
+      disableDefaultUI={false}>
       {/* 1. 경로 그리기 컴포넌트 */}
       <Directions pins={pins} />
 
@@ -96,8 +90,7 @@ export default function PinMapDisplay({ pins, focusLocation }) {
               fontWeight: 'bold',
               border: '2px solid white',
               boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
-            }}
-          >
+            }}>
             {i + 1}
           </div>
         </AdvancedMarker>

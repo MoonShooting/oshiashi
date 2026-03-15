@@ -1,44 +1,48 @@
 .layoutWrapper {
-  min-height: 100vh;
-  background:
-    radial-gradient(circle at 10% 10%, rgba(107, 70, 193, 0.16), transparent 40%),
-    radial-gradient(circle at 90% 20%, rgba(236, 72, 153, 0.12), transparent 45%),
-    linear-gradient(180deg, #121227 0%, #0f0f1c 100%);
-  color: #f7f7ff;
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #080810;
+  overflow: hidden;
 }
 
 .mainArea {
-  min-height: 100vh;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0; /* flex 자식의 높이 계산 오류 방지 */
 }
 
 .contentContainer {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   position: relative;
-  width: 100%;
-  margin: 0;
-  padding: 98px 28px 32px;
+  min-height: 0;
 }
 
-.overlayUI {
-  position: absolute;
-  top: 104px;
-  left: 20px;
-  z-index: 20;
-  width: min(620px, calc(100% - 40px));
-}
-
-.generalMain {
-  min-height: calc(100vh - 130px);
-}
-
+/* 지도 전용 레이아웃 */
 .mapLayout {
+  display: flex;
+  width: 100%;
+  height: 100%;
   position: relative;
-  min-height: calc(100vh - 130px);
-  border: 1px solid rgba(45, 45, 68, 0.9);
-  border-radius: 22px;
-  overflow: hidden;
-  background: rgba(16, 16, 30, 0.85);
 }
 
+.mapLayer {
+  flex: 1;
+  height: 100%; /* 부모 .mapLayout의 높이 상속 */
+  position: relative;
+  min-height: 0; /* Flexbox 높이 계산 오류 방지 */
+}
+
+.mapMain {
+  width: 100%;
+  height: 100%; /* 지도가 렌더링될 영역 확보 */
+}
+
+/* 필터 패널 등이 위치할 사이드바 */
 .leftSidebar {
   position: absolute;
   top: 0;
@@ -46,20 +50,9 @@
   bottom: 0;
   width: min(340px, 32vw);
   z-index: 10;
-  overflow-y: auto;
-  border-right: 1px solid rgba(45, 45, 68, 0.9);
-  background: rgba(17, 17, 34, 0.94);
-}
-
-.mapLayer {
-  min-height: calc(100vh - 130px);
-}
-
-.mapMain {
-  position: absolute;
-  right: 18px;
-  bottom: 18px;
-  z-index: 12;
+  /* 사이드바 필터 구역 배경색, 라인 */
+  /* background: rgba(17, 17, 34, 0.94);
+  border-right: 1px solid rgba(45, 45, 68, 0.9); */
 }
 
 @media (max-width: 1100px) {

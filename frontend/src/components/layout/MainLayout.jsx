@@ -89,13 +89,17 @@ const MainLayoutContent = ({
           {isMapPage ? (
             // 지도형 페이지는 일반 문서형 레이아웃과 달리
             // 왼쪽 보조 패널 + 지도 레이어 + 본문 영역을 동시에 사용합니다.
-            <div className={styles.mapLayout}>
+            <div className={styles.mapLayout} style={{ flex: 1, position: 'relative' }}>
               {leftSidebar ? <aside className={styles.leftSidebar}>{leftSidebar}</aside> : null}
-              <div className={styles.mapLayer}>{mapComponent}</div>
-              <main className={styles.mapMain}>{children}</main>
+
+              <div className={styles.mapLayer} style={{ flex: 1, position: 'relative' }}>
+                {mapComponent}
+              </div>
+
+              {/* 지도 안뜨는 문제 해결: children이 있을 때만 mapMain을 렌더링하도록 조건부 렌더링! */}
+              {children ? <main className={styles.mapMain}>{children}</main> : null}
             </div>
           ) : (
-            // 일반 페이지는 하나의 메인 본문 영역만 렌더합니다.
             <main className={styles.generalMain}>{children}</main>
           )}
         </div>

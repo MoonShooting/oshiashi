@@ -51,7 +51,7 @@ export default function MapFilterPanel({ onFilterChange }) {
   };
 
   return (
-    <div className={`${styles.panel} ${collapsed ? styles.collapsed : ''}`}>
+    <div className={`${styles.panel}`}>
       {/* 헤더 */}
       <div className={styles.header}>
         <span className={styles.title}>필터</span>
@@ -95,7 +95,9 @@ export default function MapFilterPanel({ onFilterChange }) {
             <label className={styles.sectionLabel}>미디어 타입</label>
             <div className={styles.chipRow}>
               {Object.values(MEDIA_TYPE).map((type) => {
-                const isActive = activeMediaTypes.includes(type);
+                // activeMediaTypes가 없으면 빈 배열로 취급해서 includes 에러를 방지합니다.
+                const isActive = (activeMediaTypes || []).includes(type);
+
                 const color = PIN_COLOR[type];
                 return (
                   <button
