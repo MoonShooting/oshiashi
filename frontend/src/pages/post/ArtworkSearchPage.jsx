@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
-import { Film, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import MainLayout from '@/components/layout/MainLayout';
+import ArtworkCard from '@/components/post/ArtworkCard';
 import styles from '@/styles/ArtworkSearchPage.module.css';
 
 // MOCK: 백엔드 작품 목록 API가 아직 확정되지 않아 화면 검토용 컨텐츠 10개를 페이지 내부에 임시 배치합니다.
@@ -118,18 +119,14 @@ const ArtworkSearchPage = () => {
 
           <div className={styles.grid}>
             {filteredArtworks.map((artwork) => (
-              // 작품 탐색 카드는 홈 카드보다 설명량이 많아, 작품명/유형/설명을 한 번에 보여주는 구조를 직접 렌더합니다.
-              <button key={artwork.id} type="button" className={styles.card} onClick={handleArtworkClick}>
-                <div className={styles.posterFallback}>
-                  <Film className={styles.posterFallbackIcon} strokeWidth={1.8} />
-                </div>
-
-                <div className={styles.cardBody}>
-                  <span className={styles.typeBadge}>{artwork.artworkTypeName}</span>
-                  <h2>{artwork.title}</h2>
-                  <p>{artwork.description}</p>
-                </div>
-              </button>
+              // 페이지는 "어떤 작품을 보여줄지"만 결정하고, 카드의 시각 구조는 ArtworkCard가 담당합니다.
+              <ArtworkCard
+                key={artwork.id}
+                title={artwork.title}
+                artworkTypeName={artwork.artworkTypeName}
+                description={artwork.description}
+                onClick={handleArtworkClick}
+              />
             ))}
           </div>
         </div>
