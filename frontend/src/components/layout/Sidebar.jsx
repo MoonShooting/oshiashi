@@ -1,12 +1,13 @@
 import React from 'react';
-import { Film, House, MapPinned, MessageSquare, Settings, Trophy, UserRound, X } from 'lucide-react';
+import { Film, House, Map, MapPinned, MessageSquare, Settings, Trophy, UserRound, X } from 'lucide-react';
 import { useAuthStore } from '@/stores/useAuthStore';
 import styles from '@/styles/Sidebar.module.css';
 
 const loggedInMenuItems = [
   { key: 'home', icon: House, label: '홈' },
   { key: 'artwork', icon: Film, label: '작품 탐색' },
-  { key: 'route', icon: MapPinned, label: '루트 생성' },
+  { key: 'map', icon: Map, label: '맵으로 보기' },
+  { key: 'spot', icon: MapPinned, label: '루트 생성', disabled: true },
   { key: 'community', icon: MessageSquare, label: '커뮤니티' },
   { key: 'mypage', icon: UserRound, label: '마이페이지' },
 ];
@@ -14,7 +15,7 @@ const loggedInMenuItems = [
 const guestMenuItems = [
   { key: 'home', icon: House, label: '홈' },
   { key: 'artwork', icon: Film, label: '작품 탐색' },
-  { key: 'route', icon: MapPinned, label: '루트 생성' },
+  { key: 'map', icon: Map, label: '맵으로 보기' },
   { key: 'community', icon: MessageSquare, label: '커뮤니티' },
 ];
 
@@ -50,8 +51,18 @@ const Sidebar = ({ isOpen = false, onClose, activeKey = 'home', onNavigate }) =>
           {menuItems.map((item) => (
             <li key={item.key}>
               <button
-                className={activeKey === item.key ? styles.active : ''}
+                type="button"
+                className={[
+                  activeKey === item.key ? styles.active : '',
+                  item.disabled ? styles.disabled : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+                disabled={item.disabled}
+                aria-disabled={item.disabled ? 'true' : undefined}
+                title={item.disabled ? '/spot 페이지가 준비되면 연결됩니다.' : undefined}
                 onClick={() => {
+                  if (item.disabled) return;
                   onNavigate?.(item.key);
                   onClose?.();
                 }}>

@@ -77,7 +77,7 @@ const ArtworkSearchPage = () => {
   };
 
   return (
-    <MainLayout isMapPage={false} activeMenuKey="works">
+    <MainLayout isMapPage={false} activeMenuKey="artwork">
       <section className={styles.pageShell}>
         <div className={styles.pageCard}>
           <div className={styles.headerBlock}>

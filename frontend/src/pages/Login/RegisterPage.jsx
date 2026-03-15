@@ -5,7 +5,7 @@ import RegisterForm from '@/components/auth/RegisterForm';
 
 const RegisterPage = () => {
   return (
-    <MainLayout isMapPage={false}>
+    <MainLayout isMapPage={false} activeMenuKey="login">
       <AuthFrame>
         {/* 회원가입은 정보량이 많으므로 AuthFrame 내부에서 RegisterForm이 너비를 꽉 채움 */}
         <RegisterForm />

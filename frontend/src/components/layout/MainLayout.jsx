@@ -12,18 +12,20 @@ import styles from '../../styles/MainLayout.module.css';
  * - 메뉴 key -> path 이동 연결
  * 을 한 곳에서 처리합니다.
  */
-const MainLayoutContent = ({
-  children,
-  isMapPage = false,
-  mapComponent = null,
-  leftSidebar = null,
-  overlayUI = null,
-  activeMenuKey = 'home',
-  onNavigate,
-}) => {
+const MainLayoutContent = (props) => {
+  const {
+    children,
+    isMapPage = false,
+    mapComponent = null,
+    leftSidebar = null,
+    overlayUI = null,
+    activeMenuKey = 'home',
+    onNavigate,
+  } = props;
   const { open, setOpen } = useSidebar();
   const navigate = useNavigate();
   const location = useLocation();
+  const hasExplicitActiveMenuKey = Object.prototype.hasOwnProperty.call(props, 'activeMenuKey');
 
   // Sidebar는 메뉴 key만 전달하므로, 실제 이동 경로는 layout에서 공통으로 관리합니다.
   // 이렇게 두면 페이지마다 navigate 로직을 따로 들고 있지 않아도 메뉴 이동을 통일할 수 있습니다.
@@ -31,11 +33,8 @@ const MainLayoutContent = ({
     () => ({
       home: '/',
       artwork: '/artworks',
-      works: '/',
       map: '/map', // 지도 전체 보기
-      spot: '/spot', // 경로 만들기
-      community: '/',
-      post: '/posts',
+      community: '/posts',
       mypage: '/mypage',
       achievement: '/achievements',
       settings: '/',
@@ -48,15 +47,23 @@ const MainLayoutContent = ({
   // 그렇지 않으면 현재 URL pathname을 기준으로 어떤 메뉴가 선택 상태인지 계산합니다.
   // 즉, MainLayout은 "페이지가 직접 지정한 상태"와 "현재 경로 기반 상태"를 둘 다 지원합니다.
   const computedActiveKey = useMemo(() => {
-    if (activeMenuKey) return activeMenuKey;
+    if (hasExplicitActiveMenuKey) return activeMenuKey;
     if (location.pathname.startsWith('/artworks')) return 'artwork';
     if (location.pathname.startsWith('/map')) return 'map';
-    if (location.pathname.startsWith('/posts')) return 'post';
+    if (location.pathname.startsWith('/pin')) return 'map';
+    if (location.pathname.startsWith('/posts')) return 'community';
+    if (location.pathname.startsWith('/spot')) return 'spot';
     if (location.pathname.startsWith('/mypage')) return 'mypage';
     if (location.pathname.startsWith('/achievements')) return 'achievement';
-    if (location.pathname.startsWith('/login') || location.pathname.startsWith('/signup')) return 'login';
+    if (
+      location.pathname.startsWith('/login') ||
+      location.pathname.startsWith('/signup') ||
+      location.pathname.startsWith('/find-auth')
+    ) {
+      return 'login';
+    }
     return 'home';
-  }, [activeMenuKey, location.pathname]);
+  }, [activeMenuKey, hasExplicitActiveMenuKey, location.pathname]);
 
   // Sidebar가 눌렸을 때 key만 받아 실제 path로 변환해 이동합니다.
   // onNavigate가 주입되면 외부 페이지가 이동을 직접 제어하고,
@@ -67,6 +74,8 @@ const MainLayoutContent = ({
       return;
     }
 
+    // spot(/spot)은 아직 준비 중인 페이지이므로,
+    // 사이드바 공용 이동 맵에는 넣지 않고 이후 페이지가 완성되면 연결합니다.
     const path = routeMap[key];
     if (path && path !== location.pathname) {
       navigate(path);

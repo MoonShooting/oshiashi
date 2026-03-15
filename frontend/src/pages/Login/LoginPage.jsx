@@ -4,7 +4,7 @@ import LoginForm from '../../components/auth/LoginForm';
 
 const LoginPage = () => {
   return (
-    <MainLayout isMapPage={false}>
+    <MainLayout isMapPage={false} activeMenuKey="login">
       {/* AuthFrame이 "중앙 정렬 + 카드 테두리"를 담당 */}
       <AuthFrame>
         {/* LoginForm은 "아이디/비번 입력창"만 담당 */}
