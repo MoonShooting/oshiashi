@@ -25,6 +25,10 @@ public class ArtworkEntity {
     @Column(name = "artwork_id", nullable = false, updatable = false)
     private Long artworkId;
 
+    // TMDB 고유 id
+    @Column(name = "tmdb_id", unique = true)
+    private Long tmdbId;
+
     @Column(name = "title", length = 255, nullable = false) // 유니크
     private String title;
 
@@ -48,6 +52,7 @@ public class ArtworkEntity {
 
     // tmdb 값을 저장하기 위한 정적 메서드(builder 안써도 됨)
     public static ArtworkEntity of(
+            Long tmdbId,
             String title,
             String posterUrl,
             String description,
@@ -55,6 +60,7 @@ public class ArtworkEntity {
             ArtworkTypeEntity artworkType
     ) {
         ArtworkEntity entity = new ArtworkEntity();
+        entity.tmdbId = tmdbId;
         entity.title = title;
         entity.posterUrl = posterUrl;
         entity.description = description;

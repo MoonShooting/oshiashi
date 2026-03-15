@@ -10,7 +10,7 @@ import java.math.BigDecimal;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(
-        name = "Spot"
+        name = "spot"
         /*,
         uniqueConstraints = {
                 // 작품 내에서 같은 장소명이 중복되는 걸 막고 싶으면 유지 (원치 않으면 삭제)

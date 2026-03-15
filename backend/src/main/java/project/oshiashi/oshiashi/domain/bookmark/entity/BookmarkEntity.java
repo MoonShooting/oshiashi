@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 @Builder
 @Entity
 @Table(
-        name = "Bookmark"
+        name = "bookmark"
         /* // 인덱스 아직 없으니 주석처리
         ,indexes = {
                 @Index(name = "IX_bookmark_user", columnList = "user_id"),

@@ -6,7 +6,7 @@ import lombok.*;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
-@Table(name = "Achievement")
+@Table(name = "achievement")
 public class AchievementEntity {
 
     @Id

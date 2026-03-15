@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(
-        name = "Post_image",
+        name = "post_image",
         uniqueConstraints = {
                 // 한 게시글 내 이미지 정렬 순서가 중복되면 꼬이니까 추천 (원치 않으면 삭제)
                 @UniqueConstraint(name = "UX_post_image_post_sort", columnNames = {"post_id", "sort_order"})

@@ -10,7 +10,7 @@ import project.oshiashi.oshiashi.domain.artwork.entity.ArtworkEntity;
 @Builder             // 빌더
 @Entity
 @Table(
-        name = "Tag",
+        name = "tag",
         // DB는 tag_name 단독 UNIQUE+NULL 가능(여러 NULL은 허용될 수 있음), 따라서 복합 유니크 주석 처리
         uniqueConstraints = {
                 @UniqueConstraint(columnNames = "tag_name")
