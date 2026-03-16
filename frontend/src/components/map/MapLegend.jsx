@@ -25,17 +25,12 @@ export default function MapLegend({ pinCount = 0 }) {
     <div className={styles.legend}>
       {legendItems.map(({ type, label, color }) => (
         <div key={type} className={styles.item}>
-          <span
-            className={styles.dot}
-            style={{ background: color }}
-          />
+          <span className={styles.dot} style={{ background: color }} />
           <span className={styles.label}>{label}</span>
         </div>
       ))}
       {/* 핀 개수 표시 */}
-      <div className={styles.countBadge}>
-        {pinCount} pins
-      </div>
+      <div className={styles.countBadge}>{pinCount} pins</div>
     </div>
   );
 }

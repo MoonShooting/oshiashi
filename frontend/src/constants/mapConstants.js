@@ -7,7 +7,6 @@
 
 // 지도 기본 설정
 
-
 export const DEFAULT_CENTER = {
   lat: parseFloat(import.meta.env.VITE_DEFAULT_LAT) || 35.6812,
   lng: parseFloat(import.meta.env.VITE_DEFAULT_LNG) || 139.7671,
