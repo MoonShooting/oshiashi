@@ -11,4 +11,6 @@ public interface CommentService {
     List<CommentResponse> getCommentsByPost(Long postId);
     CommentResponse updateComment(Long commentId, CommentUpdateRequest request);
     void deleteComment(Long commentId);
+    
+    CommentResponse createReply(Long parentId, CommentCreateRequest request);
 }
