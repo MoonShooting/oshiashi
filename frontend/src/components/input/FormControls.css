@@ -1,3 +1,4 @@
+
 /* InputGroup / ActionInputGroup이 공통으로 쓰는 바깥 래퍼입니다.
  * 페이지별 레이아웃은 각 페이지 CSS가 담당하고, 기본 폼 간격만 여기서 맞춥니다. */
 .input-group {

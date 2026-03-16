@@ -51,7 +51,7 @@ public class PostServiceImpl implements PostService{
 	}
 	
 	/**
-	 * 2. 게시글 단건 조회
+	 * 2. 게시글  상세 조회
 	 * @param postId  (필수) 조회할 게시글 고유 ID
 	 * @return PostResponse
 	 * - 필수 반환: 해당 ID의 모든 게시글 데이터
@@ -93,19 +93,19 @@ public class PostServiceImpl implements PostService{
 		// TODO: 에러 핸들링 및 유효성 검사 (현재는 값이 없으므로 테스트를 위해 잠시 주석 처리),
 		//  엔티티 생성시 원래는 필수값이나 임시 주석 처리 user, route
 		
-		/*
+
 		// 1. 작성자 정보와 루트 정보를 DB에서 먼저 조회
 		UserEntity user = userRepository.findById(request.getUserId())
 				.orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 		
 		RouteEntity route = routeRepository.findById(request.getRouteId())
 				.orElseThrow(() -> new RuntimeException("루트를 찾을 수 없습니다."));
-		*/
+
 		
 		// DB에 저장할 엔티티 생성
 		PostEntity postEntity = PostEntity.builder()
-				//.user(user) // ← "이 유저가 쓴 글이야" 라고 객체를 연결
-				//.route(route)
+				.user(user) // ← "이 유저가 쓴 글이야" 라고 객체를 연결
+				.route(route)
 				.title(request.getTitle())
 				.content(request.getContent())
 				.status(PostEntity.PostStatus.PUBLIC)

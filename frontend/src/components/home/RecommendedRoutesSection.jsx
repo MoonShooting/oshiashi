@@ -29,11 +29,7 @@ const RecommendedRoutesSection = () => {
         </div>
         <div className={styles.filterRow}>
           {['전체', '인기순', '최신순'].map((item) => (
-            <button
-              key={item}
-              className={filter === item ? styles.filterBtnActive : styles.filterBtn}
-              onClick={() => setFilter(item)}
-            >
+            <button key={item} className={filter === item ? styles.filterBtnActive : styles.filterBtn} onClick={() => setFilter(item)}>
               {item}
             </button>
           ))}
@@ -68,5 +64,4 @@ const RecommendedRoutesSection = () => {
     </section>
   );
 };
-
 export default RecommendedRoutesSection;

@@ -130,21 +130,21 @@ public class CommentServiceImpl implements CommentService {
     public CommentResponse createReply(Long parentId, CommentCreateRequest request) {
         validateContent(request.getContent());
         UserEntity userEntity = getCurrentUserEntity();
-        
+
         // 1. 부모 댓글 존재 확인
         CommentEntity parent = commentRepository.findById(parentId)
                 .orElseThrow(() -> new IllegalArgumentException("부모 댓글이 존재하지 않습니다. ID=" + parentId));
-        
+
         // 2. 대댓글 생성 (부모 엔티티 설정)
         // 빌더에 parent 필드가 활성화되어 있어야 합니다. (엔티티 Builder)
         CommentEntity reply = CommentEntity.builder()
                 .post(parent.getPost()) // 부모 댓글이 속한 게시글을 그대로 따름
                 .user(userEntity)
                 .content(request.getContent())
-                .parent(parent) // 부모 객체를 넣어줌
+//                .parent(parent) // 부모 객체를 넣어줌
                 .createdAt(LocalDateTime.now())
                 .build();
-        
+
         CommentEntity saved = commentRepository.save(reply);
         return CommentResponse.fromEntity(saved);
     }
