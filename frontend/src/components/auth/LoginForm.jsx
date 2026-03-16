@@ -86,7 +86,7 @@ const LoginForm = () => {
               name="userId"
               value={loginData.userId}
               onChange={handleChange}
-              placeholder="user_id 또는 email 입력"
+              placeholder="아이디를 입력하세요"
               autoComplete="username"
               inputClassName="login-input"
             />
@@ -110,12 +110,7 @@ const LoginForm = () => {
 
           <div className="form-options">
             <label className="remember-me">
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-              />{' '}
-              로그인 유지
+              <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} /> 로그인 유지
             </label>
             <div className="find-links">
               {/* state에 tab 정보를 담아서 보냅니다 */}
