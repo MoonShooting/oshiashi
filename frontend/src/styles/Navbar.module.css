@@ -31,7 +31,9 @@
   place-items: center;
   color: #f5f5ff;
   background: rgba(33, 33, 57, 0.95);
-  transition: background 0.2s ease, transform 0.2s ease;
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
 }
 
 .menuBtn:hover {
@@ -46,10 +48,17 @@
   font-weight: 800;
   letter-spacing: -0.01em;
   white-space: nowrap;
+  cursor: pointer;
   background: linear-gradient(90deg, #6b46c1 0%, #8b5fd9 55%, #ec4899 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+}
+
+.logo:focus-visible {
+  outline: 2px solid rgba(236, 72, 153, 0.8);
+  outline-offset: 4px;
+  border-radius: 8px;
 }
 
 .searchWrapper {
@@ -104,7 +113,9 @@
   color: #fff;
   background: linear-gradient(90deg, #6b46c1 0%, #ec4899 100%);
   box-shadow: 0 10px 24px rgba(107, 70, 193, 0.42);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -169,7 +180,9 @@
   color: #f5f5ff;
   font-size: 14px;
   font-weight: 600;
-  transition: background 0.2s ease, color 0.2s ease;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
 }
 
 .profileDropdownItem:hover,
