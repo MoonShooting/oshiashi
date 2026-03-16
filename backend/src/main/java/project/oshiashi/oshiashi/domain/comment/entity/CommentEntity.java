@@ -7,7 +7,7 @@ import project.oshiashi.oshiashi.domain.user.entity.UserEntity;
 
 import java.time.LocalDateTime;
 
-@Getter
+@Data
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(
@@ -50,10 +50,12 @@ public class CommentEntity {
     private CommentEntity(PostEntity post,
                           UserEntity user,
                           String content,
+                          CommentEntity parent,
                           LocalDateTime createdAt) {
         this.post = post;
         this.user = user;
         this.content = content;
+        this.parent = parent;
         this.createdAt = createdAt;
     }
 
@@ -70,7 +72,8 @@ public class CommentEntity {
     }
 
     // 대댓글이 필요해지면 아래처럼 "자기참조"가 가장 깔끔함
-    // @ManyToOne(fetch = FetchType.LAZY)
-    // @JoinColumn(name = "parent_comment_id", foreignKey = @ForeignKey(name="FK_comment_parent"))
-    // private CommentEntity parent;
+    // TODO : 코멘트 테이블에 대댓글 컬럼 논의
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_comment_id", foreignKey = @ForeignKey(name="FK_comment_parent"))
+    private CommentEntity parent;
 }

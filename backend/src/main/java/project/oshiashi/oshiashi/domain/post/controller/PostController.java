@@ -2,7 +2,10 @@ package project.oshiashi.oshiashi.domain.post.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import project.oshiashi.oshiashi.domain.comment.dto.CommentResponse;
+import project.oshiashi.oshiashi.domain.comment.service.CommentService;
 import project.oshiashi.oshiashi.domain.post.dto.PostResponse;
 import project.oshiashi.oshiashi.domain.post.entity.PostEntity;
 import project.oshiashi.oshiashi.domain.post.service.PostService;
@@ -17,6 +20,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class PostController {
 	private final PostService postService;
+	private final CommentService commentService;
 	
 	// DB 연동 전까지 데이터를 담아둘 임시 리스트 (테스트용)
 	// 0. 임시 리스트 (static 유지)
@@ -74,9 +78,29 @@ public class PostController {
 		return updatedPost;
 	}
 	
+	// 7. 특정 게시글에 달린 모든 댓글 목록을 조회합니다.
+	// 댓글을 조회할 게시글의 ID
+	// 해당 게시글의 댓글 리스트 (CommentResponse 목록)
+	@GetMapping("/{postId}/comments")
+	public ResponseEntity<List<CommentResponse>> getCommentsByPost(
+			@PathVariable(name = "postId") Long postId
+	) {
+		
+		log.debug("댓글 목록 조회 요청 - 게시글 번호: {}", postId);
+		
+		// 1. 서비스에서 해당 게시글의 댓글 목록을 가져옴
+		List<CommentResponse> comments = commentService.getCommentsByPost(postId);
+		
+		// 2. 로그로 결과 개수 확인 (디버깅용)
+		log.debug("조회된 댓글 개수: {}", comments.size());
+		
+		// 3. 리스트와 함께 200 OK 응답
+		return ResponseEntity.ok(comments);
+	}
+	
+	
+	
 
-	
-	
 	
 	// 포스트맨 테스트용 더미 데이터
 	/*

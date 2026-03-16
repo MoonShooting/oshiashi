@@ -1,12 +1,15 @@
 package project.oshiashi.oshiashi.domain.bookmark.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import project.oshiashi.oshiashi.domain.bookmark.dto.BookmarkCreateRequest;
 import project.oshiashi.oshiashi.domain.bookmark.dto.BookmarkResponse;
 import project.oshiashi.oshiashi.domain.bookmark.entity.BookmarkEntity;
 import project.oshiashi.oshiashi.domain.bookmark.repository.BookmarkRepository;
+import project.oshiashi.oshiashi.domain.post.dto.PostResponse;
 import project.oshiashi.oshiashi.domain.post.entity.PostEntity;
 import project.oshiashi.oshiashi.domain.post.entity.PostImageEntity;
 import project.oshiashi.oshiashi.domain.post.repository.PostImageRepository;
@@ -17,9 +20,12 @@ import project.oshiashi.oshiashi.domain.user.entity.UserEntity;
 import project.oshiashi.oshiashi.domain.user.repository.UserRepository;
 import project.oshiashi.oshiashi.global.exception.BusinessException;
 import project.oshiashi.oshiashi.global.exception.ErrorCode;
+import project.oshiashi.oshiashi.security.AuthenticatedUser;
 
 import java.util.List;
+import java.util.Optional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -102,7 +108,68 @@ public class BookmarkServiceImpl implements BookmarkService {
 
         bookmarkRepository.delete(bookmark);
     }
-
+    
+    
+    
+    @Override
+    public boolean toggleBookmark(Long postId) {
+        UserEntity user = getCurrentUserEntity(); // 기존에 인증 메서드 활용
+        
+        // 1. 이미 북마크했는지 확인
+        Optional<BookmarkEntity> existing = bookmarkRepository.findByPost_PostIdAndUser_UserId(postId, user.getUserId());
+        
+        if (existing.isPresent()) {
+            // 2. 존재하면 삭제 (OFF)
+            bookmarkRepository.delete(existing.get());
+            log.debug("북마크 해제(OFF) - 유저: {}, 게시글: {}", user.getUserId(), postId);
+            return false;
+        } else {
+            // 3. 존재하지 않으면 생성 (ON)
+            PostEntity post = postRepository.findById(postId)
+                    .orElseThrow(() -> new IllegalArgumentException("게시글이 없습니다."));
+            
+            BookmarkEntity bookmark = BookmarkEntity.builder()
+                    .post(post)
+                    .user(user)
+                    .build();
+            
+            bookmarkRepository.save(bookmark);
+            log.debug("북마크 등록(ON) - 유저: {}, 게시글: {}", user.getUserId(), postId);
+            return true;
+        }
+    }
+    
+    @Override
+    public List<PostResponse> getMyBookmarks() {
+        UserEntity user = getCurrentUserEntity();
+        
+        // 내 북마크 엔티티들을 가져옴
+        List<BookmarkEntity> bookmarks = bookmarkRepository.findByUser_UserId(user.getUserId());
+        
+        // 북마크된 '게시글' 정보만 추출해서 Response DTO로 변환
+        return bookmarks.stream()// 위(리포지토리)에서 뽑힌 'ON' 만 골라서
+                .map(bookmark -> PostResponse.fromEntity(bookmark.getPost()))
+                .toList();
+    }
+    
+    //TODO : 서큐리티 보안단 post 랑 연동해서 보안 통과한 사람만 실행가능
+    private UserEntity getCurrentUserEntity() {
+        // TODO : 실제 사용자 정보 확인
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        log.debug("현재 로그인 상태 검사 : {}", principal);
+        
+        // 인증 안 된 상태면 principal이 String("anonymousUser")일 수 있음
+        if (!(principal instanceof AuthenticatedUser authenticatedUser)) {
+            throw new IllegalStateException("인증 정보가 없습니다.");
+        }
+        log.debug("통과 여부 체크 : {}", principal);
+        return authenticatedUser.user();
+    }
+    // TODO: 보안 설정(SecurityConfig)이 완료되기 전까지는
+    //  SecurityContextHolder에 아무 값도 들어있지 않아 NullPointerException이 발생할 수 있음.
+    //  또는 로그인하지 않은 상태면 principal이  ClassCastException 발생.
+    
+    
     private void validateRequest(BookmarkCreateRequest request) {
         if (request.getBookmarkName() == null || request.getBookmarkName().isBlank()) {
             throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "북마크 이름은 필수입니다.");
