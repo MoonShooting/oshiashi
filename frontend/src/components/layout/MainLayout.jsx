@@ -16,6 +16,7 @@ const MainLayoutContent = (props) => {
   const {
     children,
     isMapPage = false,
+    lockScroll = false,
     mapComponent = null,
     leftSidebar = null,
     overlayUI = null,
@@ -26,6 +27,7 @@ const MainLayoutContent = (props) => {
   const navigate = useNavigate();
   const location = useLocation();
   const hasExplicitActiveMenuKey = Object.prototype.hasOwnProperty.call(props, 'activeMenuKey');
+  const shouldLockScroll = lockScroll;
 
   // Sidebar는 메뉴 key만 전달하므로, 실제 이동 경로는 layout에서 공통으로 관리합니다.
   // 이렇게 두면 페이지마다 navigate 로직을 따로 들고 있지 않아도 메뉴 이동을 통일할 수 있습니다.
@@ -83,7 +85,7 @@ const MainLayoutContent = (props) => {
   };
 
   return (
-    <div className={styles.layoutWrapper}>
+    <div className={shouldLockScroll ? `${styles.layoutWrapper} ${styles.layoutWrapperLocked}` : styles.layoutWrapper}>
       {/* Sidebar는 전역 메뉴이므로 모든 페이지에서 같은 위치에 렌더합니다.
           activeKey는 현재 경로 또는 페이지 지정값을 기준으로 계산됩니다. */}
       <Sidebar isOpen={open} onClose={() => setOpen(false)} activeKey={computedActiveKey} onNavigate={handleNavigate} />
