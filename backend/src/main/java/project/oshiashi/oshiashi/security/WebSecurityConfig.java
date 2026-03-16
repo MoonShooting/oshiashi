@@ -19,7 +19,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
  * [WebSecurityConfig: 보안 총괄 설정]
  * 1. CSRF 비활성화: REST API는 세션을 쓰지 않고 토큰(JWT)을 쓰므로 쿠키 기반 공격인 CSRF에서 안전함.
  * 2. 무상태(Stateless): 서버가 사용자의 상태(세션)를 저장하지 않고 오직 토큰으로만 소통함.
- * 3. 경로 제어: 설계서에 따라 /api/v1/auth는 모두 허용, /api/v1/user는 인증 필수.
+ * 3. 경로 제어: 설계서에 따라 /api/v1/auth는 모두 허용, /api/v1/user는 인증 필수!.
  */
 @Configuration
 @EnableWebSecurity

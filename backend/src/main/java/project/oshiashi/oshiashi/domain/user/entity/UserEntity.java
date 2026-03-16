@@ -3,85 +3,106 @@ package project.oshiashi.oshiashi.domain.user.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import project.oshiashi.oshiashi.domain.post.entity.PostEntity;
-
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * [UserEntity: 사용자 정보 엔티티]
+ * - 역할: 서비스 이용자의 계정 정보 및 상태를 관리하며, 데이터베이스 'User' 테이블과 매핑됨.
+ * - 특징:
+ * 1. 비밀번호, 닉네임 등 변경 가능한 필드는 전용 메서드를 통해 수정 (Setter 지양).
+ * 2. 이메일과 닉네임에 유니크 제약조건을 걸어 데이터 정합성 보장.
+ */
 @Builder
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED) // 빌더 패턴 사용을 위한 전용 생성자 생성함
-@AllArgsConstructor(access = AccessLevel.PRIVATE) // JPA 기본 생성자 접근을 제한해 객체 생성 규칙 보호함
+@NoArgsConstructor(access = AccessLevel.PROTECTED) // JPA 규격상 기본 생성자가 필요하지만, 무분별한 객체 생성을 막기 위해 PROTECTED 설정
+@AllArgsConstructor(access = AccessLevel.PRIVATE) // 빌더 패턴 내부에서 사용하기 위한 모든 필드 생성자
 @Entity
 @Table(
-        name = "User",
-        uniqueConstraints = {
-                @UniqueConstraint(name = "UX_User_Email", columnNames = "email"),
-                @UniqueConstraint(name = "UX_User_Nickname", columnNames = "nickname")
-        }
+		name = "User",
+		uniqueConstraints = {
+				@UniqueConstraint(name = "UX_User_Email", columnNames = "email"), // DB 레벨에서 이메일 중복 방지
+				@UniqueConstraint(name = "UX_User_Nickname", columnNames = "nickname") // DB 레벨에서 닉네임 중복 방지
+		}
 )
 public class UserEntity {
 
-    @Id
-    @Column(name = "user_id", length = 50, nullable = false)
-    private String userId;
+	@Id
+	@Column(name = "user_id", length = 50, nullable = false)
+	private String userId; // 사용자가 직접 입력하는 고유 ID (PK)
 
 	@Column(name="name", length=50, nullable = false)
-	private String name;
+	private String name; // 사용자의 실명
 
-    // 유니크
-    @Column(name = "email", length = 255, nullable = false)
-    private String email;
+	@Column(name = "email", length = 255, nullable = false)
+	private String email; // 고유 이메일 주소
 
-    @Column(name = "password", length = 255, nullable = false)
-    private String password;
+	@Column(name = "password", length = 255, nullable = false)
+	private String password; // 암호화된 비밀번호
 
-    // 유니크
-    // 설계서에는 NOT NULL 없음. 일단 false로 해둠
-    @Column(name = "nickname", length = 255, nullable = false)
-    private String nickname;
+	@Column(name = "nickname", length = 255, nullable = false)
+	private String nickname; // 서비스 내 활동명 (유니크)
 
 	@Builder.Default
-    @Enumerated(EnumType.STRING)
-    @Column(name = "role", length = 50, nullable = false) // 디폴트
-    private Role role = Role.user;
+	@Enumerated(EnumType.STRING) // Enum의 이름을 DB에 문자열로 저장 (숫자보다 안전함)
+	@Column(name = "role", length = 50, nullable = false)
+	private Role role = Role.user; // 권한 (기본값: user)
 
 	@Builder.Default
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", length = 50, nullable = false) // 디폴트 엑티브 체크
-    private UserStatus status = UserStatus.active;
+	@Enumerated(EnumType.STRING)
+	@Column(name = "status", length = 50, nullable = false)
+	private UserStatus status = UserStatus.active; // 계정 상태 (기본값: active)
 
-    @Column(name = "last_login_at")
-    private LocalDateTime lastLoginAt;
+	@Column(name = "last_login_at")
+	private LocalDateTime lastLoginAt; // 마지막 로그인 일시
 
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
+	@Column(name = "created_at", nullable = false)
+	private LocalDateTime createdAt; // 계정 생성 일시
 
-	/** * 작성한 포스트 목록
-	 * - @Builder.Default: 빌더 패턴으로 객체 생성 시 빈 리스트 초기화 보장
-	 * - FetchType.LAZY: 실제 데이터가 필요한 시점에 조회하는 지연 로딩 적용
+	/** * [연관 관계: 작성한 포스트 목록]
+	 * - mappedBy: PostEntity 내의 'user' 필드가 관계의 주인임을 명시함.
+	 * - FetchType.LAZY: 필요할 때만 데이터를 가져오는 지연 로딩 방식을 택해 성능 최적화.
 	 */
 	@Builder.Default
 	@OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
 	private List<PostEntity> posts = new ArrayList<>();
 
-    public enum Role {user, admin}
+	// --- 내부 타입 정의 ---
+	public enum Role { user, admin }
+	public enum UserStatus { active, dormant }
 
-    public enum UserStatus {active, dormant}
+	// --- 비즈니스 로직 (Setter 대신 사용) ---
 
 	/**
-	 * [비밀번호 변경] -> 위의 User 선언들이 대부분 readonly이기 때문에 매서드 추가
-	 * - 엔티티의 불변성을 유지하기 위해 Setter 대신 명확한 의미의 메서드를 사용.
+	 * [비밀번호 변경]
+	 * - 보안을 위해 외부에서 password 필드에 직접 접근하는 것을 막고 메서드로만 변경 허용.
 	 */
 	public void changePassword(String encodedPassword) {
 		this.password = encodedPassword;
 	}
 
 	/**
-	 * [회원 상태 변경] -> 위의 User 선언들이 대부분 readonly이기 때문에 매서드 추가
-	 * - 탈퇴나 휴면 상태 전환 시 사용.
+	 * [닉네임 변경]
+	 * - 마이페이지 등 정보 수정 시 호출됨.
+	 */
+	public void changeNickname(String nickname) {
+		this.nickname = nickname;
+	}
+
+	/**
+	 * [회원 상태 변경]
+	 * - 탈퇴(withdrawal), 휴면(dormant) 등 상태 전환 시 사용.
 	 */
 	public void changeStatus(UserStatus status) {
 		this.status = status;
+	}
+
+	/**
+	 * [최근 로그인 시간 갱신]
+	 * - 로그인 성공 시마다 현재 시간으로 업데이트.
+	 */
+	public void updateLastLogin() {
+		this.lastLoginAt = LocalDateTime.now();
 	}
 }

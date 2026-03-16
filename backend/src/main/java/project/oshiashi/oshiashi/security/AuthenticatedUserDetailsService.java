@@ -23,7 +23,6 @@ public class AuthenticatedUserDetailsService implements UserDetailsService {
 	 * - 호출 시점: JwtAuthenticationFilter에서 토큰 검증 후, "이 유저 아이디로 상세 정보 좀 가져와!" 할 때 실행됨.
 	 * - 파라미터(userId): 조회하려는 사용자의 고유 아이디.
 	 */
-	@Override
 	public UserDetails loadUserByUsername(String userId) throws UsernameNotFoundException {
 
 		// 1. DB에서 userId(Primary Key)를 기준으로 사용자 정보를 찾음
