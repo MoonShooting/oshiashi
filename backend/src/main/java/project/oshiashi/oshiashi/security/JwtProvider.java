@@ -69,4 +69,24 @@ public class JwtProvider {
 			return false;
 		}
 	}
+	/**
+	 * [4. 추가: 만료 시간 추출]
+	 * - 역할: 토큰의 '만료 시점'에서 '현재 시간'을 빼서 남은 수명을 계산함.
+	 * - 용도: 로그아웃 시 Redis 블랙리스트의 유효기간(TTL)으로 설정하기 위함!
+	 */
+	public long getExpiration(String token) {
+		// 1. 토큰 해석 및 검증
+		Date expiration = Jwts.parser()
+				.verifyWith(key)               // 서버가 가진 '비밀 키'로 서명을 확인 (위조 감별)
+				.build()
+				.parseSignedClaims(token)      // 토큰을 해독해서 내용을 꺼냄
+				.getPayload()                  // 토큰의 알맹이(Payload)를 가져옴
+				.getExpiration();              // 그 안에 적힌 '만료 시간(exp)'만 쏙 뽑아냄
+
+		// 2. 현재 시간 가져오기
+		long now = new Date().getTime();       // 현재 시간을 '밀리초(ms)' 단위로 측정
+
+		// 3. 남은 수명 계산
+		return (expiration.getTime() - now);   // (유통기한 시간 - 현재 시간) = 남은 수명
+	}
 }

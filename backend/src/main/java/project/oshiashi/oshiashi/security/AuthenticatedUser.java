@@ -9,7 +9,7 @@ import java.util.Collections;
 
 /**
  * [AuthenticatedUser: 시큐리티 전용 사용자 신분증]
- * - 역할: 우리 서비스의 유저 엔티티(UserEntity)를 Spring Security가 이해할 수 있는 'UserDetails' 규격으로 포장함.
+ * - 역할: 우리 서비스의 유저 엔티티(UserEntity)를 Spring Security가 이해할 수 있는 'UserDetails' 규격으로 포장함!.
  * - 특징: Java의 'record'를 사용하여 불변(Immutable) 객체로 만들었으며, 인증 과정에서 유저의 비밀번호와 권한 정보를 제공함.
  */
 public record AuthenticatedUser(UserEntity user) implements UserDetails {

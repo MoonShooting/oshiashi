@@ -25,7 +25,7 @@ public interface UserRepository extends JpaRepository<UserEntity, String> {
 	 * [Optional 반환과 DB 제약 조건의 상관관계]
 	 * 1. unique = true 영향:
 	 * - 이메일은 유일하므로 결과가 0개 혹은 1개임이 보장됨.
-	 * - 덕분에 List가 아닌 '단일 객체를 감싼 Optional'을 안전하게 반환할 수 있음.
+	 * - 덕분에 List가 아닌 '단일 객체를 감싼 Optional'을 안전하게 반환할 수 있음!
 	 * * 2. nullable = false 영향:
 	 * - 검색 성공 시, 꺼내온 UserEntity 안의 email 필드가 null일 걱정이 없음.
 	 * - 데이터 정결성이 보장되므로 후속 로직에서 추가적인 null 체크가 불필요함.
