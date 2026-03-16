@@ -9,7 +9,7 @@ export default function MapPage() {
   const [selectedPinId, setSelectedPinId] = useState(null);
   const [center, setCenter] = useState({ lat: 35.6812, lng: 139.7671 });
 
-  // 1. 드롭다운/리스트 hover 시 지도 중심 이동 (지우님의 방어 코드 적용)
+  // 1. 드롭다운/리스트 hover 시 지도 중심 이동 (방어 코드 적용)
   const handlePreview = useCallback((loc) => {
     if (!loc || typeof loc.lat === 'undefined') return;
     // 숫자 형변환을 통해 API 데이터가 문자열이어도 안전하게 처리

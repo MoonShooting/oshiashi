@@ -5,11 +5,9 @@ import { DEFAULT_CENTER, DEFAULT_ZOOM, MAP_ID } from '@/constants/mapConstants';
 import styles from '@/styles/MainLayout.module.css';
 
 /**
- * <Map> 내부에만 렌더링되는 pan 컨트롤러.
- * center prop을 <Map>에 직접 넘기면 controlled prop이 되어
+ * <Map> 내부에만 렌더링되는 pan 컨트롤러 center prop을 <Map>에 직접 넘기면 controlled prop이 되어
  * 값이 바뀔 때마다 강제 재중심화 → 드래그 도중 끊김 현상 발생.
- * 이 컴포넌트는 center가 실제로 바뀔 때만 panTo()를 명시적으로 호출하여
- * 사용자 드래그와 충돌하지 않습니다.
+ * 이 컴포넌트는 center가 실제로 바뀔 때만 panTo()를 명시적으로 호출하여 사용자 드래그와 충돌하지 않습니다.
  */
 function MapPanController({ center }) {
   const map = useMap();
@@ -28,12 +26,9 @@ function MapPanController({ center }) {
 }
 
 /**
- * @param {{ lat, lng }} center      - 지도 중심 이동 요청 좌표 (핀 클릭·검색 시).
- *                                     controlled prop이 아닌 panTo()로 처리되므로
- *                                     사용자 드래그와 충돌하지 않습니다.
+ * @param {{ lat, lng }} center      - 지도 중심 이동 요청 좌표 (핀 클릭·검색 시) controlled prop이 아닌 panTo()로 처리되므로 사용자 드래그와 충돌하지 않습니다.
  * @param {boolean} disableMapClick  - true 시 지도 배경 클릭 이벤트 차단 (핀 클릭만 허용)
- * @param {ReactNode} searchBar      - 지도 위 absolute 오버레이 검색창.
- *                                     <Map> 바깥에 렌더링하여 mousedown 차단 방지.
+ * @param {ReactNode} searchBar      - 지도 위 absolute 오버레이 검색창 <Map> 바깥에 렌더링하여 mousedown 차단 방지.
  */
 export default function MapCore({ pins, selectedPinId, center, onPinClick, children, disableMapClick = false, searchBar = null }) {
   return (
