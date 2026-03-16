@@ -16,4 +16,5 @@ public class BookmarkCreateRequest {
 	private Long postId;
 	private Long postImageId;
 	private Long routeId;
+	private String userId;
 }
