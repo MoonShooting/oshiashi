@@ -9,38 +9,108 @@ import project.oshiashi.oshiashi.domain.spot.dto.SpotResponse;
 
 import java.util.List;
 
+/*
+ * 작품(Artwork) 관련 조회 API를 제공하는 컨트롤러
+ *
+ * 역할
+ * - 프론트에서 들어온 요청을 받아 Service 계층으로 전달
+ * - Service에서 처리된 결과를 DTO 형태로 반환
+ *
+ * Base URL
+ * /api/v1/main
+ */
 @RestController
 @RequestMapping("/api/v1/main")
 @RequiredArgsConstructor
 public class ArtworkController {
 
+    /*
+     * 실제 비즈니스 로직은 Service 계층에서 처리
+     * Controller는 요청 전달과 응답 반환 역할만 담당
+     */
     private final ArtworkService artworkService;
 
-    // 전체 조회
+    /*
+     * 1. 작품 전체 조회
+     *
+     * GET /api/v1/main/
+     *
+     * Query Parameter
+     * - artworkTypeId (optional)
+     *
+     * 동작
+     * - artworkTypeId가 없으면 → 전체 작품 조회
+     * - artworkTypeId가 있으면 → 해당 타입의 작품만 조회
+     *
+     * 예시
+     * /api/v1/main/                → 전체 작품
+     * /api/v1/main/?artworkTypeId=1 → 특정 타입 작품
+     */
     @GetMapping("/")
     public List<ArtworkResponse> getArtworks(
             @RequestParam(required = false) Long artworkTypeId
     ) {
+        // artworkTypeId가 있는 경우
         if (artworkTypeId != null) {
             return artworkService.getArtworksByType(artworkTypeId);
         }
+
+        // 전체 작품 조회
         return artworkService.getArtworks();
     }
 
 
-    // 단건 조회
+    /*
+     * 2. 작품 단건 조회
+     *
+     * GET /api/v1/main/artwork/{artworkId}
+     *
+     * PathVariable
+     * - artworkId : 조회할 작품의 고유 ID
+     *
+     * 반환
+     * - 해당 작품의 상세 정보 (ArtworkResponse)
+     */
     @GetMapping("/artwork/{artworkId}")
     public ArtworkResponse getArtwork(@PathVariable Long artworkId) {
         return artworkService.getArtwork(artworkId);
     }
 
-    // 작품별 촬영지 조회
+    /*
+     * 3. 특정 작품의 촬영지 목록 조회
+     *
+     * GET /api/v1/main/artwork/{artworkId}/spots
+     *
+     * PathVariable
+     * - artworkId : 작품 ID
+     *
+     * 동작
+     * - 해당 작품과 연결된 촬영지(Spot) 목록을 조회
+     *
+     * 반환
+     * - SpotResponse 리스트
+     */
     @GetMapping("/artwork/{artworkId}/spots")
     public List<SpotResponse> getSpotsByArtwork(@PathVariable Long artworkId) {
         return artworkService.getSpotsByArtwork(artworkId);
     }
 
-    //
+    /*
+     * 4. 작품 타입 목록 조회
+     *
+     * GET /api/v1/main/artwork/types
+     *
+     * 동작
+     * - DB에 저장된 작품 타입 목록 조회
+     *
+     * 예시
+     * - 애니메이션
+     * - 영화
+     * - 드라마
+     *
+     * 반환
+     * - ArtworkTypeResponse 리스트
+     */
     @GetMapping("/artwork/types")
     public List<ArtworkTypeResponse> getArtworkTypes() {
         return artworkService.getArtworkTypes();
