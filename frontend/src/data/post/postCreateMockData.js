@@ -1,3 +1,5 @@
+// 게시물 작성 페이지에서만 쓰는 목업 루트/장소 데이터입니다.
+// create 전용 UI와 데이터 소스를 분리해 두어, 나중에 API 연결 시 교체 지점을 명확히 유지합니다.
 const createSpot = (spot) => ({
   spotId: spot.spotId,
   name: spot.name,

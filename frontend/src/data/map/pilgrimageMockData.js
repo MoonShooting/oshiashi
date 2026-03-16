@@ -1,3 +1,5 @@
+// 지도 페이지의 임시 장소 목록은 라우트 페이지 바깥(data/map)으로 옮겨 관리합니다.
+// 이렇게 두면 page는 진입/조립 역할만 맡고, 샘플 데이터는 별도 계층에서 관리할 수 있습니다.
 export const DUMMY_PILGRIMAGE_SITES = [
   {
     id: "spot_1",

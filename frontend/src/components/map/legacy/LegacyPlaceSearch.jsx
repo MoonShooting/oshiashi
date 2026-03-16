@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useMapsLibrary, useMap } from '@vis.gl/react-google-maps';
 
-export default function Search({ onSearchResult, onPreviewLocation }) {
+export default function LegacyPlaceSearch({ onSearchResult, onPreviewLocation }) {
   const [keyword, setKeyword] = useState('');
   const [results, setResults] = useState([]);
   const places = useMapsLibrary('places');

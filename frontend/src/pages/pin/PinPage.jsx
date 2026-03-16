@@ -1,10 +1,12 @@
-import React, { useState, useCallback } from 'react';
-import { APIProvider } from '@vis.gl/react-google-maps'; // ❗ 필수 임포트
-import Search from '../map/Search.jsx';
-import PinMapDisplay from './PinMapDisplay';
-import styles from './PinMapDisplay.jsx';
+import React, { useState } from 'react';
+import { APIProvider } from '@vis.gl/react-google-maps';
+import LegacyPlaceSearch from '@/components/map/legacy/LegacyPlaceSearch';
+import PinMapDisplay from '@/components/map/pin/PinMapDisplay';
+import styles from './PinPage.module.css';
 
 export default function PinPage() {
+  // PinPage는 핀 목록 상태와 화면 조립만 유지하고,
+  // 검색창과 지도 표시는 재사용 가능한 map 컴포넌트로 분리합니다.
   const [pins, setPins] = useState([]);
   const [focusLocation, setFocusLocation] = useState(null);
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
@@ -21,7 +23,7 @@ export default function PinPage() {
       <div className={styles.container}>
         <div className={styles.sidePanel}>
           {/* 검색 및 목록 선택 */}
-          <Search
+          <LegacyPlaceSearch
             onSearchResult={handleSelect}
             onPreviewLocation={setFocusLocation}
           />

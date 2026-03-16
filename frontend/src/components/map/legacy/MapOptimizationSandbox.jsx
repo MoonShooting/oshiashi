@@ -15,7 +15,7 @@ function MapHandler({ location }) {
   return null;
 }
 
-export default function OptimizedMap() {
+export default function MapOptimizationSandbox() {
   const [currentLocation, setCurrentLocation] = useState({
     lat: 35.6895,
     lng: 139.6917,

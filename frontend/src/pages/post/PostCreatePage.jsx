@@ -1,16 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AlertCircle, Camera, PlusCircle, Sparkles } from 'lucide-react';
 import MainLayout from '@/components/layout/MainLayout';
-import PostRoutePicker from '@/components/post-create/PostRoutePicker';
-import PostSceneEntryCard from '@/components/post-create/PostSceneEntryCard';
+import PostRoutePicker from '@/components/post/create/PostRoutePicker';
+import PostSceneEntryCard from '@/components/post/create/PostSceneEntryCard';
 import {
   MOCK_POST_CREATE_ROUTES,
   createCustomPlaceEntry,
   createRouteEntries,
-} from '@/components/post-create/postCreateData';
+} from '@/data/post/postCreateMockData';
 import styles from '@/styles/PostCreatePage.module.css';
 
 const PostCreatePage = () => {
+  // 작성 페이지는 입력 상태와 제출 흐름만 조립하고,
+  // 카드 단위 UI는 components/post/create 아래 컴포넌트로 분리해 관리합니다.
   const objectUrlsRef = useRef(new Set());
   const [selectedRouteId, setSelectedRouteId] = useState('');
   const [title, setTitle] = useState('');

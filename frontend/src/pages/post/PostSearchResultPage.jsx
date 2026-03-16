@@ -3,7 +3,7 @@ import { ChevronDown, Hash, RotateCcw, Search, SearchX, X } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import MainLayout from '@/components/layout/MainLayout';
 import PostCard from '@/components/post/PostCard';
-import { mockPostSummaries } from '@/components/post/postMockData';
+import { mockPostSummaries } from '@/data/post/postMockData';
 import styles from '@/styles/PostSearchResultPage.module.css';
 
 // 사용자가 "#도쿄", "도쿄", " 도쿄 "처럼 입력해도

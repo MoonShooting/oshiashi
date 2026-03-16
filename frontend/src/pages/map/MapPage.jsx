@@ -1,4 +1,17 @@
+import React, { useCallback, useState } from 'react';
+import { APIProvider } from '@vis.gl/react-google-maps';
+import MainLayout from '@/components/layout/MainLayout';
+import LegacyMapDisplay from '@/components/map/legacy/LegacyMapDisplay';
+import LegacyPlaceSearch from '@/components/map/legacy/LegacyPlaceSearch';
+import {
+  DEFAULT_LOCATION,
+  DUMMY_PILGRIMAGE_SITES,
+} from '@/data/map/pilgrimageMockData';
+import styles from '@/styles/MapPage.module.css';
+
 export default function MapPage() {
+  // 실제 라우트 페이지는 진입 상태와 레이아웃 조립만 담당하고,
+  // 검색/지도 렌더링 구현은 pages 밖의 components/map로 분리해 둡니다.
   const [location, setLocation] = useState(DEFAULT_LOCATION);
   const isDev = import.meta.env.DEV;
 
@@ -14,7 +27,7 @@ export default function MapPage() {
     >
       <MainLayout
         isMapPage={true}
-        mapComponent={<MapDisplay location={location} />}
+        mapComponent={<LegacyMapDisplay location={location} />}
         /* 지도 페이지일 때만 나타나는 좌측 장소 리스트 */
         leftSidebar={
           <div className={styles.placeList}>
@@ -29,7 +42,7 @@ export default function MapPage() {
           </div>
         }
         /* 지도 위에 뜰 검색창 */
-        overlayUI={<Search onSearchResult={handleLocationChange} />}
+        overlayUI={<LegacyPlaceSearch onSearchResult={handleLocationChange} />}
       >
         {/* MainLayout의 children: 개발도구 등 */}
         {isDev && <div className={styles.devBox}>Map Debug Mode</div>}

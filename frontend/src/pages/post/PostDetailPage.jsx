@@ -2,13 +2,13 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import MainLayout from '@/components/layout/MainLayout';
-import PostEntrySidebar from '@/components/post-detail/PostEntrySidebar';
-import PostComparisonViewer from '@/components/post-detail/PostComparisonViewer';
-import PostDiaryCard from '@/components/post-detail/PostDiaryCard';
-import PostInfoSidebar from '@/components/post-detail/PostInfoSidebar';
-import PostCommentSection from '@/components/post-detail/PostCommentSection';
-import PostLocationModal from '@/components/post-detail/PostLocationModal';
-import { getMockPostDetail } from '@/components/post/postMockData';
+import PostEntrySidebar from '@/components/post/detail/PostEntrySidebar';
+import PostComparisonViewer from '@/components/post/detail/PostComparisonViewer';
+import PostDiaryCard from '@/components/post/detail/PostDiaryCard';
+import PostInfoSidebar from '@/components/post/detail/PostInfoSidebar';
+import PostCommentSection from '@/components/post/detail/PostCommentSection';
+import PostLocationModal from '@/components/post/detail/PostLocationModal';
+import { getMockPostDetail } from '@/data/post/postMockData';
 import {
   getStoredPostBookmark,
   removePostBookmark,
