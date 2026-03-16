@@ -9,6 +9,20 @@ export const useMapStore = create((set) => ({
   optimizedPath: null, // 최단 거리 계산 결과
   previewLocation: null, // 검색 리스트 클릭 시 잠깐 보여줄 위치
 
+  // 필터 상태 (MapFilterPanel 사용)
+  // MapFilterPanel이 useMapStore에서 가져오는 값들, 스토어에 없으면 undefined TypeError 발생
+  activeMediaTypes: [], // 활성 미디어 타입 배열 (예: ['ANIME', 'DRAMA'])
+  sortType: 'popular', // 현재 정렬 기준
+
+  // 미디어 타입 토글 (이미 있으면 제거, 없으면 추가)
+  toggleMediaType: (type) =>
+    set((state) => ({
+      activeMediaTypes: state.activeMediaTypes.includes(type) ? state.activeMediaTypes.filter((t) => t !== type) : [...state.activeMediaTypes, type],
+    })),
+
+  // 미디어 타입 필터 전체 해제
+  clearMediaFilter: () => set({ activeMediaTypes: [] }),
+
   //가져다 쓸 함수 목록
   // 장소 추가 (Search.jsx에서 호출)
   addPlace: (place) =>

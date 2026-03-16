@@ -16,6 +16,7 @@
  */
 
 import React, { useState, useCallback, useRef, useMemo } from 'react';
+import { APIProvider } from '@vis.gl/react-google-maps';
 import MainLayout from '@/components/layout/MainLayout';
 import MapCore from '@/components/map/MapCore';
 import MapSearchBar from '@/components/map/MapSearchBar';
@@ -61,13 +62,6 @@ export default function SpotPage() {
   const dragIdx = useRef(null);
 
   const { selectedPlaces, addPlace, removePlace, reorderPlaces, clearMap } = useMapStore();
-
-  // 페이지 이탈 시 상태 초기화 여부 결정 (필요시)
-  useEffect(() => {
-    return () => {
-      // 컴포넌트 언마운트 시 로직
-    };
-  }, []);
 
   const selectedIds = useMemo(() => selectedPlaces.map((p) => p.id), [selectedPlaces]);
 
@@ -191,92 +185,94 @@ export default function SpotPage() {
   }, [routeTitle, isPublic, selectedPlaces]);
 
   return (
-    <MainLayout
-      isMapPage={true}
-      activeMenuKey="spot"
-      /* 지도는 MainLayout의 mapLayer 슬롯에 배치하여 
+    <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}>
+      <MainLayout
+        isMapPage={true}
+        activeMenuKey="spot"
+        /* 지도는 MainLayout의 mapLayer 슬롯에 배치하여 
         전역 사이드바가 열려도 지도는 그 아래 깔리게 함 
       */
-      mapComponent={
-        <MapCore
-          pins={selectedPlaces}
-          center={center}
-          zoom={DEFAULT_ZOOM}
-          showPolyline={explored && selectedPlaces.length >= 2}
-          travelMode={travelMode}
-          onPinClick={handlePinClick}
-          onRouteInfo={(info) => setRouteInfo(info)}></MapCore>
-      }
-      /* 경로 설정 패널은 leftSidebar 슬롯(혹은 right)으로 배치
+        mapComponent={
+          <MapCore
+            pins={selectedPlaces}
+            center={center}
+            zoom={DEFAULT_ZOOM}
+            showPolyline={explored && selectedPlaces.length >= 2}
+            travelMode={travelMode}
+            onPinClick={handlePinClick}
+            onRouteInfo={(info) => setRouteInfo(info)}></MapCore>
+        }
+        /* 경로 설정 패널은 leftSidebar 슬롯(혹은 right)으로 배치
         MainLayout에서 이 영역의 z-index를 전역 사이드바보다 낮게 설정 
       */
-      leftSidebar={
-        <div className={styles.sidePanel}>
-          <div className={styles.listHeader}>
-            <h3>경로 설정</h3>
-            <span className={styles.count}>
-              {selectedPlaces.length} / {MAX_SPOT_COUNT}
-            </span>
-          </div>
+        leftSidebar={
+          <div className={styles.sidePanel}>
+            <div className={styles.listHeader}>
+              <h3>경로 설정</h3>
+              <span className={styles.count}>
+                {selectedPlaces.length} / {MAX_SPOT_COUNT}
+              </span>
+            </div>
 
-          <div className={styles.placeList}>
-            {selectedPlaces.length > 0 ? (
-              selectedPlaces.map((place, idx) => (
-                <SpotItem
-                  key={place.id}
-                  place={place}
-                  idx={idx}
-                  leg={explored ? routeInfo?.legs?.[idx] : null}
-                  onRemove={removePlace}
-                  onDragStart={(e, i) => {
-                    dragIdx.current = i;
-                    e.dataTransfer.effectAllowed = 'move';
-                  }}
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={(e, dropIdx) => {
-                    const from = dragIdx.current;
-                    if (from === null || from === dropIdx) return;
-                    const next = [...selectedPlaces];
-                    const [moved] = next.splice(from, 1);
-                    next.splice(dropIdx, 0, moved);
-                    reorderPlaces(next);
-                    setExplored(false);
-                  }}
-                  onStreetView={openStreetView}
-                />
-              ))
-            ) : (
-              <div className={styles.empty}>장소를 추가해주세요.</div>
-            )}
-          </div>
+            <div className={styles.placeList}>
+              {selectedPlaces.length > 0 ? (
+                selectedPlaces.map((place, idx) => (
+                  <SpotItem
+                    key={place.id}
+                    place={place}
+                    idx={idx}
+                    leg={explored ? routeInfo?.legs?.[idx] : null}
+                    onRemove={removePlace}
+                    onDragStart={(e, i) => {
+                      dragIdx.current = i;
+                      e.dataTransfer.effectAllowed = 'move';
+                    }}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e, dropIdx) => {
+                      const from = dragIdx.current;
+                      if (from === null || from === dropIdx) return;
+                      const next = [...selectedPlaces];
+                      const [moved] = next.splice(from, 1);
+                      next.splice(dropIdx, 0, moved);
+                      reorderPlaces(next);
+                      setExplored(false);
+                    }}
+                    onStreetView={openStreetView}
+                  />
+                ))
+              ) : (
+                <div className={styles.empty}>장소를 추가해주세요.</div>
+              )}
+            </div>
 
-          <div className={styles.panelFooter}>
-            <button className={explored ? styles.saveBtn : styles.exploreBtn} onClick={explored ? () => setShowModal(true) : handleExplore}>
-              {explored ? '경로 저장하기' : '경로 탐색'}
-            </button>
-            {selectedPlaces.length > 0 && (
-              <button className={styles.clearBtn} onClick={clearMap}>
-                초기화
+            <div className={styles.panelFooter}>
+              <button className={explored ? styles.saveBtn : styles.exploreBtn} onClick={explored ? () => setShowModal(true) : handleExplore}>
+                {explored ? '경로 저장하기' : '경로 탐색'}
               </button>
-            )}
+              {selectedPlaces.length > 0 && (
+                <button className={styles.clearBtn} onClick={clearMap}>
+                  초기화
+                </button>
+              )}
+            </div>
           </div>
-        </div>
-      }>
-      {/* children 영역: 전역 사이드바와 동일한 레벨 혹은 
+        }>
+        {/* children 영역: 전역 사이드바와 동일한 레벨 혹은 
         그보다 위여야 하는 모달/알림 배치 
       */}
-      {showModal && (
-        <SaveModal
-          title={routeTitle}
-          setTitle={setRouteTitle}
-          isPublic={isPublic}
-          setIsPublic={setIsPublic}
-          onConfirm={handleConfirmSave}
-          onCancel={() => setShowModal(false)}
-          isSaving={isSaving}
-        />
-      )}
-    </MainLayout>
+        {showModal && (
+          <SaveModal
+            title={routeTitle}
+            setTitle={setRouteTitle}
+            isPublic={isPublic}
+            setIsPublic={setIsPublic}
+            onConfirm={handleConfirmSave}
+            onCancel={() => setShowModal(false)}
+            isSaving={isSaving}
+          />
+        )}
+      </MainLayout>
+    </APIProvider>
   );
 }
 
@@ -287,7 +283,7 @@ function SpotItem({ place, idx, leg, onRemove, onDragStart, onDragOver, onDrop, 
   return (
     <div
       className={`${styles.spotItem} ${over ? styles.spotItemOver : ''}`}
-      draggable
+      gestureHandling={'cooperative'}
       onDragStart={(e) => onDragStart(e, idx)}
       onDragOver={(e) => {
         onDragOver(e);
