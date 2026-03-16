@@ -48,7 +48,14 @@ public class BookmarkEntity {
      * Bookmark 구조상 Post / PostImage / Route 중 하나만 참조함
      * 따라서 해당 컬럼은 nullable 이며 서비스에서 유효성 검증을 수행한다.
      */
+    /**
+     * [명세서 3번 조건 구현]
+     * @OnDelete(action = OnDeleteAction.CASCADE)
+     * : 데이터베이스 수준에서 'ON DELETE CASCADE' 제약 조건을 생성합니다.
+     * : 참조 대상(Post, Route 등)이 삭제될 때, 이를 참조하는 북마크 데이터도 DB가 자동으로 함께 삭제합니다.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
+    @org.hibernate.annotations.OnDelete(action = org.hibernate.annotations.OnDeleteAction.CASCADE)
     @JoinColumn(
             name = "post_id",
             foreignKey = @ForeignKey(name = "FK_bookmark_post")
@@ -56,6 +63,7 @@ public class BookmarkEntity {
     private PostEntity post;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @org.hibernate.annotations.OnDelete(action = org.hibernate.annotations.OnDeleteAction.CASCADE)
     @JoinColumn(
             name = "post_image_id",
             foreignKey = @ForeignKey(name = "FK_bookmark_post_image")
@@ -63,6 +71,7 @@ public class BookmarkEntity {
     private PostImageEntity postImage;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @org.hibernate.annotations.OnDelete(action = org.hibernate.annotations.OnDeleteAction.CASCADE)
     @JoinColumn(
             name = "route_id",
             foreignKey = @ForeignKey(name = "FK_bookmark_route")
