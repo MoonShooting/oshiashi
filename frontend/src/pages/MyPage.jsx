@@ -3,7 +3,7 @@ import { Bookmark, FileText, MapPinned, Pencil, Settings, Trophy, UserRound } fr
 import { useNavigate } from 'react-router-dom';
 import MainLayout from '@/components/layout/MainLayout';
 import { getMyRoutes } from '@/api/mapApi';
-import { MOCK_POST_CREATE_ROUTES, normalizeRouteOption } from '@/components/post-create/postCreateData';
+import { MOCK_POST_CREATE_ROUTES, normalizeRouteOption } from '@/data/post/postCreateMockData';
 import { useAuthStore } from '@/stores/useAuthStore';
 import styles from '@/styles/MyPage.module.css';
 
