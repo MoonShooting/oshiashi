@@ -53,9 +53,9 @@ const NavBar = () => {
       </form>
 
       <div className={styles.navRight}>
-        <button className={styles.uploadBtn}>
+        <button className={styles.uploadBtn} onClick={() => navigate('/posts/create')}>
           <Upload className={styles.uploadIcon} strokeWidth={2.1} />
-          <span>루트 공유</span>
+          <span>게시물 작성</span>
         </button>
 
         {showProfileMenu ? (
