@@ -21,26 +21,23 @@ public class TagController {
 	private final TagService tagService;
 	
 	// 태그 생성
+	//ResponseEntity<TagResponse>: 성공/실패 여부(HTTP 상태 코드)와 데이터(TagResponse)를 함께 담아서 응답하겠다는 뜻입니다.
+	//@RequestBody TagRequest request: 사용자가 보낸 JSON 데이터(작품 ID, 태그 이름 등)를 자바 객체(TagRequest)로 변환해서 가져옵니다.
+	// TagResponse response = tagService.createTag(request);
+	// 실제 핵심 로직(유효성 검사, 중복 체크, 저장 등)은 tagService에 맡기고, 그 결과를 받아옵니다.
 	@PostMapping
 	public ResponseEntity<TagResponse> createTag(@RequestBody TagRequest request) {
-		return ResponseEntity.status(HttpStatus.CREATED)// 1. HTTP 상태 코드를 201(Created)로 설정 (성공적으로 생성됨을 명시)
-				.body(tagService.createTag(request)); // 2. 서비스 로직을 실행하여 DB에 저장된 실제 데이터(DTO)를 응답 본문에 담음
+		TagResponse response = tagService.createTag(request);
+		return ResponseEntity.ok(response);
 	}
 	
-	// 태그 삭제하기
-	@DeleteMapping("/{tagId}")
-	public ResponseEntity<Void> deleteTag(@PathVariable Long tagId) {
-		tagService.deleteTag(tagId);
+	// 특정 작품의 태그 삭제 (또는 작품 삭제 API 호출 시 내부적으로 사용)
+	@DeleteMapping("/artwork/{artworkId}")
+	//ResponseEntity<Void>: 삭제 성공 후 딱히 돌려줄 데이터 내용(Body)이 없을 때 사용합니다.
+	public ResponseEntity<Void> deleteTagsByArtwork(@PathVariable Long artworkId) {
+		tagService.deleteTagsByArtwork(artworkId);
 		return ResponseEntity.noContent().build();
 	}
-	
-	
-	// 태그 조회하기
-	@GetMapping
-	public ResponseEntity<List<TagResponse>> searchTags(@RequestParam String keyword) {
-		return ResponseEntity.ok(tagService.searchTags(keyword));
-	}
-	
 	
 	
 }

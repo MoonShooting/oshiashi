@@ -27,67 +27,35 @@ public class TagServiceImpl implements TagService {
 	private final TagRepository tagRepository;
 	private final ArtworkRepository artworkRepository;
 	
-	// 1. 태그 생성 (작품과 연결 필수)
-	@Override
+	/**
+	 * 태그 등록 (트리거 요구사항 1, 2 반영)
+	 */
 	public TagResponse createTag(TagRequest request) {
-		// 1-1 . 중복 체크 - 존재하면 바로 에러 던지기
-		tagRepository.findByTagName(request.getTagName())
-				.ifPresent(tag -> {
-					log.debug("[Tag 생성 중단] 중복된 태그명 발견: {}", tag.getTagName());
-					// 여기서 RuntimeException
-					throw new RuntimeException("이미 존재하는 태그 이름입니다: " + tag.getTagName());
-				});
-		
-		// 1-2. 연결된 작품 조회
-		//TODO: Artwork 연결 (현재는 작품 없어서 임시 주석) ,
-		// 1-3의 엔티티에서도 .artwork 부분 검토 필요
-		
-		/*
+		// 1. artwork_id 유효성 확인 및 객체 조회 (트리거 1번)
+		// existsById 대신 findById를 사용해 객체를 직접 가져옵니다.
 		ArtworkEntity artwork = artworkRepository.findById(request.getArtworkId())
-				.orElseThrow(() -> {
-					log.debug("[Tag 생성 실패] 작품을 찾을 수 없음. ID: {}", request.getArtworkId());
-					return new RuntimeException("해당 작품을 찾을 수 없습니다.");
-				});
+				.orElseThrow(() -> new IllegalArgumentException("유효하지 않은 작품 ID입니다."));
 		
+		// 2. tagname Trim 및 대소문자 통일 (트리거 2번)
+		// .trim() : 문자열의 앞뒤에 있는 공백(Space, Tab 등)을 제거합니다. (글자 사이의 공백은 유지)
+		// .toLowerCase : 모든 영문자를 소문자로 통일합니다.
+		String cleanName = request.getTagName().trim().toLowerCase();
 		
-		 */
+		//TODO: 3. 중복 태그 체크 (unique 제약조건 및 데이터 중복 방지)
+		if (tagRepository.existsByArtwork_ArtworkIdAndTagName(request.getArtworkId(), cleanName)) {
+			throw new IllegalStateException("해당 작품에 이미 동일한 태그가 존재합니다.");
+		}
 		
-		// 1-3. 새로운 태그 저장
-		TagEntity newTag = TagEntity.builder()
-				.tagName(request.getTagName())
-				//.artwork(artwork)
-				.build();
-		
-		TagEntity savedTag = tagRepository.save(newTag);
-		
-		log.debug("[Tag 생성 완료] 생성된 태그명: {}", savedTag.getTagName());
-		
-		return TagResponse.fromEntity(savedTag);
+		TagEntity tagEntity = new TagEntity(artwork, cleanName);
+		return TagResponse.fromEntity(tagRepository.save(tagEntity));
 	}
 	
-	// 2. 태그 삭제
-	@Override
-	public void deleteTag(Long tagId) {
-		log.debug("[Tag 삭제 요청] 삭제할 ID: {}", tagId);
-		tagRepository.deleteById(tagId);
-		log.debug("[Tag 삭제 완료]");
-	}
-	
-	// 3. 태그 조회 (자동완성용: '도' 입력 시 도쿄, 도쿄돔, 도쿄타워 등 검색)
-	@Override
-	public List<TagResponse> searchTags(String keyword) {
-		
-		log.debug("[Tag 검색] 키워드: '{}'", keyword);
-		
-		// DB에서 키워드로 시작하는 태그 리스트 조회
-		// 태그 이름(tagName)이 입력된 키워드(keyword)로 시작하는지 확인
-		// SQL의 'LIKE keyword%'와 동일한 동작?
-		List<TagResponse> results = tagRepository.findByTagNameStartingWith(keyword).stream()
-				.map(TagResponse::fromEntity)// DB에서 가져온 엔티티(Entity)를 화면에 전달할 응답 객체(DTO)로 변환
-				.collect(Collectors.toList()); // 변환된 데이터들을 하나의 리스트 바구니에 담기
-		
-		log.debug("[Tag 검색 완료] 검색 결과 수: {}건", results.size());
-		return results;
+	/**
+	 * 작품 삭제 시 연쇄 정리 또는 체크 (트리거 3번)
+	 */
+	public void deleteTagsByArtwork(Long artworkId) {
+		// 해당 작품의 태그 일괄 삭제
+		tagRepository.deleteByArtwork_ArtworkId(artworkId);
 	}
 	
 	

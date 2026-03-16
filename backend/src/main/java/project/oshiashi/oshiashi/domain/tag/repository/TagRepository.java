@@ -11,9 +11,9 @@ import java.util.Optional;
 @Repository
 public interface TagRepository extends JpaRepository<TagEntity, Long> {
 	
-	// 태그 이름으로  찾기 (중복 체크용)
-	Optional<TagEntity> findByTagName(String tagName);
+	// 중복 체크를 위한 메서드 (트리거 2번 관련)
+	boolean existsByArtwork_ArtworkIdAndTagName(Long artworkId, String tagName);
 	
-	// 태그 검색
-	List<TagEntity> findByTagNameStartingWith(String tagName);
+	// 작품 삭제 시 연쇄 삭제를 위한 메서드 (트리거 3번 관련)
+	void deleteByArtwork_ArtworkId(Long artworkId);
 }
