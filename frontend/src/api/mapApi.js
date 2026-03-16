@@ -59,18 +59,51 @@ import { FetchClient } from '@/api/FetchClient';
  */
 const normalizeSpot = (raw) => ({
   id: String(raw.spotId),
+  spotId: raw.spotId ?? null,
+  postId: raw.postId ?? raw.linkedPostId ?? null,
   title: raw.name,
   position: {
     lat: parseFloat(raw.latitude),
     lng: parseFloat(raw.longitude),
   },
   address: raw.address ?? null,
-  placePhotoUrl: raw.sceneImageUrl ?? null, // 팝업 카드 좌측: 장소 사진
+  placePhotoUrl: raw.sceneImageUrl ?? raw.sceneImgUrl ?? null, // 팝업 카드 좌측: 장소 사진
   postImageUrl: raw.postImageUrl ?? null, // 팝업 카드 우측: 게시물 대표 사진
   workName: raw.artworkTitle ?? null,
   mediaType: raw.mediaType ?? 'DEFAULT', // 핀 색상 분기용 (PIN_COLOR 키와 일치)
   artworkId: raw.artworkId ?? null,
 });
+
+const parseCoordinate = (value) => {
+  const next = parseFloat(value);
+  return Number.isFinite(next) ? next : null;
+};
+
+const normalizeRouteSpot = (raw, index) => {
+  const latitude = parseCoordinate(raw.latitude ?? raw.position?.lat);
+  const longitude = parseCoordinate(raw.longitude ?? raw.position?.lng);
+
+  return {
+    id: String(raw.spotId ?? raw.id ?? index),
+    spotId: raw.spotId ?? raw.id ?? null,
+    title: raw.name ?? raw.title ?? `장소 ${index + 1}`,
+    name: raw.name ?? raw.title ?? `장소 ${index + 1}`,
+    artworkTitle: raw.artworkTitle ?? raw.workName ?? raw.artworkName ?? null,
+    address: raw.address ?? null,
+    latitude,
+    longitude,
+    position:
+      latitude != null && longitude != null
+        ? {
+            lat: latitude,
+            lng: longitude,
+          }
+        : null,
+    placePhotoUrl: raw.placePhotoUrl ?? raw.sceneImageUrl ?? raw.sceneImgUrl ?? null,
+    sceneImageUrl: raw.sceneImageUrl ?? raw.sceneImgUrl ?? raw.placePhotoUrl ?? null,
+    visitOrder: raw.visitOrder ?? index + 1,
+  };
+};
 
 /**
  * 백엔드 Route 응답 → 프론트 route 객체 변환
@@ -89,7 +122,7 @@ const normalizeRoute = (raw) => ({
   title: raw.title,
   isPublic: raw.isPublic,
   createdAt: raw.createdAt,
-  spots: (raw.spots ?? []).map(normalizeSpot),
+  spots: (raw.spots ?? raw.routeSpots ?? []).map(normalizeRouteSpot),
 });
 
 // Spot(핀) 조회 API
