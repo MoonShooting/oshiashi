@@ -84,6 +84,20 @@
   transform: translateX(3px);
 }
 
+.menu button:disabled,
+.bottomMenu button:disabled,
+.disabled {
+  opacity: 0.52;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.menu button:disabled:hover,
+.bottomMenu button:disabled:hover {
+  border-color: transparent;
+  background: transparent;
+}
+
 .active {
   border-color: rgba(157, 126, 255, 0.65) !important;
   background: linear-gradient(90deg, rgba(92, 64, 167, 0.75), rgba(236, 72, 153, 0.45)) !important;

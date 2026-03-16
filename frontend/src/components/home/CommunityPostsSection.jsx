@@ -1,5 +1,5 @@
 import React from 'react';
-import { Eye, Heart, MessageCircle } from 'lucide-react';
+import PostCard from '@/components/post/PostCard';
 import styles from '../../styles/Home.module.css';
 
 // 홈 화면에서 "커뮤니티 최신 글" 영역을 확인하기 위한 목업 데이터입니다.
@@ -14,6 +14,8 @@ const posts = [
 const CommunityPostsSection = () => {
   return (
     <section className={styles.section}>
+      {/* Home 안에서 이 섹션은 "전체 커뮤니티 페이지로 들어가기 전에"
+          최신 글 분위기를 짧게 맛보게 하는 preview 역할입니다. */}
       <div className={styles.sectionHeader}>
         <div>
           <h2>커뮤니티 최신 글</h2>
@@ -24,30 +26,19 @@ const CommunityPostsSection = () => {
 
       <div className={styles.postList}>
         {posts.map((post) => (
-          // 홈 미리보기는 목록 밀도를 높이기 위해 썸네일, 카테고리, 메타를 한 줄에 압축해서 보여줍니다.
-          <article key={post.id} className={styles.postItem}>
-            <div className={styles.postThumb} />
-            <div className={styles.postBody}>
-              <span className={styles.postCategory}>{post.category}</span>
-              <h3>{post.title}</h3>
-              <div className={styles.postMeta}>
-                <span>{post.author}</span>
-                <span>· {post.time}</span>
-                <span className={styles.statItem}>
-                  <Eye className={`${styles.statIcon} ${styles.statIconView}`} strokeWidth={2} />
-                  {post.views}
-                </span>
-                <span className={styles.statItem}>
-                  <Heart className={`${styles.statIcon} ${styles.statIconLike}`} strokeWidth={2} />
-                  {post.likes}
-                </span>
-                <span className={styles.statItem}>
-                  <MessageCircle className={`${styles.statIcon} ${styles.statIconComment}`} strokeWidth={2} />
-                  {post.comments}
-                </span>
-              </div>
-            </div>
-          </article>
+          // 홈에서는 정보 밀도가 너무 높으면 다른 섹션 흐름을 깨므로,
+          // PostCard를 compact 변형으로 사용해 제목/작성자/반응만 빠르게 훑게 합니다.
+          <PostCard
+            key={post.id}
+            variant="compact"
+            category={post.category}
+            title={post.title}
+            author={post.author}
+            publishedAt={post.time}
+            viewCount={post.views}
+            likeCount={post.likes}
+            commentCount={post.comments}
+          />
         ))}
       </div>
     </section>
