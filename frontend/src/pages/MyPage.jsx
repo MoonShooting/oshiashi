@@ -3,7 +3,7 @@ import { Bookmark, FileText, MapPinned, Pencil, Settings, Trophy, UserRound } fr
 import { useNavigate } from 'react-router-dom';
 import MainLayout from '@/components/layout/MainLayout';
 import { getMyRoutes } from '@/api/mapApi';
-import { MOCK_POST_CREATE_ROUTES, normalizeRouteOption } from '@/data/post/postCreateMockData';
+import { MOCK_POST_CREATE_ROUTES, normalizeRouteOption } from '@/components/post-create/postCreateData';
 import { useAuthStore } from '@/stores/useAuthStore';
 import styles from '@/styles/MyPage.module.css';
 
@@ -68,12 +68,12 @@ const MyPage = () => {
     if (!isInitialized) return undefined;
 
     // 마이페이지는 인증 사용자 전용 맥락이 강하므로,
-    // 비로그인 상태에서는 루트 목록 대신 로그인 유도 문구만 보여줍니다.
+    // 비로그인 상태에서는 루트 목록을 비우고 별도 상세 콘텐츠를 만들지 않습니다.
     if (!isLoggedIn) {
       setMyRoutes([]);
       setSelectedRouteId('');
       setRouteLoadState('guest');
-      setRouteLoadMessage('로그인 후 저장한 루트를 여기서 상세하게 확인할 수 있습니다.');
+      setRouteLoadMessage('');
       return undefined;
     }
 
@@ -152,7 +152,7 @@ const MyPage = () => {
   const handleTabClick = (tabKey) => {
     // 루트 생성은 마이페이지 탭 콘텐츠가 아니라 맵 기반 작성 흐름으로 이어집니다.
     if (tabKey === 'create-route') {
-      navigate('/map');
+      navigate('/spot');
       return;
     }
 
@@ -186,21 +186,6 @@ const MyPage = () => {
       );
     }
 
-    if (!isLoggedIn) {
-      return (
-        <div className={styles.emptyState}>
-          <div className={styles.emptyIconWrap}>
-            <MapPinned className={styles.emptyIcon} strokeWidth={2} />
-          </div>
-          <strong>로그인 후 내 루트를 확인할 수 있습니다.</strong>
-          <p>마이페이지에서는 저장한 루트를 선택하고 상세 경로까지 바로 이어서 볼 수 있습니다.</p>
-          <button type="button" className={styles.previewActionButton} onClick={() => navigate('/login')}>
-            로그인하기
-          </button>
-        </div>
-      );
-    }
-
     if (myRoutes.length === 0) {
       return (
         <div className={styles.emptyState}>
@@ -208,9 +193,9 @@ const MyPage = () => {
             <MapPinned className={styles.emptyIcon} strokeWidth={2} />
           </div>
           <strong>아직 저장된 내 루트가 없습니다.</strong>
-          <p>맵 페이지에서 장소를 둘러본 뒤 나만의 루트를 저장하면 이곳에서 상세보기를 할 수 있습니다.</p>
-          <button type="button" className={styles.previewActionButton} onClick={() => navigate('/map')}>
-            맵으로 이동
+          <p>루트 생성 페이지에서 장소를 담고 저장하면 이곳에서 상세보기를 할 수 있습니다.</p>
+          <button type="button" className={styles.previewActionButton} onClick={() => navigate('/spot')}>
+            루트 생성 페이지로 이동
           </button>
         </div>
       );
@@ -242,7 +227,7 @@ const MyPage = () => {
                 <button type="button" className={styles.routeDetailButton} onClick={() => setSelectedRouteId(route.id)}>
                   {/* 왼쪽에서는 "어떤 루트를 볼지" 고르고,
                       오른쪽 패널이 그 선택값을 즉시 상세로 풀어주는 2열 구조입니다. */}
-                  {isActive ? '선택된 루트 보기' : '내 루트 상세보기'}
+                  {isActive ? '선택된 루트 보기' : '루트 상세보기'}
                 </button>
               </article>
             );

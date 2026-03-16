@@ -52,12 +52,7 @@ const Sidebar = ({ isOpen = false, onClose, activeKey = 'home', onNavigate }) =>
             <li key={item.key}>
               <button
                 type="button"
-                className={[
-                  activeKey === item.key ? styles.active : '',
-                  item.disabled ? styles.disabled : '',
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
+                className={[activeKey === item.key ? styles.active : '', item.disabled ? styles.disabled : ''].filter(Boolean).join(' ')}
                 disabled={item.disabled}
                 aria-disabled={item.disabled ? 'true' : undefined}
                 title={item.disabled ? '/spot 페이지가 준비되면 연결됩니다.' : undefined}

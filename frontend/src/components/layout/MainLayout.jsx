@@ -16,6 +16,7 @@ const MainLayoutContent = (props) => {
   const {
     children,
     isMapPage = false,
+    lockScroll = false,
     mapComponent = null,
     leftSidebar = null,
     overlayUI = null,
@@ -55,11 +56,7 @@ const MainLayoutContent = (props) => {
     if (location.pathname.startsWith('/spot')) return 'spot';
     if (location.pathname.startsWith('/mypage')) return 'mypage';
     if (location.pathname.startsWith('/achievements')) return 'achievement';
-    if (
-      location.pathname.startsWith('/login') ||
-      location.pathname.startsWith('/signup') ||
-      location.pathname.startsWith('/find-auth')
-    ) {
+    if (location.pathname.startsWith('/login') || location.pathname.startsWith('/signup') || location.pathname.startsWith('/find-auth')) {
       return 'login';
     }
     return 'home';
@@ -74,8 +71,6 @@ const MainLayoutContent = (props) => {
       return;
     }
 
-    // spot(/spot)은 아직 준비 중인 페이지이므로,
-    // 사이드바 공용 이동 맵에는 넣지 않고 이후 페이지가 완성되면 연결합니다.
     const path = routeMap[key];
     if (path && path !== location.pathname) {
       navigate(path);
@@ -83,7 +78,7 @@ const MainLayoutContent = (props) => {
   };
 
   return (
-    <div className={styles.layoutWrapper}>
+    <div className={lockScroll ? `${styles.layoutWrapper} ${styles.layoutWrapperLocked}` : styles.layoutWrapper}>
       {/* Sidebar는 전역 메뉴이므로 모든 페이지에서 같은 위치에 렌더합니다.
           activeKey는 현재 경로 또는 페이지 지정값을 기준으로 계산됩니다. */}
       <Sidebar isOpen={open} onClose={() => setOpen(false)} activeKey={computedActiveKey} onNavigate={handleNavigate} />
@@ -109,7 +104,7 @@ const MainLayoutContent = (props) => {
               {children ? <main className={styles.mapMain}>{children}</main> : null}
             </div>
           ) : (
-            <main className={styles.generalMain}>{children}</main>
+            <main className={lockScroll ? `${styles.generalMain} ${styles.generalMainLocked}` : styles.generalMain}>{children}</main>
           )}
         </div>
       </div>

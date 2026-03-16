@@ -75,11 +75,10 @@
 
 .login-field-icon {
   position: absolute;
-  left: 18px;
-  /* 라벨 높이가 고정이 아니어도 입력창 중앙에 오도록
-     필드 전체 높이 기준으로 역산해 배치합니다. */
-  top: calc(100% - 26px);
-  transform: translateY(-50%);
+  left: 20px;
+  /* 입력 필드 하단을 기준으로 고정하면 라벨 줄바꿈이나 폰트 차이가 있어도
+     아이콘이 placeholder 첫 글자와 겹치지 않고 항상 입력창 중앙에 가깝게 유지됩니다. */
+  bottom: 17px;
   z-index: 2;
   color: #8f90a6;
   display: inline-flex;
@@ -106,17 +105,17 @@
   color: #a0a0ab;
 }
 
-.login-input {
+.login-field .input-group input.login-input {
   background-color: #252533;
   border: 1px solid #333345;
   border-radius: 8px;
   /* 아이콘과 placeholder/입력 텍스트가 겹치지 않도록
      공통 input 기본 padding보다 왼쪽 여백을 넓혀 둡니다. */
-  padding: 12px 16px 12px 52px;
+  padding: 0 16px 0 64px;
   color: white;
 }
 
-.login-input:focus {
+.login-field .input-group input.login-input:focus {
   border-color: #9d50bb;
 }
 

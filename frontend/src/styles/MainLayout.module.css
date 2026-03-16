@@ -1,9 +1,13 @@
 .layoutWrapper {
   width: 100%;
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   background-color: #080810;
+}
+
+.layoutWrapperLocked {
+  height: 100vh;
   overflow: hidden;
 }
 
@@ -20,6 +24,18 @@
   flex-direction: column;
   position: relative;
   min-height: 0;
+}
+
+.generalMain {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 104px 24px 32px;
+}
+
+.generalMainLocked {
+  overflow: hidden;
 }
 
 /* 지도 전용 레이아웃 */
@@ -56,7 +72,7 @@
 }
 
 @media (max-width: 1100px) {
-  .contentContainer {
+  .generalMain {
     width: 100%;
     padding: 86px 12px 24px;
   }
