@@ -193,6 +193,7 @@ export default function SpotPage() {
   return (
     <MainLayout
       isMapPage={true}
+      lockScroll={true}
       activeMenuKey="spot"
       /* 지도는 MainLayout의 mapLayer 슬롯에 배치하여 
         전역 사이드바가 열려도 지도는 그 아래 깔리게 함 

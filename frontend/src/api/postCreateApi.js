@@ -3,7 +3,7 @@ import {
   MOCK_POST_CREATE_ROUTES,
   buildPostCreatePayload,
   normalizeRouteOption,
-} from '@/components/post-create/postCreateData';
+} from '@/data/post/postCreateMockData';
 
 export const POST_CREATE_BACKEND_GAPS = [
   'BookmarkResponse는 routeId 또는 postId만 내려주기 때문에, 북마크한 게시물에서 연결된 루트를 바로 풀어낼 수 없습니다.',
@@ -19,7 +19,7 @@ const dedupeRoutes = (routes) =>
  * 게시물 생성 페이지용 루트 목록을 로드합니다.
  *
  * 현재 프로젝트의 백엔드 계약이 완성되지 않아,
- * 실 API가 부족하거나 실패하면 목업 라우트로 자동 대체합니다.
+ * 실 API가 부족하거나 실패하면 data/post에 모아둔 목업 라우트로 자동 대체합니다.
  */
 export const loadPostCreateRoutes = async (userId) => {
   const resolvedRoutes = [];
