@@ -18,7 +18,6 @@
 import React, { useState, useCallback, useRef, useMemo } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import MapCore from '@/components/map/MapCore';
-import MapSearchBar from '@/components/map/MapSearchBar';
 import { useMapStore } from '@/stores/useMapStore';
 import { postRoute } from '@/api/mapApi';
 import { DEFAULT_CENTER, DEFAULT_ZOOM, MAX_SPOT_COUNT } from '@/constants/mapConstants';
@@ -89,10 +88,6 @@ export default function SpotPage() {
   );
 
   // 검색 결과 선택 → 지도 이동
-  const handleSelectPlace = useCallback((loc) => {
-    setCenter({ lat: loc.lat, lng: loc.lng });
-  }, []);
-
   // DirectionsService 결과 수신
   // DB 연관: 경로 요약(totalDistance, totalDuration)은 화면 표시 전용
   // 실제 거리는 DB에 저장하지 않음 (동적 계산값)
@@ -145,14 +140,6 @@ export default function SpotPage() {
   );
 
   // 경로 저장
-  const handleSave = useCallback(() => {
-    if (selectedPlaces.length < 2) {
-      alert('장소를 2개 이상 선택해주세요.');
-      return;
-    }
-    setShowModal(true);
-  }, [selectedPlaces.length]);
-
   /**
    * 경로 저장 확정
    *
@@ -195,9 +182,6 @@ export default function SpotPage() {
       isMapPage={true}
       lockScroll={true}
       activeMenuKey="spot"
-      /* 지도는 MainLayout의 mapLayer 슬롯에 배치하여 
-        전역 사이드바가 열려도 지도는 그 아래 깔리게 함 
-      */
       mapComponent={
         <MapCore
           pins={selectedPlaces}
@@ -208,9 +192,6 @@ export default function SpotPage() {
           onPinClick={handlePinClick}
           onRouteInfo={(info) => setRouteInfo(info)}></MapCore>
       }
-      /* 경로 설정 패널은 leftSidebar 슬롯(혹은 right)으로 배치
-        MainLayout에서 이 영역의 z-index를 전역 사이드바보다 낮게 설정 
-      */
       leftSidebar={
         <div className={styles.sidePanel}>
           <div className={styles.listHeader}>
@@ -263,9 +244,6 @@ export default function SpotPage() {
           </div>
         </div>
       }>
-      {/* children 영역: 전역 사이드바와 동일한 레벨 혹은 
-        그보다 위여야 하는 모달/알림 배치 
-      */}
       {showModal && (
         <SaveModal
           title={routeTitle}
