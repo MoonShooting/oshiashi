@@ -74,6 +74,6 @@ public class CommentEntity {
     // 대댓글이 필요해지면 아래처럼 "자기참조"가 가장 깔끔함
     // TODO : 코멘트 테이블에 대댓글 컬럼 논의
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "parent_comment_id", foreignKey = @ForeignKey(name="FK_comment_parent"))
+    @JoinColumn(name = "parent_id", foreignKey = @ForeignKey(name="FK_comment_parent"))
     private CommentEntity parent;
 }
