@@ -8,6 +8,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import project.oshiashi.oshiashi.domain.user.dto.UserLoginRequest;
+import project.oshiashi.oshiashi.domain.user.dto.UserResponse;
 import project.oshiashi.oshiashi.domain.user.dto.UserSignUpRequest;
 import project.oshiashi.oshiashi.domain.user.entity.UserEntity;
 import project.oshiashi.oshiashi.domain.user.repository.UserRepository;
@@ -493,5 +494,25 @@ public class AuthService {
 		if (email == null || !email.matches(EMAIL_REGEX)) {
 			throw new IllegalArgumentException("올바른 이메일 형식이 아닙니다.");
 		}
+	}
+
+	/**
+	 * [내 정보 조회: getMyInfo]
+	 * - 역할: 현재 유효한 토큰을 가진 사용자의 상세 정보를 반환함.
+	 * - 특징:
+	 * 1. 프론트엔드 새로고침 시 Zustand 등 전역 상태를 복구하는 핵심 API.
+	 * 2. 보안 컨텍스트(SecurityContext)에서 인증 객체를 꺼내와 실시간 유저 상태를 확인.
+	 *
+	 * @return 인증된 사용자의 상세 정보 (UserResponse)
+	 */
+	@Transactional(readOnly = true) // 단순 조회이므로 성능 최적화 및 데이터 무결성 보장
+	public UserResponse getMyInfo() {
+		// 1. 현재 보안 컨텍스트에 저장된 인증 정보로부터 유저 엔티티를 획득
+		UserEntity user = getCurrentUserEntity();
+		// 2. 로그 기록: 어떤 사용자가 상태 복구를 시도하는지 기록
+		log.info("[AuthService] 내 정보 조회(상태 복구) 요청 - UserID: {}, Nickname: {}",
+				user.getUserId(), user.getNickname());
+		// 3. 획득한 엔티티를 클라이언트 응답용 DTO(UserResponse)로 변환하여 최종 반환
+		return UserResponse.fromEntity(user);
 	}
 }
