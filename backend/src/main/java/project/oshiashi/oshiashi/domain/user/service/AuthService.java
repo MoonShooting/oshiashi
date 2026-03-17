@@ -336,6 +336,42 @@ public class AuthService {
 	}
 
 	/**
+	 * [개인정보(닉네임) 수정]
+	 * - API: /api/v1/auth/update
+	 * - 용도: 사용자의 닉네임을 검증 후 업데이트합니다.
+	 * - 설계: 비밀번호 변경과 분리하여 일반 프로필 수정만 담당하며, 더티 체킹을 활용합니다.
+	 */
+	@Transactional
+	public void updateProfile(String newNickname) {
+		// 1. 현재 세션의 유저 정보 가져오기
+		UserEntity sessionUser = getCurrentUserEntity();
+		log.info("[AuthService] 닉네임 변경 요청 - UserID: {}, 시도 닉네임: {}", sessionUser.getUserId(), newNickname);
+
+		// 2. 기존 닉네임과 동일한지 체크 (불필요한 DB 작업 방지)
+		if (sessionUser.getNickname().equals(newNickname)) {
+			log.info("[AuthService] 기존 닉네임과 동일하여 변경을 생략합니다.");
+			return;
+		}
+
+		// 3. [수정 포인트] 이미 아래에 만들어진 공통 검증 메서드 호출
+		validateNicknameFormat(newNickname);
+
+		// 4. 영속성 컨텍스트에 관리되는 실제 유저 엔티티 조회
+		UserEntity managedMe = userRepository.findById(sessionUser.getUserId())
+				.orElseThrow(() -> new IllegalArgumentException("유저 정보를 찾을 수 없습니다."));
+
+		// 5. 닉네임 중복 검사 (타인이 사용 중인지 확인)
+		if (userRepository.existsByNickname(newNickname)) {
+			throw new IllegalArgumentException("이미 존재하는 닉네임입니다.");
+		}
+
+		// 6. 엔티티 정보 수정 (JPA 더티 체킹)
+		managedMe.changeNickname(newNickname);
+
+		log.info("[AuthService] 닉네임 변경 완료 - UserID: {}, NewNickname: {}", managedMe.getUserId(), newNickname);
+	}
+
+	/**
 	 * [회원 탈퇴 - 보안 강화 버전]
 	 * 1. 현재 로그인한 유저 확인
 	 * 2. 입력받은 비밀번호와 DB 비밀번호 대조

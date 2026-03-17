@@ -22,6 +22,7 @@ import java.util.Map;
 public class AuthController {
 
 	private final AuthService authService;
+
 	// 이메일 중복 확인: /api/v1/auth/checkEmail
 	@GetMapping("/checkEmail")
 	public ResponseEntity<String> checkEmail(@RequestParam("email") String email) {
@@ -121,6 +122,18 @@ public class AuthController {
 		log.info("[API] 비밀번호 변경 요청(로그인 유저)");
 		authService.updatePassword(request.get("oldPassword"), request.get("newPassword"));
 		return ResponseEntity.ok("비밀번호가 성공적으로 변경되었습니다.");
+	}
+
+	// 개인정보(닉네임 등) 수정: /api/v1/auth/update
+	@PatchMapping("/update")
+	public ResponseEntity<String> updateProfile(@RequestBody Map<String, String> request) {
+		String newNickname = request.get("nickname");
+		log.info("[API] 프로필 수정 요청: {}", newNickname);
+		// 1. 서비스 호출 (오타 수정: AuthService -> authService)
+		// 실패 시 발생하는 예외는 GlobalExceptionHandler가 처리함
+		authService.updateProfile(newNickname);
+		// 2. 성공 시 응답 반환
+		return ResponseEntity.ok("프로필이 수정되었습니다.");
 	}
 
 	// 비밀번호 재설정 메일 발송: /api/v1/auth/passwordResetEmail
