@@ -61,6 +61,8 @@ spring.mail.properties.mail.debug=true
 springdoc.swagger-ui.path=/swagger-ui.html
 # API 문서(JSON) 생성 경로
 springdoc.api-docs.path=/api-docs
+# UI가 위에서 설정한 /api-docs 경로를 바라보게 설정
+springdoc.swagger-ui.config-url=/api-docs/swagger-config
 # HTTP 메서드 순서대로 정렬 (GET, POST, PUT, DELETE 순)
 springdoc.swagger-ui.operations-sorter=method
 # 태그(컨트롤러) 정렬

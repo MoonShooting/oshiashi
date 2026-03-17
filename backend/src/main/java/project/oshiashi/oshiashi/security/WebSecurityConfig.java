@@ -38,6 +38,12 @@ public class WebSecurityConfig {
 						.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
 				)
 				.authorizeHttpRequests(auth -> auth
+						.requestMatchers(
+								"/v3/api-docs/**",     // Swagger 내부 기본 경로
+								"/api-docs/**",        // 지우님이 설정한 커스텀 경로
+								"/swagger-ui/**",      // Swagger UI 관련 자원
+								"/swagger-ui.html"     // Swagger UI 접속 페이지
+						).permitAll()
 						// 1. 테스트 페이지 및 메인 경로 허용 (추가된 부분)
 						.requestMatchers("/", "/home", "/home.html", "/api/v1/auth/**").permitAll()
 						// 2. 인증 없이 접근 가능한 API 경로
@@ -65,7 +71,13 @@ public class WebSecurityConfig {
 	@Bean
 	public WebSecurityCustomizer webSecurityCustomizer() {
 		return (web) -> web.ignoring()
-				.requestMatchers(PathRequest.toStaticResources().atCommonLocations());
+				.requestMatchers(PathRequest.toStaticResources().atCommonLocations())
+				.requestMatchers(
+						"/v3/api-docs/**",
+						"/api-docs/**",
+						"/swagger-ui/**",
+						"/swagger-ui.html"
+				);
 	}
 
 	@Bean
