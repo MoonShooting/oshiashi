@@ -5,8 +5,23 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import project.oshiashi.oshiashi.domain.bookmark.dto.BookmarkResponse;
+import project.oshiashi.oshiashi.domain.bookmark.entity.BookmarkEntity;
+import project.oshiashi.oshiashi.domain.bookmark.repository.BookmarkRepository;
+import project.oshiashi.oshiashi.domain.comment.dto.CommentResponse;
+import project.oshiashi.oshiashi.domain.comment.entity.CommentEntity;
+import project.oshiashi.oshiashi.domain.comment.repository.CommentRepository;
+import project.oshiashi.oshiashi.domain.post.dto.PostResponse;
+import project.oshiashi.oshiashi.domain.post.entity.PostEntity;
+import project.oshiashi.oshiashi.domain.post.repository.PostRepository;
+import project.oshiashi.oshiashi.domain.route.dto.RouteResponse;
+import project.oshiashi.oshiashi.domain.route.entity.RouteEntity;
+import project.oshiashi.oshiashi.domain.route.repository.RouteRepository;
+import project.oshiashi.oshiashi.domain.user.dto.UserAchievementResponse;
 import project.oshiashi.oshiashi.domain.user.dto.UserResponse;
+import project.oshiashi.oshiashi.domain.user.entity.UserAchievementEntity;
 import project.oshiashi.oshiashi.domain.user.entity.UserEntity;
+import project.oshiashi.oshiashi.domain.user.repository.UserAchievementRepository;
 import project.oshiashi.oshiashi.domain.user.repository.UserRepository;
 import project.oshiashi.oshiashi.security.AuthenticatedUser;
 import java.util.List;
@@ -22,6 +37,11 @@ import java.util.List;
 public class UserService {
 
 	private final UserRepository userRepository;
+	private final RouteRepository routeRepository;
+	private final PostRepository postRepository;
+	private final CommentRepository commentRepository;
+	private final BookmarkRepository bookmarkRepository;
+	private final UserAchievementRepository userAchievementRepository;
 
 	/**
 	 * [현재 유저 정보 상세 조회]
@@ -49,36 +69,6 @@ public class UserService {
 	}
 
 	/**
-	 * [개인정보(닉네임) 수정]
-	 * - API: /api/v1/user/update
-	 * - 용도: 닉네임 등 프로필 정보를 업데이트함.
-	 * - 설계: 보안이 중요한 비밀번호 변경 로직과 분리하여 일반 프로필 수정만 담당
-	 * - 추후 유저 프로필 사진 등이 생긴다면 로직 추가 예정
-	 */
-	@Transactional // [중요] 이게 있어야 메서드 종료 시 UPDATE 쿼리가 나갑니다.
-	public void updateProfile(String newNickname) {
-		UserEntity sessionUser = getCurrentUserEntity();
-		log.info("[UserService] 닉네임 변경 요청 - UserID: {}, 시도 닉네임: {}", sessionUser.getUserId(), newNickname);
-		if (sessionUser.getNickname().equals(newNickname)) {
-			log.info("[UserService] 기존 닉네임과 동일하여 변경을 생략합니다."); //닉네임 동일 여부 체크
-			return;
-		}
-		String nickRegex = "^[a-zA-Z0-9가-힣]{2,12}$";
-		if (newNickname == null || !newNickname.matches(nickRegex)) {
-			throw new IllegalArgumentException("2~12자의 한글, 영문, 숫자만 가능합니다.");
-		}
-		UserEntity managedMe = userRepository.findById(sessionUser.getUserId())
-				.orElseThrow(() -> new IllegalArgumentException("유저 정보를 찾을 수 없습니다.")); //유저 정보 재조회 -> 확실한 DB저장
-		// 5. 타인과의 중복 검사 (managedMe 본인 제외 검사는 existsBy가 알아서 해줌)
-		if (userRepository.existsByNickname(newNickname)) {
-			throw new IllegalArgumentException("이미 존재하는 닉네임입니다.");
-		}
-		// 6. 엔티티 수정 (JPA 더티 체킹 작동)
-		managedMe.changeNickname(newNickname);
-		log.info("[UserService] 닉네임 변경 완료 - UserID: {}, NewNickname: {}", managedMe.getUserId(), newNickname);
-	}
-
-	/**
 	 * [내 루트 목록 조회]
 	 * - API: /api/v1/user/myRoute
 	 * - 용도: 사용자가 생성한 여행 루트 목록 호출
@@ -87,62 +77,99 @@ public class UserService {
 	 *  - 현재 루트 관련 DTO가 미정이라, 나중에 특정 타입(예: List<RouteResponse>)으로 
 	 *  교체하기 전까지 모든 리스트 형식을 수용하기 위해 임시로 비워둔 예약자리
 	 */
-	@Transactional(readOnly = true)
-	public List<?> getMyRoutes() {
+	@Transactional(readOnly = true) // 읽기 전용 트랜잭션: 데이터 수정이 없으므로 성능 최적화 및 안정성 확보
+	public List<RouteResponse> getMyRoutes() {
+		// 1. 시큐리티 컨텍스트 등에서 현재 로그인한 유저의 엔티티 정보를 획득
 		UserEntity me = getCurrentUserEntity();
+		// 2. 로그 기록: 어떤 사용자가 루트 목록을 조회하는지 서버 로그에 남김
 		log.info("[UserService] 내 루트 목록 조회: {}", me.getUserId());
-		// return routeRepository.findAllByUser(me);
-		return null;
+		// 3. 리포지토리를 호출하여 해당 유저(me)가 작성한 모든 Route 엔티티를 DB에서 가져옴
+		List<RouteEntity> routes = routeRepository.findAllByUser(me);
+		// 4. 스트림(Stream) API를 사용하여 엔티티 목록을 클라이언트에 전달할 전용 응답 객체(DTO)로 변환
+		return routes.stream()
+				.map(RouteResponse::fromEntity) // RouteEntity -> RouteResponse 변환 로직 실행
+				.toList();                      // 최종 결과를 리스트로 변환하여 반환
 	}
-
 	/**
 	 * [내가 쓴 글 목록 조회]
 	 * - API: /api/v1/user/posts
 	 * - 용도: 사용자가 작성한 커뮤니티 게시글 목록을 호출
 	 */
-	@Transactional(readOnly = true)
-	public List<?> getMyPosts() {
+	@Transactional(readOnly = true) // 읽기 전용 트랜잭션 모드 적용
+	public List<PostResponse> getMyPosts() {
+		// 1. 현재 로그인한 사용자 정보를 엔티티 객체로 가져옴
 		UserEntity me = getCurrentUserEntity();
+		// 2. 로그 기록: 작성글 조회 시점의 유저 ID 기록
 		log.info("[UserService] 내가 쓴 글 조회: {}", me.getUserId());
-		return me.getPosts(); // UserEntity의 @OneToMany 관계 활용
+		// 3. 비즈니스 로직: 리포지토리에서 해당 유저의 글을 '생성일시(CreatedAt) 내림차순(Desc)'으로 조회
+		// (최신순 정렬 기능이 리포지토리 메서드명에 포함되어 있음)
+		List<PostEntity> posts = postRepository.findAllByUserOrderByCreatedAtDesc(me);
+		// 4. 결과 가공: 보안 및 필요한 데이터만 전달하기 위해 Entity를 PostResponse(DTO)로 변환
+		return posts.stream()
+				.map(PostResponse::fromEntity) // PostResponse 클래스의 정적 팩토리 메서드 활용
+				.toList();                      // 변환된 DTO 리스트를 최종 반환
 	}
 
 	/**
 	 * [내가 쓴 댓글 목록 조회]
 	 * - API: /api/v1/user/comments
-	 * - 용도: 사용자가 여러 게시글에 남긴 댓글 이력을 확인
+	 * - 용도: 사용자가 여러 게시글에 남긴 댓글 이력을 최신순으로 확인합니다.
 	 */
-	@Transactional(readOnly = true)
-	public List<?> getMyComments() {
+	@Transactional(readOnly = true) // 데이터 정합성을 유지하며 읽기 전용으로 최적화된 트랜잭션 실행
+	public List<CommentResponse> getMyComments() {
+		// 1. 보안 컨텍스트에서 인증된 현재 사용자(나)의 정보를 가져옴
 		UserEntity me = getCurrentUserEntity();
+		// 2. 로그 기록: 어떤 사용자가 본인의 댓글 이력을 조회하는지 기록 (디버깅 및 모니터링 용도)
 		log.info("[UserService] 내가 쓴 댓글 조회: {}", me.getUserId());
-		// return commentRepository.findAllByUser(me);
-		return null;
+		// 3. 비즈니스 로직: 리포지토리를 통해 내가 작성한 댓글들을 생성일자 기준 내림차순(최신순)으로 조회
+		List<CommentEntity> comments = commentRepository.findAllByUserOrderByCreatedAtDesc(me);
+		// 4. 결과 변환: DB 엔티티(Entity)를 클라이언트 요구 규격에 맞는 응답 객체(DTO)로 매핑하여 반환
+		return comments.stream()
+				.map(CommentResponse::fromEntity) // 각 댓글 엔티티를 CommentResponse DTO로 변환
+				.toList();                      // 최종 변환된 DTO들을 리스트에 담아 응답
 	}
 
 	/**
 	 * [북마크 목록 조회]
 	 * - API: /api/v1/user/bookmarks
-	 * - 용도: 사용자가 즐겨찾기(북마크)한 게시글이나 장소 목록을 호출
+	 * - 용도: 사용자가 즐겨찾기(북마크)한 게시글이나 장소 목록을 최신순으로 호출합니다.
 	 */
 	@Transactional(readOnly = true)
-	public List<?> getMyBookmarks() {
+	public List<BookmarkResponse> getMyBookmarks() {
+		// 1. 현재 시스템에 로그인되어 있는 유저 엔티티 정보를 획득
 		UserEntity me = getCurrentUserEntity();
+		// 2. 로그 기록: 북마크를 조회하는 유저의 ID를 로그에 남겨 추적 가능하게 함
 		log.info("[UserService] 북마크 조회: {}", me.getUserId());
-		// return bookmarkRepository.findAllByUser(me);
-		return null;
+		// 3. 비즈니스 로직: 북마크 리포지토리를 통해 해당 유저가 저장한 북마크 리스트를 가져옴
+		// (필요에 따라 OrderByCreatedAtDesc를 붙여 최신 등록 순으로 가져올 수 있습니다)
+		List<BookmarkEntity> bookmarks = bookmarkRepository.findAllByUser(me);
+		// 4. 결과 가공: 엔티티(Entity)를 순회하며 클라이언트 응답용 DTO(BookmarkResponse)로 변환
+		return bookmarks.stream()
+				.map(BookmarkResponse::fromEntity) // BookmarkResponse의 static 팩토리 메서드로 변환 실행
+				.toList();                       // 변환된 DTO 리스트를 최종 반환
 	}
 
 	/**
 	 * [보유 칭호 목록 조회]
-	 * - API: /api/v1/user/achievement
-	 * - 용도: 사용자가 활동을 통해 획득한 모든 칭호 목록을 조회
+	 * - API: /api/v1/user/achievements
+	 * - 용도: 사용자가 활동을 통해 획득한 모든 칭호 내역을 최신순으로 호출합니다.
 	 */
-	@Transactional(readOnly = true)
-	public List<?> getMyAchievements() {
+	@Transactional(readOnly = true) // 읽기 전용 트랜잭션으로 설정하여 조회 성능 최적화
+	public List<UserAchievementResponse> getMyAchievements() {
+		// 1. 현재 시스템에 로그인되어 있는 유저 엔티티 정보를 획득
 		UserEntity me = getCurrentUserEntity();
+
+		// 2. 로그 기록: 어떤 유저가 자신의 칭호 획득 내역을 조회하는지 로그에 남김
 		log.info("[UserService] 칭호 목록 조회: {}", me.getUserId());
-		return null;
+
+		// 3. 비즈니스 로직: 유저-칭호 연결 리포지토리를 통해 해당 유저의 모든 획득 내역을 가져옴
+		// (필요 시 findAllByUserOrderByAchievedAtDesc 처럼 정렬된 메서드 사용 권장)
+		List<UserAchievementEntity> userAchievements = userAchievementRepository.findAllByUser(me);
+
+		// 4. 결과 가공: 중간 테이블 엔티티를 순회하며 클라이언트용 응답 DTO(UserAchievementResponse)로 변환
+		return userAchievements.stream()
+				.map(UserAchievementResponse::fromEntity) // 엔티티의 마스터 정보와 획득일시를 DTO로 매핑
+				.toList();                               // 변환된 DTO 리스트를 최종 반환
 	}
 
 	/**

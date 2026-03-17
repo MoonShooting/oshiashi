@@ -8,6 +8,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import project.oshiashi.oshiashi.domain.user.dto.UserLoginRequest;
+import project.oshiashi.oshiashi.domain.user.dto.UserResponse;
 import project.oshiashi.oshiashi.domain.user.dto.UserSignUpRequest;
 import project.oshiashi.oshiashi.domain.user.entity.UserEntity;
 import project.oshiashi.oshiashi.domain.user.repository.UserRepository;
@@ -336,6 +337,42 @@ public class AuthService {
 	}
 
 	/**
+	 * [개인정보(닉네임) 수정]
+	 * - API: /api/v1/auth/update
+	 * - 용도: 사용자의 닉네임을 검증 후 업데이트합니다.
+	 * - 설계: 비밀번호 변경과 분리하여 일반 프로필 수정만 담당하며, 더티 체킹을 활용합니다.
+	 */
+	@Transactional
+	public void updateProfile(String newNickname) {
+		// 1. 현재 세션의 유저 정보 가져오기
+		UserEntity sessionUser = getCurrentUserEntity();
+		log.info("[AuthService] 닉네임 변경 요청 - UserID: {}, 시도 닉네임: {}", sessionUser.getUserId(), newNickname);
+
+		// 2. 기존 닉네임과 동일한지 체크 (불필요한 DB 작업 방지)
+		if (sessionUser.getNickname().equals(newNickname)) {
+			log.info("[AuthService] 기존 닉네임과 동일하여 변경을 생략합니다.");
+			return;
+		}
+
+		// 3. [수정 포인트] 이미 아래에 만들어진 공통 검증 메서드 호출
+		validateNicknameFormat(newNickname);
+
+		// 4. 영속성 컨텍스트에 관리되는 실제 유저 엔티티 조회
+		UserEntity managedMe = userRepository.findById(sessionUser.getUserId())
+				.orElseThrow(() -> new IllegalArgumentException("유저 정보를 찾을 수 없습니다."));
+
+		// 5. 닉네임 중복 검사 (타인이 사용 중인지 확인)
+		if (userRepository.existsByNickname(newNickname)) {
+			throw new IllegalArgumentException("이미 존재하는 닉네임입니다.");
+		}
+
+		// 6. 엔티티 정보 수정 (JPA 더티 체킹)
+		managedMe.changeNickname(newNickname);
+
+		log.info("[AuthService] 닉네임 변경 완료 - UserID: {}, NewNickname: {}", managedMe.getUserId(), newNickname);
+	}
+
+	/**
 	 * [회원 탈퇴 - 보안 강화 버전]
 	 * 1. 현재 로그인한 유저 확인
 	 * 2. 입력받은 비밀번호와 DB 비밀번호 대조
@@ -457,5 +494,25 @@ public class AuthService {
 		if (email == null || !email.matches(EMAIL_REGEX)) {
 			throw new IllegalArgumentException("올바른 이메일 형식이 아닙니다.");
 		}
+	}
+
+	/**
+	 * [내 정보 조회: getMyInfo]
+	 * - 역할: 현재 유효한 토큰을 가진 사용자의 상세 정보를 반환함.
+	 * - 특징:
+	 * 1. 프론트엔드 새로고침 시 Zustand 등 전역 상태를 복구하는 핵심 API.
+	 * 2. 보안 컨텍스트(SecurityContext)에서 인증 객체를 꺼내와 실시간 유저 상태를 확인.
+	 *
+	 * @return 인증된 사용자의 상세 정보 (UserResponse)
+	 */
+	@Transactional(readOnly = true) // 단순 조회이므로 성능 최적화 및 데이터 무결성 보장
+	public UserResponse getMyInfo() {
+		// 1. 현재 보안 컨텍스트에 저장된 인증 정보로부터 유저 엔티티를 획득
+		UserEntity user = getCurrentUserEntity();
+		// 2. 로그 기록: 어떤 사용자가 상태 복구를 시도하는지 기록
+		log.info("[AuthService] 내 정보 조회(상태 복구) 요청 - UserID: {}, Nickname: {}",
+				user.getUserId(), user.getNickname());
+		// 3. 획득한 엔티티를 클라이언트 응답용 DTO(UserResponse)로 변환하여 최종 반환
+		return UserResponse.fromEntity(user);
 	}
 }

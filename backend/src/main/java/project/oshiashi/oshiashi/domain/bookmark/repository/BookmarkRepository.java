@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import project.oshiashi.oshiashi.domain.bookmark.entity.BookmarkEntity;
+import project.oshiashi.oshiashi.domain.user.entity.UserEntity;
 
 import java.util.Optional;
 import java.util.List;
@@ -34,4 +35,6 @@ public interface BookmarkRepository extends JpaRepository<BookmarkEntity, Long> 
      * b.user.userId: 북마크 엔티티(b) 안에 연결된 유저(user) 객체로 들어가서, 그 유저의 고유 ID인 userId 값을 확인하겠다는 경로입니다.
      * :userId: 메서드의 파라미터(@Param("userId"))로 전달된 실제 값을 이 자리에 채워 넣으라는 뜻입니다.
      */
+
+	List<BookmarkEntity> findAllByUser(UserEntity user);
 }

@@ -6,7 +6,10 @@ import project.oshiashi.oshiashi.domain.user.entity.UserAchievementEntity;
 import project.oshiashi.oshiashi.domain.user.entity.UserAchievementId;
 import project.oshiashi.oshiashi.domain.user.entity.UserEntity;
 
+import java.util.List;
+
 @Repository
 public interface UserAchievementRepository extends JpaRepository<UserAchievementEntity, UserAchievementId> {
-	
+
+	List<UserAchievementEntity> findAllByUser(UserEntity me);
 }

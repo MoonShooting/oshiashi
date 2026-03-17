@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import project.oshiashi.oshiashi.domain.user.dto.UserLoginRequest;
+import project.oshiashi.oshiashi.domain.user.dto.UserResponse;
 import project.oshiashi.oshiashi.domain.user.dto.UserSignUpRequest;
 import project.oshiashi.oshiashi.domain.user.service.AuthService;
 
@@ -22,6 +23,7 @@ import java.util.Map;
 public class AuthController {
 
 	private final AuthService authService;
+
 	// 이메일 중복 확인: /api/v1/auth/checkEmail
 	@GetMapping("/checkEmail")
 	public ResponseEntity<String> checkEmail(@RequestParam("email") String email) {
@@ -123,6 +125,18 @@ public class AuthController {
 		return ResponseEntity.ok("비밀번호가 성공적으로 변경되었습니다.");
 	}
 
+	// 개인정보(닉네임 등) 수정: /api/v1/auth/update
+	@PatchMapping("/update")
+	public ResponseEntity<String> updateProfile(@RequestBody Map<String, String> request) {
+		String newNickname = request.get("nickname");
+		log.info("[API] 프로필 수정 요청: {}", newNickname);
+		// 1. 서비스 호출 (오타 수정: AuthService -> authService)
+		// 실패 시 발생하는 예외는 GlobalExceptionHandler가 처리함
+		authService.updateProfile(newNickname);
+		// 2. 성공 시 응답 반환
+		return ResponseEntity.ok("프로필이 수정되었습니다.");
+	}
+
 	// 비밀번호 재설정 메일 발송: /api/v1/auth/passwordResetEmail
 	@PostMapping("/passwordResetEmail")
 	public ResponseEntity<String> sendResetEmail(@RequestBody Map<String, String> request) {
@@ -157,5 +171,16 @@ public class AuthController {
 		log.info("[API] 아이디 찾기 요청: {}", email);
 		// 서비스에서 마스킹된 아이디를 반환함 (예: test****)
 		return ResponseEntity.ok(authService.findUserId(email));
+	}
+
+	// 내 정보 조회(로그인 유지용): /api/v1/auth/me
+	@GetMapping("/me")
+	public ResponseEntity<UserResponse> getMyInfo() {
+		log.info("[API] 내 정보 조회(로그인 유지) 요청 수신");
+		// 1. 서비스 계층에 현재 인증된 사용자의 정보 조회를 요청
+		// (내부적으로 SecurityContext에서 유저를 찾아 DTO로 변환하여 반환함)
+		UserResponse userResponse = authService.getMyInfo();
+		// 2. 조회된 정보를 200 OK 응답과 함께 반환
+		return ResponseEntity.ok(userResponse);
 	}
 }

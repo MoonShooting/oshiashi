@@ -65,8 +65,8 @@ export default function PinMapDisplay({ pins, focusLocation }) {
       style={{ width: '100%', height: '100%' }}
       defaultCenter={{ lat: 35.6812, lng: 139.7671 }}
       defaultZoom={13}
-      mapId={mapId} // 👈 변수로 넣기
-      gestureHandling={'greedy'}
+      mapId={mapId}
+      gestureHandling={'cooperative'}
       disableDefaultUI={false}>
       {/* 1. 경로 그리기 컴포넌트 */}
       <Directions pins={pins} />

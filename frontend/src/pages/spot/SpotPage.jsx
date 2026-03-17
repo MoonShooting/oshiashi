@@ -1,334 +1,197 @@
 /**
  * @file SpotPage.jsx
- * @description 경로 생성 페이지 (/spot)
+ * @description 루트 생성 페이지 (/spot)
  *
- * [DB 연동 흐름]
- *   지도 핀 클릭 → useMapStore.addPlace(pin)  → 선택 목록에 추가
- *   드래그앤드롭 → useMapStore.reorderPlaces() → visit_order 순서 결정
- *   "경로 탐색"  → DirectionsService (Google Maps) → 지도 경로선 + 거리/시간
- *   "경로 저장"  → POST /api/v1/routes { title, isPublic, spotIds: [id...] }
- *                → Route 테이블 생성 + Route_spot 테이블에 visit_order 순으로 저장
+ * [레이아웃]
+ *   - 좌측: SpotSidePanel (북마크 탭 / 지도 검색 탭)
+ *   - 중앙: 지도 (MapCore) — DUMMY_PILGRIMAGE_SITES 핀 표시, 클릭 → 루트 추가
+ *   - 우측 하단 플로팅: RoutePanel (담긴 장소 목록, 드래그 순서, 초기화/저장)
+ *   - NavBar 우측: "루트 공유" 버튼 → RouteShareSidebar (전역 Sidebar와 별개)
  *
- * [반응형 레이아웃]
- *   < 768px  : 지도 풀스크린 + 하단 슬라이드업 패널 (칩 가로 스크롤)
- *   768~1199px: 좌지도 + 우측 220px 사이드 패널 (교통수단: 지도 우하단 pill)
- *   ≥ 1200px  : 좌지도 + 우측 300px 사이드 패널 (교통수단: 패널 하단 가로 탭)
+ * [저장 흐름]
+ *   RoutePanel 저장 클릭 → SaveModal(루트명 입력) → 확인
+ *   → 좌측 사이드바 폴더 목록에 추가 + 저장 완료 토스트
+ *   → clearMap() (선택 장소 초기화)
+ *
+ * [백엔드 연동 포인트]
+ *   handleConfirmSave: POST /api/v1/routes 주석 참고
  */
 
 import React, { useState, useCallback, useRef, useMemo } from 'react';
+import { APIProvider } from '@vis.gl/react-google-maps';
 import MainLayout from '@/components/layout/MainLayout';
 import MapCore from '@/components/map/MapCore';
-import MapSearchBar from '@/components/map/MapSearchBar';
+import SpotSidePanel from '@/components/spot/SpotSidePanel';
+import RoutePanel from '@/components/spot/RouteListSelector';
+// import RouteShareSidebar from '@/components/spot/RouteShareSidebar';
 import { useMapStore } from '@/stores/useMapStore';
-import { postRoute } from '@/api/mapApi';
-import { DEFAULT_CENTER, DEFAULT_ZOOM, MAX_SPOT_COUNT } from '@/constants/mapConstants';
+import { DEFAULT_CENTER, MAX_SPOT_COUNT } from '@/constants/mapConstants';
+import { DUMMY_PILGRIMAGE_SITES, DUMMY_SPOT_FOLDERS, DEFAULT_LOCATION } from '@/data/dummyData';
 import styles from '@/styles/SpotPage.module.css';
 
-// 이동수단 탭 정의
-// Google Maps DirectionsService TravelMode와 동일 키 사용
-const TRAVEL_MODES = [
-  { key: 'WALKING', label: '도보', icon: '🚶' },
-  { key: 'TRANSIT', label: '전철', icon: '🚇' },
-  { key: 'DRIVING', label: '자동차', icon: '🚗' },
-  { key: 'BICYCLING', label: '자전거', icon: '🚴' },
-];
-
-// 거리/시간 포맷 헬퍼
-const fmtDist = (m) => (m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${m} m`);
-const fmtTime = (s) => {
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  return h > 0 ? `${h}시간 ${m}분` : `${m}분`;
-};
-
-// 거리뷰 새 창 열기 (후순위 기능)
-const openStreetView = (lat, lng) => {
-  window.open(`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lng}`, '_blank');
-};
-
-// 메인 컴포넌트
 export default function SpotPage() {
-  const [center, setCenter] = useState(DEFAULT_CENTER);
-  const [travelMode, setTravelMode] = useState('WALKING');
-  const [routeInfo, setRouteInfo] = useState(null);
-  const [explored, setExplored] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState(false);
-  const [isPublic, setIsPublic] = useState(false);
+  const [center, setCenter] = useState(DEFAULT_LOCATION ?? DEFAULT_CENTER);
+
+  // 저장된 루트 폴더 목록 (좌측 사이드 패널에 표시)
+  // TODO: useEffect + GET /api/v1/routes/my 로 초기화
+  const [savedRoutes, setSavedRoutes] = useState(DUMMY_SPOT_FOLDERS);
+
+  // 공유 사이드바
+  const [isShareOpen, setIsShareOpen] = useState(false);
+  const [lastSavedTitle, setLastSavedTitle] = useState('');
+
+  // 저장 모달
+  const [showSaveModal, setShowSaveModal] = useState(false);
   const [routeTitle, setRouteTitle] = useState('');
-  const [showModal, setShowModal] = useState(false);
 
-  const dragIdx = useRef(null);
+  // 저장 완료 토스트
+  const [showToast, setShowToast] = useState(false);
 
-  const { selectedPlaces, addPlace, removePlace, reorderPlaces, clearMap } = useMapStore();
+  const { selectedPlaces, addPlace, clearMap } = useMapStore();
 
-  // 페이지 이탈 시 상태 초기화 여부 결정 (필요시)
-  useEffect(() => {
-    return () => {
-      // 컴포넌트 언마운트 시 로직
-    };
+  // 지도에 표시할 모든 핀
+  const [allPins] = useState(DUMMY_PILGRIMAGE_SITES);
+
+  // 이미 루트에 담긴 핀 ID 집합 (중복 추가 방지)
+  const selectedIds = useMemo(() => new Set(selectedPlaces.map((p) => p.id)), [selectedPlaces]);
+
+  // 지도 카메라 이동 (hover preview, 검색 결과 선택 등)
+  const handlePreview = useCallback((loc) => {
+    if (!loc || typeof loc.lat === 'undefined') return;
+    setCenter({ lat: Number(loc.lat), lng: Number(loc.lng) });
   }, []);
 
-  const selectedIds = useMemo(() => selectedPlaces.map((p) => p.id), [selectedPlaces]);
-
-  // 지도 핀 클릭, 경로에 추가
-  const handlePinClick = useCallback(
-    (pin) => {
-      if (!pin) return;
+  // 루트에 장소 추가
+  const handleAddToRoute = useCallback(
+    (spot) => {
       if (selectedPlaces.length >= MAX_SPOT_COUNT) {
         alert(`최대 ${MAX_SPOT_COUNT}개까지 추가할 수 있습니다.`);
         return;
       }
-      addPlace(pin);
-      setCenter(pin.position);
-      // 핀 추가 시 이전 탐색 결과 초기화 (순서 변경되었으므로)
-      setExplored(false);
-      setRouteInfo(null);
+      if (selectedIds.has(spot.id)) return; // 중복 방지
+      addPlace(spot);
     },
-    [selectedPlaces.length, addPlace],
+    [selectedPlaces.length, selectedIds, addPlace],
   );
 
-  // 검색 결과 선택 → 지도 이동
-  const handleSelectPlace = useCallback((loc) => {
-    setCenter({ lat: loc.lat, lng: loc.lng });
-  }, []);
-
-  // DirectionsService 결과 수신
-  // DB 연관: 경로 요약(totalDistance, totalDuration)은 화면 표시 전용
-  // 실제 거리는 DB에 저장하지 않음 (동적 계산값)
-  const handleRouteInfo = useCallback((info) => {
-    setRouteInfo(info);
-  }, []);
-
-  // 이동수단 변경
-  const handleTravelMode = useCallback((mode) => {
-    setTravelMode(mode);
-    // 이동수단 변경 시 DirectionsService 재호출됨 (MapCore 내부 useEffect)
-  }, []);
-
-  // 경로 탐색 버튼
-  const handleExplore = useCallback(() => {
-    if (selectedPlaces.length < 2) {
-      alert('장소를 2개 이상 선택해주세요.');
-      return;
-    }
-    setExplored(true);
-    // MapCore의 showPolyline=true가 DirectionsService를 자동 호출
-  }, [selectedPlaces.length]);
-
-  // 드래그앤드롭 핸들러
-  const handleDragStart = useCallback((e, idx) => {
-    dragIdx.current = idx;
-    e.dataTransfer.effectAllowed = 'move';
-  }, []);
-
-  const handleDragOver = useCallback((e) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  }, []);
-
-  const handleDrop = useCallback(
-    (e, dropIdx) => {
-      e.preventDefault();
-      const from = dragIdx.current;
-      if (from === null || from === dropIdx) return;
-      const next = [...selectedPlaces];
-      const [moved] = next.splice(from, 1);
-      next.splice(dropIdx, 0, moved);
-      reorderPlaces(next);
-      dragIdx.current = null;
-      // 순서 변경 → 탐색 결과 초기화
-      setExplored(false);
-      setRouteInfo(null);
+  // 지도 핀 클릭 → 루트 추가 + 카메라 이동
+  const handlePinClick = useCallback(
+    (pin) => {
+      if (!pin) return;
+      handleAddToRoute(pin);
+      setCenter({ lat: Number(pin.position.lat), lng: Number(pin.position.lng) });
     },
-    [selectedPlaces, reorderPlaces],
+    [handleAddToRoute],
   );
 
-  // 경로 저장
-  const handleSave = useCallback(() => {
-    if (selectedPlaces.length < 2) {
-      alert('장소를 2개 이상 선택해주세요.');
-      return;
-    }
-    setShowModal(true);
-  }, [selectedPlaces.length]);
+  // 저장 버튼 클릭 → 모달 열기
+  const handleSaveClick = useCallback(() => {
+    if (selectedPlaces.length < 1) return;
+    setRouteTitle(`루트 ${savedRoutes.length + 1}`);
+    setShowSaveModal(true);
+  }, [selectedPlaces.length, savedRoutes.length]);
 
-  /**
-   * 경로 저장 확정
-   *
-   * POST /api/v1/routes
-   * Body: {
-   *   title: string,         → Route.title
-   *   isPublic: boolean,     → Route.is_public (0|1)
-   *   spotIds: number[]      → selectedPlaces 순서대로 → Route_spot.visit_order
-   * }
-   */
-  const handleConfirmSave = useCallback(async () => {
-    if (!routeTitle.trim()) {
-      alert('경로 이름을 입력해주세요.');
-      return;
-    }
-    setIsSaving(true);
-    setShowModal(false);
-    try {
-      await postRoute({
-        title: routeTitle,
-        isPublic,
-        // spot.id = Spot.spot_id (String → 백엔드에서 Long으로 파싱)
-        spotIds: selectedPlaces.map((p) => Number(p.id)),
-      });
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
-      // TODO: 저장 성공 후 마이페이지 루트 목록으로 이동 여부 결정
-      // navigate('/mypage/routes');
-    } catch (err) {
-      console.error('[SpotPage] 경로 저장 실패:', err.message);
-      alert('경로 저장에 실패했습니다. 다시 시도해주세요.');
-    } finally {
-      setIsSaving(false);
-      setRouteTitle('');
-    }
-  }, [routeTitle, isPublic, selectedPlaces]);
+  // 저장 확정
+  const handleConfirmSave = useCallback(() => {
+    const title = routeTitle.trim() || `루트 ${savedRoutes.length + 1}`;
+
+    /*
+     * TODO: 백엔드 연동 시 아래 주석 해제
+     * fetch('/api/v1/routes', {
+     *   method: 'POST',
+     *   headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+     *   body: JSON.stringify({
+     *     title,
+     *     isPublic: false,
+     *     spotIds: selectedPlaces.map((p) => Number(p.id)), // visit_order = 배열 순서
+     *   }),
+     * })
+     *   .then((r) => r.json())
+     *   .then((data) => {
+     *     setSavedRoutes((prev) => [
+     *       ...prev,
+     *       { id: String(data.routeId), name: data.title, count: selectedPlaces.length },
+     *     ]);
+     *   });
+     */
+
+    // 더미: 좌측 사이드바 폴더 목록에 즉시 추가
+    setSavedRoutes((prev) => [...prev, { id: `r${Date.now()}`, name: title, count: selectedPlaces.length }]);
+    setLastSavedTitle(title);
+    setShowSaveModal(false);
+    setRouteTitle('');
+    clearMap();
+
+    // 저장 완료 토스트
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
+  }, [routeTitle, savedRoutes.length, selectedPlaces, clearMap]);
 
   return (
-    <MainLayout
-      isMapPage={true}
-      lockScroll={true}
-      activeMenuKey="spot"
-      /* 지도는 MainLayout의 mapLayer 슬롯에 배치하여 
-        전역 사이드바가 열려도 지도는 그 아래 깔리게 함 
-      */
-      mapComponent={
-        <MapCore
-          pins={selectedPlaces}
-          center={center}
-          zoom={DEFAULT_ZOOM}
-          showPolyline={explored && selectedPlaces.length >= 2}
-          travelMode={travelMode}
-          onPinClick={handlePinClick}
-          onRouteInfo={(info) => setRouteInfo(info)}></MapCore>
-      }
-      /* 경로 설정 패널은 leftSidebar 슬롯(혹은 right)으로 배치
-        MainLayout에서 이 영역의 z-index를 전역 사이드바보다 낮게 설정 
-      */
-      leftSidebar={
-        <div className={styles.sidePanel}>
-          <div className={styles.listHeader}>
-            <h3>경로 설정</h3>
-            <span className={styles.count}>
-              {selectedPlaces.length} / {MAX_SPOT_COUNT}
-            </span>
+    <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}>
+      <MainLayout
+        isMapPage={true}
+        activeMenuKey="spot"
+        // "루트 공유" 버튼 — NavBar 우측에 주입 (전역 Sidebar와 무관한 별도 패널 오픈)
+        navRightAction={
+          <button className={styles.shareNavBtn} onClick={() => setIsShareOpen(true)}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+              <circle cx="18" cy="5" r="3" />
+              <circle cx="6" cy="12" r="3" />
+              <circle cx="18" cy="19" r="3" />
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+            </svg>
+            루트 공유
+          </button>
+        }
+        // 좌측 패널 — 북마크 탭 / 지도 검색 탭
+        leftSidebar={<SpotSidePanel savedRoutes={savedRoutes} onAddToRoute={handleAddToRoute} onPreview={handlePreview} center={center} />}
+        // 지도 + RoutePanel 플로팅 패널
+        mapComponent={
+          <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+            <MapCore
+              pins={allPins}
+              selectedPinId={null}
+              center={center}
+              onPinClick={handlePinClick}
+              // 핀 클릭 = 루트 추가이므로 PinOverlay 팝업 없이 핀 크기 강조만
+              disableOverlay={true}
+            />
+            {/* 루트에 담긴 장소 플로팅 패널 (absolute bottom-right) */}
+            <RoutePanel onSave={handleSaveClick} />
           </div>
+        }
+      />
 
-          <div className={styles.placeList}>
-            {selectedPlaces.length > 0 ? (
-              selectedPlaces.map((place, idx) => (
-                <SpotItem
-                  key={place.id}
-                  place={place}
-                  idx={idx}
-                  leg={explored ? routeInfo?.legs?.[idx] : null}
-                  onRemove={removePlace}
-                  onDragStart={(e, i) => {
-                    dragIdx.current = i;
-                    e.dataTransfer.effectAllowed = 'move';
-                  }}
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={(e, dropIdx) => {
-                    const from = dragIdx.current;
-                    if (from === null || from === dropIdx) return;
-                    const next = [...selectedPlaces];
-                    const [moved] = next.splice(from, 1);
-                    next.splice(dropIdx, 0, moved);
-                    reorderPlaces(next);
-                    setExplored(false);
-                  }}
-                  onStreetView={openStreetView}
-                />
-              ))
-            ) : (
-              <div className={styles.empty}>장소를 추가해주세요.</div>
-            )}
-          </div>
-
-          <div className={styles.panelFooter}>
-            <button className={explored ? styles.saveBtn : styles.exploreBtn} onClick={explored ? () => setShowModal(true) : handleExplore}>
-              {explored ? '경로 저장하기' : '경로 탐색'}
-            </button>
-            {selectedPlaces.length > 0 && (
-              <button className={styles.clearBtn} onClick={clearMap}>
-                초기화
+      {/* 저장 확인 모달 */}
+      {showSaveModal && (
+        <div className={styles.saveModal}>
+          <div className={styles.saveModalBackdrop} onClick={() => setShowSaveModal(false)} />
+          <div className={styles.saveModalBox}>
+            <p className={styles.saveModalTitle}>루트 저장</p>
+            <input
+              className={styles.saveModalInput}
+              value={routeTitle}
+              onChange={(e) => setRouteTitle(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleConfirmSave()}
+              placeholder="루트 이름을 입력하세요"
+              autoFocus
+            />
+            <div className={styles.saveModalActions}>
+              <button className={styles.saveModalCancel} onClick={() => setShowSaveModal(false)}>
+                취소
               </button>
-            )}
+              <button className={styles.saveModalConfirm} onClick={handleConfirmSave}>
+                저장
+              </button>
+            </div>
           </div>
         </div>
-      }>
-      {/* children 영역: 전역 사이드바와 동일한 레벨 혹은 
-        그보다 위여야 하는 모달/알림 배치 
-      */}
-      {showModal && (
-        <SaveModal
-          title={routeTitle}
-          setTitle={setRouteTitle}
-          isPublic={isPublic}
-          setIsPublic={setIsPublic}
-          onConfirm={handleConfirmSave}
-          onCancel={() => setShowModal(false)}
-          isSaving={isSaving}
-        />
       )}
-    </MainLayout>
-  );
-}
 
-// 서브: 드래그 가능한 장소 아이템
-function SpotItem({ place, idx, leg, onRemove, onDragStart, onDragOver, onDrop, onStreetView }) {
-  const [over, setOver] = useState(false);
-
-  return (
-    <div
-      className={`${styles.spotItem} ${over ? styles.spotItemOver : ''}`}
-      draggable
-      onDragStart={(e) => onDragStart(e, idx)}
-      onDragOver={(e) => {
-        onDragOver(e);
-        setOver(true);
-      }}
-      onDragLeave={() => setOver(false)}
-      onDrop={(e) => {
-        onDrop(e, idx);
-        setOver(false);
-      }}>
-      <span className={styles.spotNum}>{idx + 1}</span>
-      <span className={styles.dragHandle}>
-        <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor">
-          <circle cx="2.5" cy="2.5" r="1.5" />
-          <circle cx="7.5" cy="2.5" r="1.5" />
-          <circle cx="2.5" cy="7" r="1.5" />
-          <circle cx="7.5" cy="7" r="1.5" />
-          <circle cx="2.5" cy="11.5" r="1.5" />
-          <circle cx="7.5" cy="11.5" r="1.5" />
-        </svg>
-      </span>
-      <div className={styles.spotInfo}>
-        {/* Spot.name */}
-        <span className={styles.spotTitle}>{place.title}</span>
-        {/* Artwork.title */}
-        {place.workName && <span className={styles.spotWork}>{place.workName}</span>}
-        {/* DirectionsService leg (DB 저장 안함, 표시 전용) */}
-        {leg && (
-          <span className={styles.spotLeg}>
-            → {leg.distance.text} · {leg.duration.text}
-          </span>
-        )}
-      </div>
-      {/* 거리뷰 (후순위 기능) */}
-      <button className={styles.svBtn} title="거리뷰 열기" onClick={() => onStreetView(place.position.lat, place.position.lng)}>
-        🔭
-      </button>
-      <button className={styles.removeBtn} onClick={() => onRemove(place.id)}>
-        ×
-      </button>
-    </div>
+      {/* 저장 완료 토스트 */}
+      {showToast && <div className={styles.toast}>✅ &nbsp;&apos;{lastSavedTitle}&apos; 루트가 저장되었습니다!</div>}
+    </APIProvider>
   );
 }
