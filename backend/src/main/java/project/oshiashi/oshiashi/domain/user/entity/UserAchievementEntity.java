@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(
-        name = "User_achievement"
+        name = "user_achievement"
         /*,uniqueConstraints = {
                 @UniqueConstraint(
                         name = "uk_user_achievement",
