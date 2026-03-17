@@ -103,9 +103,9 @@ export const withdrawAPI = (password) => {
   });
 };
 
-// 14. 아이디 찾기 (GET) - 추가 제안
-export const findIdAPI = (email) => {
-  return FetchClient(`/api/v1/auth/findId?email=${email}`, {
+// 14. 아이디 찾기 (GET)
+export const findIdAPI = (name, email) => {
+  return FetchClient(`/api/v1/auth/findId?name=${name}&email=${email}`, {
     method: 'GET',
   });
 };
