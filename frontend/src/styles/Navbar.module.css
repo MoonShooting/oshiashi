@@ -6,9 +6,9 @@
   z-index: 40;
   height: 80px;
   padding: 0 28px;
-  display: grid;
-  grid-template-columns: minmax(220px, auto) minmax(360px, 1fr) minmax(180px, auto);
+  display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 22px;
   border-bottom: 1px solid rgba(45, 45, 68, 0.6);
   background: rgba(20, 20, 38, 0.86);
@@ -61,43 +61,11 @@
   border-radius: 8px;
 }
 
-.searchWrapper {
-  height: 52px;
-  border-radius: 999px;
-  border: 1px solid #2d2d44;
-  background: rgba(17, 17, 34, 0.88);
-  display: flex;
-  align-items: center;
-  padding: 0 18px;
-  gap: 10px;
-}
-
-.searchIcon {
-  color: #7f5ad2;
-  width: 22px;
-  height: 22px;
-  filter: drop-shadow(0 0 8px rgba(107, 70, 193, 0.5));
-  flex-shrink: 0;
-}
-
-.searchInput {
-  width: 100%;
-  border: 0;
-  outline: 0;
-  background: transparent;
-  color: #f4f4ff;
-  font-size: 18px;
-  font-weight: 500;
-}
-
-.searchInput::placeholder {
-  color: #9b9bb5;
-}
-
 .navRight {
   display: flex;
   align-items: center;
   gap: 14px;
+  flex-shrink: 0;
 }
 
 .profileMenuWrap {
@@ -196,7 +164,6 @@
 
 @media (max-width: 1280px) {
   .navbar {
-    grid-template-columns: auto minmax(240px, 1fr) auto;
     padding: 0 16px;
     gap: 12px;
   }
@@ -218,32 +185,36 @@
 
 @media (max-width: 900px) {
   .navbar {
-    grid-template-columns: 1fr auto;
-    grid-template-rows: auto auto;
-    height: auto;
-    padding: 12px;
+    height: 68px;
+    padding: 0 12px;
+    gap: 10px;
   }
 
   .leftSection {
     min-width: 0;
   }
 
-  .searchWrapper {
-    grid-column: 1 / -1;
-    width: 100%;
-  }
-
   .logo {
-    font-size: 24px;
+    font-size: clamp(18px, 5vw, 24px);
   }
 
   .uploadBtn {
-    height: 40px;
-    font-size: 14px;
+    height: 38px;
+    width: 38px;
+    padding: 0;
+    justify-content: center;
   }
 
   .profileCircle {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
+  }
+
+  .uploadBtn span {
+    display: none;
+  }
+
+  .navRight {
+    gap: 8px;
   }
 }

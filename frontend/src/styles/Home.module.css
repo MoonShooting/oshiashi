@@ -233,6 +233,11 @@
   overflow: hidden;
 }
 
+.routeCardLink {
+  color: inherit;
+  text-decoration: none;
+}
+
 .routeThumb {
   height: 190px;
   border-radius: 0;
@@ -243,12 +248,26 @@
   place-items: center;
   font-size: 26px;
   border-bottom: 1px solid rgba(112, 108, 176, 0.28);
+  position: relative;
 }
 
 .routeThumbIcon {
   width: 38px;
   height: 38px;
   color: rgba(236, 233, 255, 0.86);
+}
+
+.routeThumbBadge {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(20, 20, 36, 0.55);
+  border: 1px solid rgba(202, 186, 251, 0.35);
+  color: #f2e9ff;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .routeCard h3 {
@@ -269,6 +288,15 @@
   border: 1px solid rgba(120, 82, 193, 0.38);
   border-radius: 8px;
   padding: 3px 7px;
+}
+
+.routeMeta {
+  padding: 12px 18px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #9e9ebb;
+  font-size: 13px;
 }
 
 .routeCard .cardStats {

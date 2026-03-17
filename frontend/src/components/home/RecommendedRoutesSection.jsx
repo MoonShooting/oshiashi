@@ -1,31 +1,46 @@
 import React, { useMemo, useState } from 'react';
-import { Bookmark, MapPin, MapPinned } from 'lucide-react';
+import { Eye, Heart, MessageCircle, ScrollText } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { mockPostSummaries } from '@/data/post/postMockData';
 import styles from '../../styles/Home.module.css';
 
-const routes = [
-  { id: 1, title: '도쿄 신카이 마코토 성지순례 1박2일 코스', tags: ['도쿄', '도보'], spots: 8, bookmarks: 245, rank: 3 },
-  { id: 2, title: '카마쿠라 슬램덩크 덕질 루트', tags: ['카마쿠라', '반나절'], spots: 5, bookmarks: 189, rank: 2 },
-  { id: 3, title: '교토 감성 여행 코스', tags: ['교토', '사진'], spots: 12, bookmarks: 312, rank: 4 },
-  { id: 4, title: '아키하바라 하루 완성 루트', tags: ['아키하바라', '굿즈'], spots: 15, bookmarks: 398, rank: 1 },
-  { id: 5, title: '오사카 애니 데이트 코스', tags: ['오사카', '데이트'], spots: 10, bookmarks: 221, rank: 5 },
-  { id: 6, title: '우지 음악 여행 루트', tags: ['우지', '음악'], spots: 9, bookmarks: 176, rank: 6 },
-];
+const categoryByPostId = {
+  '1': '후기',
+  '2': '정보',
+  '3': '질문',
+};
+
+const recommendedPosts = mockPostSummaries.map((post) => ({
+  id: String(post.id),
+  category: categoryByPostId[String(post.id)] ?? '정보',
+  title: post.title,
+  tags: Array.isArray(post.tags) ? post.tags.slice(0, 2) : [],
+  author: post.userId,
+  publishedAt: post.publishedAt,
+  views: post.viewCount ?? 0,
+  likes: post.likeCount ?? 0,
+  comments: post.commentCount ?? 0,
+}));
+
+const parseDateLabel = (label) => new Date(String(label).replaceAll('.', '-')).getTime();
 
 const RecommendedRoutesSection = () => {
   const [filter, setFilter] = useState('전체');
 
   const items = useMemo(() => {
-    if (filter === '인기순') return [...routes].sort((a, b) => b.bookmarks - a.bookmarks);
-    if (filter === '최신순') return [...routes].sort((a, b) => a.rank - b.rank);
-    return routes;
+    if (filter === '인기순') return [...recommendedPosts].sort((a, b) => b.likes - a.likes);
+    if (filter === '최신순') {
+      return [...recommendedPosts].sort((a, b) => parseDateLabel(b.publishedAt) - parseDateLabel(a.publishedAt));
+    }
+    return recommendedPosts;
   }, [filter]);
 
   return (
     <section className={styles.section}>
       <div className={styles.sectionHeader}>
         <div>
-          <h2>추천 루트</h2>
-          <p>다른 덕후들의 성지순례 루트</p>
+          <h2>추천 게시물</h2>
+          <p>지금 많이 보는 성지순례 커뮤니티 글</p>
         </div>
         <div className={styles.filterRow}>
           {['전체', '인기순', '최신순'].map((item) => (
@@ -41,28 +56,38 @@ const RecommendedRoutesSection = () => {
       </div>
 
       <div className={styles.routeGrid}>
-        {items.map((route) => (
-          <article key={route.id} className={styles.routeCard}>
+        {items.map((post) => (
+          <Link key={post.id} to={`/posts/${post.id}`} className={`${styles.routeCard} ${styles.routeCardLink}`}>
             <div className={styles.routeThumb}>
-              <MapPinned className={styles.routeThumbIcon} strokeWidth={2} />
+              <span className={styles.routeThumbBadge}>{post.category}</span>
+              <ScrollText className={styles.routeThumbIcon} strokeWidth={2} />
             </div>
-            <h3>{route.title}</h3>
+            <h3>{post.title}</h3>
             <div className={styles.routeTags}>
-              {route.tags.map((tag) => (
+              {post.tags.map((tag) => (
                 <span key={tag}>#{tag}</span>
               ))}
             </div>
+            <div className={styles.routeMeta}>
+              {post.author}
+              <span>·</span>
+              {post.publishedAt}
+            </div>
             <div className={styles.cardStats}>
               <span className={styles.statItem}>
-                <MapPin className={`${styles.statIcon} ${styles.statIconLocation}`} strokeWidth={2} />
-                {route.spots}개 장소
+                <Eye className={`${styles.statIcon} ${styles.statIconView}`} strokeWidth={2} />
+                {post.views.toLocaleString()}
               </span>
               <span className={styles.statItem}>
-                <Bookmark className={`${styles.statIcon} ${styles.statIconBookmark}`} strokeWidth={2} />
-                {route.bookmarks}
+                <Heart className={`${styles.statIcon} ${styles.statIconLike}`} strokeWidth={2} />
+                {post.likes.toLocaleString()}
+              </span>
+              <span className={styles.statItem}>
+                <MessageCircle className={`${styles.statIcon} ${styles.statIconComment}`} strokeWidth={2} />
+                {post.comments.toLocaleString()}
               </span>
             </div>
-          </article>
+          </Link>
         ))}
       </div>
     </section>
