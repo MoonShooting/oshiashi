@@ -1,7 +1,7 @@
 import React from 'react';
 import Home from '@/pages/Home';
 import MapPage from '@/pages/map/MapPage';
-import PinPage from '@/pages/pin/PinPage';
+import SpotPage from '@/pages/spot/SpotPage';
 import LoginPage from '@/pages/Login/LoginPage';
 import FindAuthPage from '@/pages/Login/FindAuthPage';
 import SignupPage from '@/pages/Login/RegisterPage';
@@ -20,7 +20,7 @@ const authList = [
 
 const mapList = [
   { path: '/map', element: <MapPage /> },
-  { path: '/pin', element: <PinPage /> },
+  { path: '/spot', element: <SpotPage /> },
 ];
 
 const postList = [

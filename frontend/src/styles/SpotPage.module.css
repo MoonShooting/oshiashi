@@ -202,3 +202,157 @@
   padding: 4px 8px;
   cursor: pointer;
 }
+
+/*
+  SpotPage 추가 스타일 — NavBar 버튼 / 저장 토스트
+ */
+
+/* NavBar에 주입되는 "루트 공유" 버튼 */
+.shareNavBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 16px;
+  background: linear-gradient(135deg, #9d50bb 0%, #e91e8c 100%);
+  border: none;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(233, 30, 140, 0.3);
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.shareNavBtn:hover {
+  box-shadow: 0 6px 20px rgba(233, 30, 140, 0.45);
+  transform: translateY(-1px);
+}
+
+/* 저장 완료 토스트 */
+.toast {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(20, 20, 36, 0.97);
+  border: 1px solid rgba(157, 80, 187, 0.4);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 12px 24px;
+  border-radius: 999px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+  white-space: nowrap;
+  animation: toastIn 0.25s ease;
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* 저장 확인 미니 모달 */
+.saveModal {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.saveModalBackdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.saveModalBox {
+  position: relative;
+  background: rgba(18, 18, 30, 0.98);
+  border: 1px solid rgba(157, 80, 187, 0.3);
+  border-radius: 16px;
+  padding: 28px 28px 24px;
+  width: 340px;
+  max-width: 90vw;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.saveModalTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.saveModalInput {
+  width: 100%;
+  padding: 11px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  color: #fff;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.saveModalInput:focus {
+  border-color: rgba(157, 80, 187, 0.6);
+}
+
+.saveModalInput::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.saveModalActions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.saveModalCancel {
+  padding: 9px 18px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.saveModalCancel:hover {
+  border-color: rgba(255, 255, 255, 0.25);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.saveModalConfirm {
+  padding: 9px 22px;
+  background: linear-gradient(135deg, #9d50bb 0%, #e91e8c 100%);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(233, 30, 140, 0.25);
+  transition: all 0.15s;
+}
+
+.saveModalConfirm:hover {
+  box-shadow: 0 6px 20px rgba(233, 30, 140, 0.4);
+}

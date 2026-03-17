@@ -17,7 +17,17 @@ import React, { useState, useCallback, useRef } from 'react';
 import { useMapsLibrary, useMap } from '@vis.gl/react-google-maps';
 import styles from '@/styles/MapSearchBar.module.css';
 
-export default function MapSearchBar({ onSelectPlace, onPreview, placeholder = '작품명, 장소, 태그 검색...', className = '' }) {
+/**
+ * @param {Function} onSelectPlace  - 장소 선택 시 콜백 ({ lat, lng, name, placeId? })
+ * @param {Function} onPreview      - 드롭다운 hover 시 미리보기 콜백 ({ lat, lng })
+ * @param {string}   placeholder    - 검색창 placeholder
+ * @param {string}   className      - 외부에서 위치 조절용 className
+ * @param {{ lat: number, lng: number }} center
+ *   - <Map> 바깥에서 사용 시 현재 지도 중심 좌표를 prop으로 전달하세요.
+ *     useMap()이 null을 반환할 때 이 값이 검색 location 기준으로 쓰입니다.
+ *     <Map> 안에서 사용하면 useMap()이 우선 적용되므로 생략 가능합니다.
+ */
+export default function MapSearchBar({ onSelectPlace, onPreview, placeholder = '작품명 검색...', className = '', center }) {
   const [keyword, setKeyword] = useState('');
   const [results, setResults] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -33,10 +43,13 @@ export default function MapSearchBar({ onSelectPlace, onPreview, placeholder = '
 
     const svc = new google.maps.places.PlacesService(document.createElement('div'));
 
+    // useMap()은 <Map> 외부에서 null을 반환합니다.
+    // center prop이 있으면 그 값을, 없으면 도쿄 기본 좌표를 fallback으로 사용합니다.
+    const searchLocation = map ? map.getCenter() : center ? { lat: center.lat, lng: center.lng } : { lat: 35.6812, lng: 139.7671 };
+
     const request = {
       query: keyword,
-      // 현재 지도 중심 주변 우선 검색 (도쿄 기본)
-      location: map ? map.getCenter() : { lat: 35.6812, lng: 139.7671 },
+      location: searchLocation,
       radius: '10000',
     };
 
@@ -55,10 +68,9 @@ export default function MapSearchBar({ onSelectPlace, onPreview, placeholder = '
         setIsOpen(false);
       }
     });
-  }, [placesLib, keyword, map]);
+  }, [placesLib, keyword, map, center]);
 
   // 장소 선택
-
   const selectPlace = useCallback(
     (item) => {
       const loc = {
@@ -77,7 +89,6 @@ export default function MapSearchBar({ onSelectPlace, onPreview, placeholder = '
   );
 
   // 드롭다운 hover → 지도 미리보기
-
   const handleHover = useCallback(
     (item) => {
       onPreview?.({
@@ -89,7 +100,6 @@ export default function MapSearchBar({ onSelectPlace, onPreview, placeholder = '
   );
 
   // 키보드 탐색 (↑↓ Enter Escape)
-
   const handleKeyDown = (e) => {
     if (!isOpen || results.length === 0) {
       if (e.key === 'Enter') handleSearch();
@@ -109,8 +119,6 @@ export default function MapSearchBar({ onSelectPlace, onPreview, placeholder = '
       setResults([]);
     }
   };
-
-  // 렌더링
 
   return (
     <div className={`${styles.wrapper} ${className}`}>

@@ -1,0 +1,286 @@
+/*
+  RoutePanel — 루트에 담긴 장소 플로팅 패널
+  (지도 우측 하단 absolute 배치)
+ */
+
+.panel {
+  position: absolute;
+  bottom: 24px;
+  right: 24px;
+  width: 300px;
+  background: rgba(15, 15, 26, 0.97);
+  border: 1px solid rgba(157, 80, 187, 0.25);
+  border-radius: 16px;
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  z-index: 20;
+  overflow: hidden;
+  transition: height 0.25s ease;
+}
+
+/* 헤더 */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.header:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.title {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* 숫자 배지 */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  background: var(--primary-purple, #9d50bb);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 11px;
+}
+
+.chevron {
+  color: rgba(255, 255, 255, 0.35);
+  display: flex;
+  align-items: center;
+  transition: transform 0.2s;
+}
+
+.chevronUp {
+  transform: rotate(180deg);
+}
+
+/* 본문 */
+.body {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* 빈 상태 */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 20px 20px;
+  gap: 6px;
+}
+
+.emptyIcon {
+  font-size: 28px;
+  margin-bottom: 4px;
+  opacity: 0.6;
+}
+
+.emptyText {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.emptyDesc {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.25);
+  text-align: center;
+  line-height: 1.6;
+}
+
+/* 드래그 목록 */
+.list {
+  list-style: none;
+  padding: 8px 12px 0;
+  margin: 0;
+  max-height: 260px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.list::-webkit-scrollbar {
+  width: 3px;
+}
+.list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.list::-webkit-scrollbar-thumb {
+  background: rgba(157, 80, 187, 0.3);
+  border-radius: 2px;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 10px;
+  cursor: grab;
+  transition: all 0.15s;
+}
+
+.item:active {
+  cursor: grabbing;
+}
+
+.item:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(157, 80, 187, 0.2);
+}
+
+/* 드래그 오버 시 강조 */
+.item[data-over='true'] {
+  border-color: rgba(157, 80, 187, 0.6);
+  background: rgba(157, 80, 187, 0.1);
+  transform: translateY(-1px);
+}
+
+.dragHandle {
+  color: rgba(255, 255, 255, 0.18);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+/* 번호 배지 (원형) */
+.numBadge {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--primary-purple, #9d50bb);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* 썸네일 placeholder */
+.thumb {
+  width: 36px;
+  height: 36px;
+  border-radius: 7px;
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+.info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.itemTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.itemWork {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.removeBtn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.25);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  border-radius: 6px;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+
+.removeBtn:hover {
+  color: #ff5252;
+  background: rgba(255, 82, 82, 0.1);
+}
+
+/* 푸터 */
+.footer {
+  display: flex;
+  gap: 8px;
+  padding: 12px 12px 14px;
+}
+
+.resetBtn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 9px 14px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 12px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+
+.resetBtn:hover {
+  border-color: rgba(255, 255, 255, 0.25);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.saveBtn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 14px;
+  background: linear-gradient(135deg, #9d50bb 0%, #e91e8c 100%);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(233, 30, 140, 0.25);
+  transition: all 0.15s;
+}
+
+.saveBtn:hover {
+  box-shadow: 0 6px 20px rgba(233, 30, 140, 0.4);
+  transform: translateY(-1px);
+}
+
+.saveBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
