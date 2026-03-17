@@ -4,16 +4,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
-import project.oshiashi.oshiashi.domain.route.dto.RouteCreateRequest;
-import project.oshiashi.oshiashi.domain.route.dto.RouteResponse;
-import project.oshiashi.oshiashi.domain.route.dto.RouteUpdateRequest;
+import project.oshiashi.oshiashi.domain.route.dto.*;
 import project.oshiashi.oshiashi.domain.route.service.RouteService;
 
 import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/user/routes")
+@RequestMapping("/api/v1/map/routes")
 public class RouteController {
 
     // Route 관련 비즈니스 로직을 처리하는 서비스
@@ -39,7 +37,7 @@ public class RouteController {
         return routeService.getRouteList(userId);
     }
 
-    // 루트 단건 조회
+    // 루트 상세 조회
     // 특정 루트의 상세 정보를 조회한다
     // Route에 포함된 Spot 목록도 함께 반환된다
     @GetMapping("/{routeId}")
@@ -70,5 +68,37 @@ public class RouteController {
             @PathVariable Long routeId
     ) {
         routeService.deleteRoute(userId, routeId);
+    }
+
+    // 루트에 장소 추가
+    @PostMapping("/{routeId}/items")
+    @ResponseStatus(HttpStatus.CREATED)
+    public RouteResponse addRouteItem(
+            @RequestParam String userId,
+            @PathVariable Long routeId,
+            @RequestBody RouteItemAddRequest request
+            ) {
+        return routeService.addRouteItem(userId, routeId, request);
+    }
+
+    // 루트 내 순서 변경
+    @PatchMapping("/{routeId}/items/order")
+    public RouteResponse updateRouteItemOrder(
+            @RequestParam String userId,
+            @PathVariable Long routeId,
+            @RequestBody RouteItemOrderUpdateRequest request
+            ) {
+        return routeService.updateRouteItemOrder(userId, routeId, request);
+    }
+
+    // 루트 내 장소 제거
+    @DeleteMapping("/{routeId}/items/{itemId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteRouteItem(
+            @RequestParam String userId,
+            @PathVariable Long routeId,
+            @PathVariable Long itemId
+    ){
+        routeService.deleteRouteItem(userId, routeId, itemId);
     }
 }

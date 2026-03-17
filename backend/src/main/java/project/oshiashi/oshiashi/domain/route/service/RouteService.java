@@ -1,8 +1,6 @@
 package project.oshiashi.oshiashi.domain.route.service;
 
-import project.oshiashi.oshiashi.domain.route.dto.RouteCreateRequest;
-import project.oshiashi.oshiashi.domain.route.dto.RouteResponse;
-import project.oshiashi.oshiashi.domain.route.dto.RouteUpdateRequest;
+import project.oshiashi.oshiashi.domain.route.dto.*;
 
 import java.util.List;
 
@@ -26,4 +24,13 @@ public interface RouteService {
 
     // 루트 삭제
     void deleteRoute(String userId, Long routeId);
+
+    // 루트에 장소 추가하기
+    RouteResponse addRouteItem(String userId, Long routeId, RouteItemAddRequest request);
+
+    // 루트 내 순서 변경
+    RouteResponse updateRouteItemOrder(String userId, Long routeId, RouteItemOrderUpdateRequest request);
+
+    // 루트 내 장소 제외
+    void deleteRouteItem(String userId, Long routeId, Long itemId);
 }

@@ -3,13 +3,11 @@ package project.oshiashi.oshiashi.domain.route.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import project.oshiashi.oshiashi.domain.route.dto.RouteCreateRequest;
-import project.oshiashi.oshiashi.domain.route.dto.RouteResponse;
-import project.oshiashi.oshiashi.domain.route.dto.RouteSpotRequest;
-import project.oshiashi.oshiashi.domain.route.dto.RouteUpdateRequest;
+import project.oshiashi.oshiashi.domain.route.dto.*;
 import project.oshiashi.oshiashi.domain.route.entity.RouteEntity;
 import project.oshiashi.oshiashi.domain.route.entity.RouteSpotEntity;
 import project.oshiashi.oshiashi.domain.route.repository.RouteRepository;
+import project.oshiashi.oshiashi.domain.route.repository.RouteSpotRepository;
 import project.oshiashi.oshiashi.domain.spot.entity.SpotEntity;
 import project.oshiashi.oshiashi.domain.spot.repository.SpotRepository;
 import project.oshiashi.oshiashi.domain.user.entity.UserEntity;
@@ -29,6 +27,7 @@ public class RouteServiceImpl implements RouteService {
     private final RouteRepository routeRepository;
     private final UserRepository userRepository;
     private final SpotRepository spotRepository;
+    private final RouteSpotRepository routeSpotRepository;
 
     // 루트 생성
     // 사용자 존재 여부 확인
@@ -142,5 +141,79 @@ public class RouteServiceImpl implements RouteService {
                 throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "visitOrder는 중복될 수 없습니다.");
             }
         }
+    }
+
+    // 루트에 장소 추가
+    @Override
+    @Transactional
+    public RouteResponse addRouteItem(String userId, Long routeId, RouteItemAddRequest request) {
+
+        RouteEntity route = routeRepository.findByRouteIdAndUser_UserId(routeId, userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.ROUTE_NOT_FOUND));
+
+        SpotEntity spot = spotRepository.findById(request.getSpotId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "존재하지 않는 스팟입니다."));
+
+        Integer visitOrder = request.getVisitOrder();
+
+        if (visitOrder == null || visitOrder < 1) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "visitOrder는 1 이상이어야 합니다.");
+        }
+
+        boolean duplicatedOrder = route.getRouteSpots().stream()
+                .anyMatch(routeSpot -> routeSpot.getVisitOrder().equals(visitOrder));
+
+        if (duplicatedOrder) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "이미 사용 중인 방문 순서입니다.");
+        }
+
+        RouteSpotEntity routeSpot = RouteSpotEntity.of(route, spot, visitOrder);
+        route.addRouteSpot(routeSpot);
+
+        return RouteResponse.fromEntity(route);
+    }
+
+    // 루트 내 순서 변경
+    @Override
+    @Transactional
+    public RouteResponse updateRouteItemOrder(String userId, Long routeId, RouteItemOrderUpdateRequest request) {
+
+        RouteEntity route = routeRepository.findByRouteIdAndUser_UserId(routeId, userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.ROUTE_NOT_FOUND));
+
+        List<RouteSpotEntity> routeSpots = routeSpotRepository.findByRoute_RouteIdOrderByVisitOrderAsc(routeId);
+
+        if (request.getItems() == null || request.getItems().isEmpty()) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "변경할 순서 정보가 없습니다.");
+        }
+
+        for (RouteItemOrderDto item : request.getItems()) {
+            RouteSpotEntity target = routeSpots.stream()
+                    .filter(rs -> rs.getRouteSpotId().equals(item.getItemId()))
+                    .findFirst()
+                    .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "존재하지 않는 루트 아이템입니다."));
+
+            if (item.getVisitOrder() == null || item.getVisitOrder() < 1) {
+                throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "visitOrder는 1 이상이어야 합니다.");
+            }
+
+            target.updateVisitOrder(item.getVisitOrder());
+        }
+
+        return RouteResponse.fromEntity(route);
+    }
+
+    // 루트 내 장소 제거
+    @Override
+    @Transactional
+    public void deleteRouteItem(String userId, Long routeId, Long itemId) {
+
+        RouteEntity route = routeRepository.findByRouteIdAndUser_UserId(routeId, userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.ROUTE_NOT_FOUND));
+
+        RouteSpotEntity routeSpot = routeSpotRepository.findByRouteSpotIdAndRoute_RouteId(itemId, routeId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "존재하지 않는 루트 아이템입니다."));
+
+        route.getRouteSpots().remove(routeSpot);
     }
 }
