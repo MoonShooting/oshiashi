@@ -37,19 +37,6 @@ public class UserController {
 		return ResponseEntity.ok(userService.getUserProfile());
 	}
 
-	// 개인정보(닉네임 등) 수정: /api/v1/user/update
-	@PatchMapping("/update")
-	public ResponseEntity<?> updateProfile(@RequestBody Map<String, String> request) {
-		String newNickname = request.get("nickname");
-		log.info("[API] 프로필 수정 요청: {}", newNickname);
-		try {
-			userService.updateProfile(newNickname);
-			return ResponseEntity.ok("프로필이 수정되었습니다.");
-		} catch (IllegalArgumentException e) {
-			return ResponseEntity.badRequest().body(e.getMessage());
-		}
-	}
-
 	// 내 루트 목록 조회: /api/v1/user/myRoute
 	@GetMapping("/myRoute")
 	public ResponseEntity<List<?>> getMyRoutes() {
