@@ -40,8 +40,7 @@ public class TagEntity {
 
     @Column(name = "tag_name", length = 100, nullable = false, unique = true) // 유니크 추가
     private String tagName;
-    
-    
+
     /**
      * TagEntity 객체를 생성하는 생성자입니다.
      */

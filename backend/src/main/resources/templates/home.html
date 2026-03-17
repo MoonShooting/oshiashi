@@ -1,14 +1,243 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <title>home</title>
-</head>
-<body>
-    /*html 설정 시 lang은 항상 ko로 설정하세요.
-    맨날 빼먹을거 같다? 자동설정에서 ! 엔터 시 무조건 ko로 되도록 커스텀 설정하시면 편합니다. */
-    <h1>메인 홈 화면입니다.</h1>
-    <p>여기서는 메인 화면으로 여백 좀 주고 우측에 nav bar(항상 맨 앞에 보이고, hover얼만큼 줄 건지 위치 잘 지정해서
-    <br/> 구현해야 합니다.</p>
-</body>
-</html>
+<!--<!DOCTYPE html>-->
+<!--<html lang="ko">-->
+<!--<head>-->
+<!--    <meta charset="UTF-8">-->
+<!--    <title>OshiAshi 풀 패키지 API 테스트 보드</title>-->
+<!--    <style>-->
+<!--        body { font-family: sans-serif; padding: 20px; background-color: #f4f4f9; }-->
+<!--        .grid-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }-->
+<!--        .box { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }-->
+<!--        h2 { border-bottom: 2px solid #333; padding-bottom: 10px; font-size: 1.2rem; }-->
+<!--        input { display: inline-block; width: calc(100% - 20px); padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; }-->
+<!--        .half-input { width: calc(50% - 15px); }-->
+<!--        button { padding: 8px 12px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; margin-bottom: 5px; font-size: 0.9rem;}-->
+<!--        button:hover { background: #0056b3; }-->
+<!--        .danger { background: #dc3545; }-->
+<!--        .danger:hover { background: #c82333; }-->
+<!--        .success { background: #28a745; width: 100%; margin-top: 5px; font-weight: bold;}-->
+<!--        .success:hover { background: #218838; }-->
+<!--        hr { border: 0; height: 1px; background: #eee; margin: 15px 0; }-->
+<!--        #log-area { background: #222; color: #0f0; padding: 15px; border-radius: 5px; height: 300px; overflow-y: auto; font-family: monospace; white-space: pre-wrap; margin-top: 20px;}-->
+<!--    </style>-->
+<!--</head>-->
+<!--<body>-->
+
+<!--<h1>🚀 OshiAshi API 풀 패키지 테스트 보드</h1>-->
+<!--<p>개발자 도구(F12)의 Network 탭을 열어두시면 통신 내역을 자세히 볼 수 있습니다.</p>-->
+
+<!--<div class="grid-container">-->
+<!--    <div class="box">-->
+<!--        <h2>1. 회원가입 & 중복확인 (UnAuth)</h2>-->
+<!--        <input type="text" id="reg-name" placeholder="실명 (본인 이름)">-->
+
+<!--        <input type="text" id="reg-id" placeholder="아이디 (소문자, 숫자 4~20자)">-->
+<!--        <button onclick="checkId()">아이디 중복확인</button>-->
+
+<!--        <input type="text" id="reg-nick" placeholder="닉네임 (2~12자)">-->
+<!--        <button onclick="checkNick()">닉네임 중복확인</button>-->
+
+<!--        <input type="email" id="reg-email" placeholder="이메일">-->
+<!--        <button onclick="checkEmail()">이메일 중복확인</button>-->
+<!--        <button onclick="sendAuthCode()">인증번호 발송</button>-->
+
+<!--        <input type="text" id="reg-code" placeholder="인증번호 6자리 입력">-->
+<!--        <button onclick="verifyAuthCode()">인증번호 확인</button>-->
+
+<!--        <input type="password" id="reg-pw" placeholder="비밀번호 (영문+숫자+특수문자 8~20자)">-->
+<!--        <button class="success" onclick="signUp()">최종 회원가입</button>-->
+<!--    </div>-->
+
+<!--    <div class="box">-->
+<!--        <h2>2. 로그인 & 비번 찾기 (UnAuth / Auth)</h2>-->
+<!--        <input type="text" id="login-id" placeholder="로그인 아이디">-->
+<!--        <input type="password" id="login-pw" placeholder="로그인 비밀번호">-->
+<!--        <button onclick="login()">로그인</button>-->
+<!--        <button class="danger" onclick="logout()">로그아웃</button>-->
+<!--        <textarea id="token-box" rows="2" style="width: 100%; font-size: 11px; margin-top: 10px;" readonly placeholder="발급된 JWT 토큰이 여기에 표시됩니다."></textarea>-->
+
+<!--        <hr>-->
+<!--        <h4>비밀번호 분실 시 (재설정)</h4>-->
+<!--        <input type="email" id="reset-email" placeholder="가입한 이메일 입력">-->
+<!--        <button onclick="sendResetEmail()">재설정 메일 발송</button>-->
+<!--        <input type="password" id="reset-new-pw" placeholder="새로운 비밀번호">-->
+<!--        <button onclick="resetPasswordConfirm()">비밀번호 재설정 완료</button>-->
+<!--    </div>-->
+
+<!--    <div class="box">-->
+<!--        <h2>3. 정보 관리 & 탈퇴 (Auth 필수)</h2>-->
+<!--        <button onclick="getMyInfo()">내 상세 정보 (me)</button>-->
+<!--        <button onclick="getUserProfile()">프로필 요약 (profile)</button>-->
+<!--        <hr>-->
+<!--        <input type="text" id="update-nick" placeholder="새 닉네임 입력">-->
+<!--        <button onclick="updateNickname()">닉네임 수정</button>-->
+<!--        <hr>-->
+<!--        <input type="password" id="check-pw" placeholder="현재 비밀번호 본인확인용">-->
+<!--        <button onclick="checkPassword()">비밀번호 확인 (checkPw)</button>-->
+<!--        <hr>-->
+<!--        <input type="password" id="old-pw" class="half-input" placeholder="기존 비밀번호">-->
+<!--        <input type="password" id="new-pw" class="half-input" placeholder="새 비밀번호">-->
+<!--        <button onclick="updatePassword()">비밀번호 변경 (로그인 상태)</button>-->
+<!--        <hr>-->
+<!--        <input type="password" id="withdraw-pw" placeholder="탈퇴 확인용 비밀번호 입력">-->
+<!--        <button class="danger" onclick="withdraw()" style="width: 100%;">회원 탈퇴</button>-->
+<!--    </div>-->
+
+<!--    <div class="box">-->
+<!--        <h2>4. 활동 내역 조회 (Auth 필수)</h2>-->
+<!--        <p style="font-size: 0.9rem; color: #666;">※ 상태코드 200(OK)이 뜨면 정상 연결된 것입니다.</p>-->
+<!--        <button onclick="getMyRoutes()">내 루트 목록</button>-->
+<!--        <button onclick="getMyPosts()">내가 쓴 글</button>-->
+<!--        <button onclick="getMyComments()">내가 쓴 댓글</button>-->
+<!--        <button onclick="getMyBookmarks()">북마크 목록</button>-->
+<!--        <button onclick="getMyAchievements()">보유 칭호 목록</button>-->
+<!--        <hr>-->
+<!--        <input type="number" id="achieve-id" placeholder="대표 칭호 ID (숫자)">-->
+<!--        <button onclick="updateMainAchievement()">대표 칭호 변경</button>-->
+<!--    </div>-->
+<!--</div>-->
+
+<!--<h2 style="margin-top: 30px;">🖥️ API 통신 로그</h2>-->
+<!--<div id="log-area">로그 대기 중...</div>-->
+
+<!--<script>-->
+<!--    function logMessage(msg) {-->
+<!--        const logArea = document.getElementById('log-area');-->
+<!--        const time = new Date().toLocaleTimeString();-->
+<!--        logArea.innerHTML += `\n[${time}] ${msg}`;-->
+<!--        logArea.scrollTop = logArea.scrollHeight;-->
+<!--    }-->
+
+<!--    function getHeaders() {-->
+<!--        const token = document.getElementById('token-box').value;-->
+<!--        const headers = { 'Content-Type': 'application/json' };-->
+<!--        if (token) headers['Authorization'] = 'Bearer ' + token;-->
+<!--        return headers;-->
+<!--    }-->
+
+<!--    // -&#45;&#45; 1. 회원가입 관련 -&#45;&#45;-->
+<!--    async function checkId() {-->
+<!--        const userId = document.getElementById('reg-id').value;-->
+<!--        const res = await fetch(`/api/v1/auth/checkId?userId=${userId}`);-->
+<!--        const text = await res.text();-->
+<!--        logMessage(`[ID중복확인] 상태: ${res.status}, 응답: ${text}`);-->
+<!--    }-->
+<!--    async function checkNick() {-->
+<!--        const nick = document.getElementById('reg-nick').value;-->
+<!--        const res = await fetch(`/api/v1/auth/checkNickname?nickname=${nick}`);-->
+<!--        const text = await res.text();-->
+<!--        logMessage(`[닉네임확인] 상태: ${res.status}, 응답: ${text}`);-->
+<!--    }-->
+<!--    async function checkEmail() {-->
+<!--        const email = document.getElementById('reg-email').value;-->
+<!--        const res = await fetch(`/api/v1/auth/checkEmail?email=${email}`);-->
+<!--        const text = await res.text();-->
+<!--        logMessage(`[이메일확인] 상태: ${res.status}, 응답: ${text}`);-->
+<!--    }-->
+<!--    async function sendAuthCode() {-->
+<!--        const email = document.getElementById('reg-email').value;-->
+<!--        const res = await fetch('/api/v1/auth/emailSend', { method: 'POST', headers: getHeaders(), body: JSON.stringify({ email }) });-->
+<!--        logMessage(`[인증번호발송] 상태: ${res.status}, 응답: ${await res.text()}`);-->
+<!--    }-->
+<!--    async function verifyAuthCode() {-->
+<!--        const email = document.getElementById('reg-email').value;-->
+<!--        const code = document.getElementById('reg-code').value;-->
+<!--        const res = await fetch('/api/v1/auth/emailVerify', { method: 'POST', headers: getHeaders(), body: JSON.stringify({ email, code }) });-->
+<!--        logMessage(`[인증번호확인] 상태: ${res.status}, 응답: ${await res.text()}`);-->
+<!--    }-->
+<!--    async function signUp() {-->
+<!--        // [수정] 실명(name) 데이터 수집 추가-->
+<!--        const name = document.getElementById('reg-name').value;-->
+<!--        const userId = document.getElementById('reg-id').value;-->
+<!--        const password = document.getElementById('reg-pw').value;-->
+<!--        const nickname = document.getElementById('reg-nick').value;-->
+<!--        const email = document.getElementById('reg-email').value;-->
+
+<!--        const res = await fetch('/api/v1/auth/signup', {-->
+<!--            method: 'POST',-->
+<!--            headers: getHeaders(),-->
+<!--            body: JSON.stringify({ userId, password, nickname, email, name })-->
+<!--        });-->
+<!--        logMessage(`[회원가입] 상태: ${res.status}, 응답: ${await res.text()}`);-->
+<!--    }-->
+
+<!--    // -&#45;&#45; 2. 로그인 & 비번 찾기 -&#45;&#45;-->
+<!--    async function login() {-->
+<!--        const userId = document.getElementById('login-id').value;-->
+<!--        const password = document.getElementById('login-pw').value;-->
+<!--        const res = await fetch('/api/v1/auth/login', { method: 'POST', headers: getHeaders(), body: JSON.stringify({ userId, password }) });-->
+<!--        const text = await res.text();-->
+<!--        if (res.ok) { document.getElementById('token-box').value = text; logMessage(`[로그인성공] 토큰 발급 완료`); }-->
+<!--        else { logMessage(`[로그인실패] 상태: ${res.status}, 에러: ${text}`); }-->
+<!--    }-->
+<!--    async function logout() {-->
+<!--        const res = await fetch('/api/v1/auth/logout', { method: 'POST', headers: getHeaders() });-->
+<!--        logMessage(`[로그아웃] 상태: ${res.status}, 응답: ${await res.text()}`);-->
+<!--        document.getElementById('token-box').value = '';-->
+<!--    }-->
+<!--    async function sendResetEmail() {-->
+<!--        const email = document.getElementById('reset-email').value;-->
+<!--        const res = await fetch('/api/v1/auth/passwordResetEmail', { method: 'POST', headers: getHeaders(), body: JSON.stringify({ email }) });-->
+<!--        logMessage(`[재설정메일발송] 상태: ${res.status}, 응답: ${await res.text()}`);-->
+<!--    }-->
+<!--    async function resetPasswordConfirm() {-->
+<!--        const email = document.getElementById('reset-email').value;-->
+<!--        const newPassword = document.getElementById('reset-new-pw').value;-->
+<!--        const res = await fetch('/api/v1/auth/passwordResetConfirm', { method: 'PATCH', headers: getHeaders(), body: JSON.stringify({ email, newPassword }) });-->
+<!--        logMessage(`[비번재설정] 상태: ${res.status}, 응답: ${await res.text()}`);-->
+<!--    }-->
+
+<!--    // -&#45;&#45; 3. 정보 관리 & 탈퇴 -&#45;&#45;-->
+<!--    async function getMyInfo() {-->
+<!--        const res = await fetch('/api/v1/user/me', { method: 'GET', headers: getHeaders() });-->
+<!--        logMessage(`[내상세정보] 상태: ${res.status}, 응답: ${await res.text()}`);-->
+<!--    }-->
+<!--    async function getUserProfile() {-->
+<!--        const res = await fetch('/api/v1/user/profile', { method: 'GET', headers: getHeaders() });-->
+<!--        logMessage(`[프로필요약] 상태: ${res.status}, 응답: ${await res.text()}`);-->
+<!--    }-->
+<!--    async function updateNickname() {-->
+<!--        const nickname = document.getElementById('update-nick').value;-->
+<!--        const res = await fetch('/api/v1/user/update', { method: 'PATCH', headers: getHeaders(), body: JSON.stringify({ nickname }) });-->
+<!--        logMessage(`[닉네임수정] 상태: ${res.status}, 응답: ${await res.text()}`);-->
+<!--    }-->
+<!--    async function checkPassword() {-->
+<!--        const password = document.getElementById('check-pw').value;-->
+<!--        // [수정] 401 에러 메시지를 로그에 출력하도록 함-->
+<!--        const res = await fetch('/api/v1/auth/checkPw', { method: 'POST', headers: getHeaders(), body: JSON.stringify({ password }) });-->
+<!--        logMessage(`[비밀번호확인] 상태: ${res.status}, 결과: ${await res.text()}`);-->
+<!--    }-->
+<!--    async function updatePassword() {-->
+<!--        const oldPassword = document.getElementById('old-pw').value;-->
+<!--        const newPassword = document.getElementById('new-pw').value;-->
+<!--        const res = await fetch('/api/v1/auth/password', { method: 'PATCH', headers: getHeaders(), body: JSON.stringify({ oldPassword, newPassword }) });-->
+<!--        logMessage(`[비번변경(로그인)] 상태: ${res.status}, 응답: ${await res.text()}`);-->
+<!--    }-->
+<!--    async function withdraw() {-->
+<!--        // [수정] 입력받은 비밀번호를 Body에 담아서 전송하도록 변경-->
+<!--        const password = document.getElementById('withdraw-pw').value;-->
+<!--        if(!password) { alert("탈퇴 확인을 위해 비밀번호를 입력해주세요."); return; }-->
+<!--        if(!confirm("정말 탈퇴하시겠습니까?")) return;-->
+
+<!--        const res = await fetch('/api/v1/auth/withdraw', {-->
+<!--            method: 'DELETE',-->
+<!--            headers: getHeaders(),-->
+<!--            body: JSON.stringify({ password }) // 비번 전달-->
+<!--        });-->
+<!--        logMessage(`[회원탈퇴] 상태: ${res.status}, 응답: ${await res.text()}`);-->
+<!--        if(res.ok) document.getElementById('token-box').value = '';-->
+<!--    }-->
+
+<!--    // -&#45;&#45; 4. 활동 내역 조회 -&#45;&#45;-->
+<!--    async function getMyRoutes() { const res = await fetch('/api/v1/user/myRoute', { headers: getHeaders() }); logMessage(`[내루트] 상태: ${res.status}, 응답: ${await res.text()}`); }-->
+<!--    async function getMyPosts() { const res = await fetch('/api/v1/user/posts', { headers: getHeaders() }); logMessage(`[내글] 상태: ${res.status}, 응답: ${await res.text()}`); }-->
+<!--    async function getMyComments() { const res = await fetch('/api/v1/user/comments', { headers: getHeaders() }); logMessage(`[내댓글] 상태: ${res.status}, 응답: ${await res.text()}`); }-->
+<!--    async function getMyBookmarks() { const res = await fetch('/api/v1/user/myBookmarks', { headers: getHeaders() }); logMessage(`[북마크] 상태: ${res.status}, 응답: ${await res.text()}`); }-->
+<!--    async function getMyAchievements() { const res = await fetch('/api/v1/user/achievement', { headers: getHeaders() }); logMessage(`[칭호목록] 상태: ${res.status}, 응답: ${await res.text()}`); }-->
+<!--    async function updateMainAchievement() {-->
+<!--        const achievementId = document.getElementById('achieve-id').value;-->
+<!--        const res = await fetch('/api/v1/user/mainAchievement', { method: 'PATCH', headers: getHeaders(), body: JSON.stringify({ achievementId: Number(achievementId) }) });-->
+<!--        logMessage(`[대표칭호변경] 상태: ${res.status}, 응답: ${await res.text()}`);-->
+<!--    }-->
+<!--</script>-->
+<!--</body>-->
+<!--</html>-->
