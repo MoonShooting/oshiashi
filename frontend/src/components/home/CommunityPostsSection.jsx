@@ -1,17 +1,29 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import PostCard from '@/components/post/PostCard';
+import { mockPostSummaries } from '@/data/post/postMockData';
 import styles from '../../styles/Home.module.css';
 
-// 홈 화면에서 "커뮤니티 최신 글" 영역을 확인하기 위한 목업 데이터입니다.
-// 이 섹션은 검색 결과 페이지와 달리, 최신 글을 짧게 미리 보여주는 목적의 축약형 리스트입니다.
-const posts = [
-  { id: 1, category: '후기', title: '교토 성지 다녀왔습니다! 너무 아름다웠어요', author: '교토러버', time: '2시간 전', views: 1234, likes: 89, comments: 23 },
-  { id: 2, category: '질문', title: '카마쿠라 교통편 문의드립니다', author: '첫일본여행', time: '5시간 전', views: 567, likes: 12, comments: 34 },
-  { id: 3, category: '정보', title: '벚꽃 시즌 성지순례 추천 일정 공유', author: '여행플래너', time: '12시간 전', views: 3456, likes: 234, comments: 67 },
-  { id: 4, category: '후기', title: '도쿄 애니 명소 2박3일 완성 후기', author: '신카이덕후', time: '1일 전', views: 2341, likes: 156, comments: 45 },
-];
+const categoryByPostId = {
+  '1': '후기',
+  '2': '정보',
+  '3': '질문',
+};
+
+const posts = mockPostSummaries.map((post) => ({
+  id: String(post.id),
+  category: categoryByPostId[String(post.id)] ?? '정보',
+  title: post.title,
+  author: post.userId,
+  time: post.publishedAt,
+  views: post.viewCount ?? 0,
+  likes: post.likeCount ?? 0,
+  comments: post.commentCount ?? 0,
+}));
 
 const CommunityPostsSection = () => {
+  const navigate = useNavigate();
+
   return (
     <section className={styles.section}>
       {/* Home 안에서 이 섹션은 "전체 커뮤니티 페이지로 들어가기 전에"
@@ -38,6 +50,7 @@ const CommunityPostsSection = () => {
             viewCount={post.views}
             likeCount={post.likes}
             commentCount={post.comments}
+            onClick={() => navigate(`/posts/${post.id}`)}
           />
         ))}
       </div>

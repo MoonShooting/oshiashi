@@ -1,23 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronDown, LogIn, Menu, Search, Upload } from 'lucide-react';
+import { ChevronDown, LogIn, Menu, Upload } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { SidebarTrigger } from '@/components/layout/SidebarContext';
 import { useAuthStore } from '@/stores/useAuthStore';
 import styles from '@/styles/Navbar.module.css';
 
-// 검색 결과 페이지가 tags query를 기준으로 동작하므로
-// 상단 검색도 같은 규칙으로 정리해서 넘깁니다.
-const normalizeSearchTerms = (value) =>
-  value
-    .split(/[\s,]+/)
-    .map((term) => term.replace(/^#/, '').trim())
-    .filter(Boolean);
-
 const NavBar = () => {
   const navigate = useNavigate();
   const profileMenuRef = useRef(null);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
-  const [searchValue, setSearchValue] = useState('');
   const { isLoggedIn, isInitialized, user, logout } = useAuthStore();
   const hasAuthenticatedUser = Boolean(user?.userId || user?.nickname || user?.email);
   const showProfileMenu = isLoggedIn && isInitialized && hasAuthenticatedUser;
@@ -51,15 +42,6 @@ const NavBar = () => {
     navigate('/login');
   };
 
-  const handleSearchSubmit = (event) => {
-    event.preventDefault();
-
-    const terms = normalizeSearchTerms(searchValue);
-    if (terms.length === 0) return;
-
-    navigate(`/posts?tags=${encodeURIComponent(terms.join(','))}`);
-  };
-
   return (
     <nav className={styles.navbar}>
       <div className={styles.leftSection}>
@@ -81,17 +63,6 @@ const NavBar = () => {
           推し足 (Oshiashi)
         </h1>
       </div>
-
-      <form className={styles.searchWrapper} onSubmit={handleSearchSubmit}>
-        <Search className={styles.searchIcon} strokeWidth={2.4} />
-        <input
-          type="text"
-          placeholder="작품명, 장소, 태그 검색..."
-          className={styles.searchInput}
-          value={searchValue}
-          onChange={(event) => setSearchValue(event.target.value)}
-        />
-      </form>
 
       <div className={styles.navRight}>
         <button type="button" className={styles.uploadBtn} onClick={handlePrimaryAction}>
