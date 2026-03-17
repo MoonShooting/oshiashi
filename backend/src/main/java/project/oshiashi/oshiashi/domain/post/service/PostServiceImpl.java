@@ -37,7 +37,7 @@ public class PostServiceImpl implements PostService{
 	 * - 필수 반환: 모든 필드 (postId, title, content, userId, routeId, status, viewCount, likeCount, createdAt, updateAt)
 	 * - 특징: 데이터가 없으면 빈 리스트 [] 반환
 	 */
-	@Override
+	
 	public List<PostResponse> getAllPost() {
 		log.debug("[Service] 게시글 전체 조회 요청 발생");
 		List<PostEntity> posts = postRepository.findAll();
@@ -57,7 +57,7 @@ public class PostServiceImpl implements PostService{
 	 * - 필수 반환: 해당 ID의 모든 게시글 데이터
 	 * - 예외: ID가 존재하지 않을 경우 RuntimeException 발생
 	 */
-	@Override
+	
 	public PostResponse getPostById(Long postId) {
 		log.debug("[Service] 게시글 단건 조회 시작 - ID: {}", postId);
 		
@@ -76,36 +76,36 @@ public class PostServiceImpl implements PostService{
 	 * 3. 게시글 작성
 	 * @param request (DTO)
 	 * - [필수 입력]: title (제목), content (내용)
-	 * - [현재 미구현]: userId, routeId (현재 서비스 로직에서 주석 처리됨)
+	 * - [확인 필요]: userId, routeId
 	 * @return PostResponse
 	 * - 필수 반환: DB에 저장된 최종 데이터 (자동 생성된 postId 포함)
 	 * - 특징: 작성 시 viewCount, likeCount는 0으로, status는 PUBLIC으로 강제 초기화됨
 	 */
-	@Override
+	
 	public PostResponse createPost(PostResponse request) {
 		
 		// [테스트 로깅 추가] 제목과 내용 입력값 확인
-		log.debug("======= Post 등록 테스트 =======");
-		log.debug("입력된 제목: {}", request.getTitle());
+		log.debug("등록 테스트 , 입력된 제목: {}", request.getTitle());
 		log.debug("입력된 내용: {}", request.getContent());
-		log.debug("================================");
 		
-		// TODO: 에러 핸들링 및 유효성 검사 (현재는 값이 없으므로 테스트를 위해 잠시 주석 처리),
-		//  엔티티 생성시 원래는 필수값이나 임시 주석 처리 user, route
 		
-		/*
+		// 에러 핸들링 및 유효성 검사 (현재는 값이 없으므로 테스트를 위해 잠시 주석 처리),
+		// 엔티티 생성시 원래는 필수값 :  user, route
+		
 		// 1. 작성자 정보와 루트 정보를 DB에서 먼저 조회
 		UserEntity user = userRepository.findById(request.getUserId())
 				.orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+		// [추가] 조회한 유저 객체에서 닉네임을 꺼내 로그를
+		log.debug("[Service] 글쓰기 시도 유저 닉네임: {}", user.getNickname());
 		
 		RouteEntity route = routeRepository.findById(request.getRouteId())
 				.orElseThrow(() -> new RuntimeException("루트를 찾을 수 없습니다."));
-		*/
+		
 		
 		// DB에 저장할 엔티티 생성
 		PostEntity postEntity = PostEntity.builder()
-				//.user(user) // ← "이 유저가 쓴 글이야" 라고 객체를 연결
-				//.route(route)
+				.user(user) // ← "이 유저가 쓴 글이야" 라고 객체를 연결
+				.route(route)
 				.title(request.getTitle())
 				.content(request.getContent())
 				.status(PostEntity.PostStatus.PUBLIC)
@@ -116,7 +116,7 @@ public class PostServiceImpl implements PostService{
 				.build();
 		
 		PostEntity savedPost = postRepository.save(postEntity);
-		log.debug("[Service] post 저장 성공! (자동 생성된 postId: {})", savedPost.getPostId());
+		log.debug("[Service] post 저장 성공! postId: {}, 작성자 닉네임 : {}", savedPost.getPostId(), user.getNickname());
 		return PostResponse.fromEntity(savedPost);
 	
 	}
@@ -127,15 +127,23 @@ public class PostServiceImpl implements PostService{
      * @return void (성공 시 리턴값 없음, 컨트롤러에서 성공 메시지 처리)
      * - 예외: ID가 존재하지 않을 경우 RuntimeException 발생
      */
-	@Override
-	public void deletePost(Long postId) {
-		if (!postRepository.existsById(postId)) {
-			log.debug("!!! [Service] 삭제 실패: {}번 게시글이 없습니다.", postId);
-			throw new RuntimeException("삭제할 게시글을 찾을 수 없습니다.");
+	
+	public void deletePost(Long postId, String userId) {
+		// 존재하는 게시물인가 확인
+		PostEntity postEntity = postRepository.findById(postId)
+				.orElseThrow(() -> {
+					log.debug("!!! [Service] 삭제 실패: {}번 게시글이 없습니다.", postId);
+					return new RuntimeException("삭제할 게시글을 찾을 수 없습니다.");
+				});
+		
+		// 2. 작성자 검증
+		if (!postEntity.getUser().getUserId().equals(userId)) {
+			log.debug("작성자가 아닙니다");
+			throw new RuntimeException("본인이 작성한 글만 삭제할 수 있습니다.");
 		}
 		
-		postRepository.deleteById(postId);
-		log.debug("[Service] ID : {} 데이터가  삭제되었습니다.", postId);
+		postRepository.delete(postEntity); // 객체 바로 삭제!
+		log.debug("[Service] ID : {} 데이터가 삭제되었습니다.", postId);
 	}
 	
 	/**
@@ -147,11 +155,16 @@ public class PostServiceImpl implements PostService{
 	 * - 필수 반환: 수정이 완료된 후의 최신 데이터 (변경된 updateAt 포함)
 	 * - 예외: 수정 대상 게시글이 없을 경우 RuntimeException 발생
 	 */
-	@Override
-	public PostResponse updatePost(Long postId, PostResponse request) {
+
+	public PostResponse updatePost(Long postId,String userId ,PostResponse request) {
 		// 1. 기존 게시글 조회 (없으면 예외 발생)
 		PostEntity postEntity = postRepository.findById(postId)
 				.orElseThrow(() -> new RuntimeException("수정할 게시글을 찾을 수 없습니다."));
+		
+		// 작성자 검증
+		if (!postEntity.getUser().getUserId().equals(userId)) {
+			throw new RuntimeException("본인이 작성한 글만 수정할 수 있습니다.");
+		}
 		
 		// 2. 엔티티 데이터 업데이트
 		// 실제로는 route 객체도 새로 찾아와서 수정하는거 고려
@@ -162,7 +175,7 @@ public class PostServiceImpl implements PostService{
 		
 		// 3. 수정된 엔티티를 다시 DTO로 변환해서 반환
 		PostResponse postResponse = PostResponse.fromEntity(postEntity);
-		log.debug("[Service] 최종 변환된 응답 DTO: {}", postResponse);
+		log.debug("[Service] 최종 수정 : {}", postResponse);
 		return postResponse;
 	}
 	
@@ -173,7 +186,7 @@ public class PostServiceImpl implements PostService{
 	 * - 필수 반환: likeCount가 +1 된 후의 전체 게시글 정보
 	 * - 예외: 게시글이 없을 경우 EntityNotFoundException 발생
 	 */
-	@Override
+	
 	public PostResponse likePost(Long postId) {
 		// 1. DB에서 해당 게시글 조회 (없으면 예외 발생)
 		PostEntity postEntity = postRepository.findById(postId)

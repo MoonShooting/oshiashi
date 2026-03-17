@@ -3,6 +3,7 @@ package project.oshiashi.oshiashi.domain.spot.service;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import project.oshiashi.oshiashi.domain.artwork.entity.ArtworkEntity;
 import project.oshiashi.oshiashi.domain.artwork.repository.ArtworkRepository;
@@ -15,12 +16,13 @@ import project.oshiashi.oshiashi.domain.spot.repository.SpotRepository;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor // final이 붙은 필드들을 인자로 받는 생성자 사용. (생성자 주입 방식)
 public class SpotService {
 	private final SpotRepository spotRepository;
 	private final ArtworkRepository artworkRepository;
-	private final RouteRepository routeRepository; // 트리거 2번(Route 갱신)을 위해 필요
+	//private final RouteRepository routeRepository; // 트리거 2번(Route 갱신)을 위해 필요
 	
 	/**
 	 * 신규 SPOT 등록 (명세서 트리거 1번 반영)
@@ -36,7 +38,7 @@ public class SpotService {
 		
 		SpotEntity spot = request.toEntity(artwork);
 		SpotEntity savedSpot = spotRepository.save(spot);
-		
+		log.info("저장 완료 - ID: {} ==", savedSpot.getSpotId());
 		// 저장된 결과를 다시 DTO(Response)로 변환하여 반환
 		return SpotResponse.fromEntity(savedSpot);
 	}
@@ -71,16 +73,16 @@ public class SpotService {
 	/**
 	 * 명세서 트리거 1번: 위경도 유효범위 및 누락 체크 로직
 	 */
-	private void validateSpotLocation(BigDecimal lat, BigDecimal lng, String address) {
+	private void validateSpotLocation(BigDecimal latitude, BigDecimal longitude, String address) {
 		// 1. 주소와 좌표가 모두 없는지부터 체크 (명세서 트리거 조건)
-		if ((lat == null || lng == null) && (address == null || address.isBlank())) {
+		if ((latitude == null || longitude == null) && (address == null || address.isBlank())) {
 			throw new IllegalArgumentException("주소와 좌표 정보가 모두 누락되었습니다.");
 		}
 		
 		// 2. 좌표가 있다면, 그 좌표가 유효한 범위인지 체크
-		if (lat != null && lng != null) {
-			boolean isLatValid = lat.compareTo(new BigDecimal("-90")) >= 0 && lat.compareTo(new BigDecimal("90")) <= 0;
-			boolean isLngValid = lng.compareTo(new BigDecimal("-180")) >= 0 && lng.compareTo(new BigDecimal("180")) <= 0;
+		if (latitude != null && longitude != null) {
+			boolean isLatValid = latitude.compareTo(new BigDecimal("-90")) >= 0 && latitude.compareTo(new BigDecimal("90")) <= 0;
+			boolean isLngValid = longitude.compareTo(new BigDecimal("-180")) >= 0 && longitude.compareTo(new BigDecimal("180")) <= 0;
 			
 			if (!isLatValid || !isLngValid) {
 				throw new IllegalArgumentException("위도 또는 경도가 유효 범위를 벗어났습니다.");

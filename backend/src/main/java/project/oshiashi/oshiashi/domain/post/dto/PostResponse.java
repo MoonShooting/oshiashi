@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 public class PostResponse {
 	private Long postId;
 	private String userId;      // 작성자 ID
+	private String nickname;    // [추가] 작성자 닉네임
 	private Long routeId;       // 연결된 루트 ID
 	private String title;
 	private String content;
@@ -32,6 +33,7 @@ public class PostResponse {
 		return PostResponse.builder()
 				.postId(postEntity.getPostId())
 				.userId(postEntity.getUser().getUserId())
+				.nickname(postEntity.getUser().getNickname())
 				.routeId(postEntity.getRoute().getRouteId())
 				.title(postEntity.getTitle())
 				.content(postEntity.getContent())

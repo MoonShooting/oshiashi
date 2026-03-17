@@ -51,20 +51,22 @@ public class PostController {
 	
 	// 4. 게시글 삭제
 	@DeleteMapping("/{postId}")
-	public String deletePost(@PathVariable Long postId) {
-		postService.deletePost(postId);
+	// @RequestParam String userId // 누가 지우는지 파라미터로 받기
+	public String deletePost(@PathVariable Long postId,@RequestParam String userId) {
+		postService.deletePost(postId, userId);
 		
-		log.debug(">>> [Controller] ID : {}, 게시글 삭제 완료", postId);
+		log.debug("[Controller] 유저 {}가 {}번 게시글 삭제 요청", userId, postId);
 		return postId + "번 게시글이 삭제되었습니다.";
 	}
 	
 	// 5. 게시글 수정
 	@PatchMapping("/{postId}")
-	public PostResponse updatePost(@PathVariable Long postId, @RequestBody PostResponse request) {
+	public PostResponse updatePost(@PathVariable Long postId,
+								   @RequestParam String userId,
+								   @RequestBody PostResponse request){
+		log.debug("[Controller] 유저 {}가 {}번 게시글 수정 요청", userId, postId);
 		
-		log.debug(">>> [Controller] 게시글 수정 요청 발생! ID: {}", postId);
-		
-		return postService.updatePost(postId, request);
+		return postService.updatePost(postId, userId, request);
 	}
 	
 	// 6. 게시글 좋아요 기능
@@ -78,52 +80,6 @@ public class PostController {
 		return updatedPost;
 	}
 	
-	// 7. 특정 게시글에 달린 모든 댓글 목록을 조회합니다.
-	// 댓글을 조회할 게시글의 ID
-	// 해당 게시글의 댓글 리스트 (CommentResponse 목록)
-	@GetMapping("/{postId}/comments")
-	public ResponseEntity<List<CommentResponse>> getCommentsByPost(
-			@PathVariable(name = "postId") Long postId
-	) {
-		
-		log.debug("댓글 목록 조회 요청 - 게시글 번호: {}", postId);
-		
-		// 1. 서비스에서 해당 게시글의 댓글 목록을 가져옴
-		List<CommentResponse> comments = commentService.getCommentsByPost(postId);
-		
-		// 2. 로그로 결과 개수 확인 (디버깅용)
-		log.debug("조회된 댓글 개수: {}", comments.size());
-		
-		// 3. 리스트와 함께 200 OK 응답
-		return ResponseEntity.ok(comments);
-	}
 	
-	
-	
-
-	
-	// 포스트맨 테스트용 더미 데이터
-	/*
-	@GetMapping("/test")
-	public List<PostResponse> test() {
-		return List.of(
-				PostResponse.builder()
-						.postId(1L)
-						.userId("oshi_lover_99") // String 타입
-						.routeId(101L)
-						.title("이번 주말에 다녀온 가마쿠라 성지순례 후기")
-						.content("날씨가 너무 좋아서 슬램덩크 건널목에서 사진이 잘 나왔네요!")
-						.status(PostEntity.PostStatus.valueOf("PUBLIC"))
-						.viewCount(150)
-						.likeCount(45)
-						.createdAt(LocalDateTime.now())
-						.updateAt(LocalDateTime.now())
-						//.images(dummyImages)
-						.build()
-		);
-	}
-	
-	
-	 */
 	
 }
