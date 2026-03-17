@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import lombok.*;
 import project.oshiashi.oshiashi.domain.spot.entity.SpotEntity;
 
-
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
@@ -16,29 +15,26 @@ import project.oshiashi.oshiashi.domain.spot.entity.SpotEntity;
 )
 public class RouteSpotEntity {
 
-    // RouteSpot PK
+
+    
+    // RouteSpotId 추가
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "route_spot_id", nullable = false, updatable = false)
     private Long routeSpotId;
 
-    // Route와 N:1 관계
-    // 하나의 Route에 여러 Spot이 포함될 수 있음
+    // optional = false 구문을 추가 했습니다
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "route_id",
-            nullable = false,
-            foreignKey = @ForeignKey(name = "FK_Routespot_Route"))
+            nullable = false,foreignKey = @ForeignKey(name = "FK_Routespot_Route"))
     private RouteEntity route;
 
-    // Spot과 N:1 관계
-    // 하나의 Spot이 여러 Route에 포함될 수 있음
+    // optional = false 구문을 추가 했습니다
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "spot_id",
-            nullable = false,
+    @JoinColumn(name = "spot_id", nullable = false,
             foreignKey = @ForeignKey(name = "FK_Routespot_Spot"))
     private SpotEntity spot;
 
-    // 루트 내 방문 순서
     @Column(name = "visit_order", nullable = false)
     private Integer visitOrder = 1;
 
@@ -57,5 +53,10 @@ public class RouteSpotEntity {
                 .spot(spot)
                 .visitOrder(visitOrder != null ? visitOrder : 1)
                 .build();
+    }
+
+    // visitOrder 수정 메서드
+    public void updateVisitOrder(Integer visitOrder) {
+        this.visitOrder = visitOrder;
     }
 }
