@@ -151,6 +151,7 @@ public class AuthController {
 		return ResponseEntity.ok("회원 탈퇴가 완료되었습니다.");
 	}
 
+	// 아이디 찾기: /api/v1/auth/findId
 	@GetMapping("/findId")
 	public ResponseEntity<String> findId(@RequestParam("email") String email) {
 		log.info("[API] 아이디 찾기 요청: {}", email);
