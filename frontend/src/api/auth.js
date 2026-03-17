@@ -39,12 +39,67 @@ export const checkNicknameAPI = (nickname) => {
 };
 
 // 6. 로그인 API (POST) - DTO: UserLoginRequest
-export const loginAPI = (loginData) => {
+/*
+[로그인 응답 정규화]
+- 백엔드/브랜치 상태에 따라 로그인 응답 형태가 달라질 수 있습니다.
+  1) "jwt-token-string"
+  2) { token } / { accessToken } / { jwtToken }
+  3) { data: { token } } 래핑
+- 프론트는 항상 { token, userInfo } 형태로 받아 동일하게 처리합니다.
+*/
+const extractAccessToken = (response) => {
+  if (typeof response === 'string') {
+    return response.replace(/^Bearer\s+/i, '').trim();
+  }
+
+  const candidate =
+    response?.accessToken ??
+    response?.token ??
+    response?.jwtToken ??
+    response?.data?.accessToken ??
+    response?.data?.token ??
+    response?.result?.accessToken ??
+    response?.result?.token ??
+    '';
+
+  return typeof candidate === 'string' ? candidate.replace(/^Bearer\s+/i, '').trim() : '';
+};
+
+const extractUserInfo = (response) =>
+  response?.userInfo ??
+  response?.user ??
+  response?.data?.userInfo ??
+  response?.data?.user ??
+  response?.result?.userInfo ??
+  response?.result?.user ??
+  null;
+
+export const loginAPI = async (loginData) => {
   // loginData = { userId, password }
-  return FetchClient('/api/v1/auth/login', {
+  const response = await FetchClient('/api/v1/auth/login', {
     method: 'POST',
     body: JSON.stringify(loginData),
   });
+
+  const token = extractAccessToken(response);
+  if (!token) {
+    throw new Error('로그인 토큰을 확인하지 못했습니다.');
+  }
+
+  return {
+    token,
+    userInfo: extractUserInfo(response),
+  };
+};
+
+// 6-1. 내 정보 조회 API (GET)
+// - 로그인 상태 복구는 /api/v1/auth/me 단일 엔드포인트를 사용합니다.
+// - 응답 래핑(data/result) 유무를 흡수해 항상 사용자 객체를 반환합니다.
+export const getMyInfoAPI = async () => {
+  const response = await FetchClient('/api/v1/auth/me', {
+    method: 'GET',
+  });
+  return response?.data ?? response?.result ?? response;
 };
 
 // 7. 로그아웃 API (POST)

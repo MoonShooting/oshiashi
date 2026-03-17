@@ -11,6 +11,29 @@ import { getMyInfoAPI } from '@/api/auth.js';
 const getStoredToken = () =>
   localStorage.getItem('accessToken') ?? sessionStorage.getItem('accessToken');
 
+// /me 호출이 일시 실패해도 userId 최소값을 유지하기 위한 JWT payload 해석 유틸
+const decodeBase64Url = (value) => {
+  const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+  const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+  return atob(padded);
+};
+
+const extractUserIdFromToken = (rawToken) => {
+  if (!rawToken) return '';
+
+  const token = String(rawToken).replace(/^Bearer\s+/i, '').trim();
+  const payloadPart = token.split('.')[1];
+  if (!payloadPart) return '';
+
+  try {
+    const payload = JSON.parse(decodeBase64Url(payloadPart));
+    const candidate = payload?.userId ?? payload?.sub ?? payload?.username ?? '';
+    return typeof candidate === 'string' ? candidate.trim() : '';
+  } catch {
+    return '';
+  }
+};
+
 // 로그아웃/재로그인 직전, 저장소 충돌을 막기 위해 토큰은 항상 한 번에 정리합니다.
 const clearStoredToken = () => {
   localStorage.removeItem('accessToken');
@@ -59,7 +82,8 @@ export const useAuthStore = create((set) => ({
     }
 
     try {
-      // 핵심 복구 API: /api/v1/auth/me
+      // 핵심 복구 API: getMyInfoAPI()
+      // - /api/v1/auth/me 또는 /api/v1/user/me 중 사용 가능한 경로를 조회
       // - 토큰이 유효하면 최신 사용자 정보를 반환
       // - 프론트는 이 응답으로 새로고침 후 Zustand 상태를 복원
       const userData = await getMyInfoAPI();
@@ -79,10 +103,19 @@ export const useAuthStore = create((set) => ({
         return;
       }
 
-      // 네트워크 단절처럼 "인증 실패로 확정할 수 없는" 경우:
+      // 네트워크/일시 장애처럼 "인증 실패로 확정할 수 없는" 경우:
       // - 토큰은 유지
-      // - 화면은 로그인 상태로 유지해 재시도 기회를 남김
-      set({ user: null, isLoggedIn: true, isInitialized: true });
+      // - user가 완전히 null이 되지 않도록 토큰의 userId를 최소 복구
+      set((state) => {
+        const fallbackUserId = extractUserIdFromToken(token);
+        const fallbackUser = fallbackUserId ? { userId: fallbackUserId } : null;
+
+        return {
+          user: state.user ?? fallbackUser,
+          isLoggedIn: true,
+          isInitialized: true,
+        };
+      });
     }
   },
 }));
