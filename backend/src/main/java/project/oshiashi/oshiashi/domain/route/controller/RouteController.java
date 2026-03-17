@@ -11,7 +11,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/map/routes")
+@RequestMapping("/api/v1/map")
 public class RouteController {
 
     // Route 관련 비즈니스 로직을 처리하는 서비스
@@ -20,7 +20,7 @@ public class RouteController {
     // 루트 생성
     // 사용자에게서 받은 루트 정보(title, 공개 여부, spot 목록)를 기반으로
     // 새로운 Route와 RouteSpot을 생성한다.
-    @PostMapping
+    @PostMapping("/routes")
     @ResponseStatus(HttpStatus.CREATED)
     public RouteResponse createRoute(
             @RequestParam String userId,
@@ -32,7 +32,7 @@ public class RouteController {
     // 사용자 루트 목록 조회
     // 특정 사용자가 생성한 모든 루트를 조회한다.
     // 생성일 기준 최신순으로 정렬된다.
-    @GetMapping
+    @GetMapping("/routes")
     public List<RouteResponse> getRoutes(@RequestParam String userId){
         return routeService.getRouteList(userId);
     }
@@ -40,7 +40,7 @@ public class RouteController {
     // 루트 상세 조회
     // 특정 루트의 상세 정보를 조회한다
     // Route에 포함된 Spot 목록도 함께 반환된다
-    @GetMapping("/{routeId}")
+    @GetMapping("/routes/{routeId}")
     public RouteResponse getRoute(
             @RequestParam String userId,
             @PathVariable Long routeId
@@ -50,7 +50,7 @@ public class RouteController {
 
     // 루트 수정
     // 루트의 제목, 공개 여부, 포함된 Spot 목록을 수정한다.
-    @PatchMapping("/{routeId}")
+    @PatchMapping("/routes/{routeId}")
     public RouteResponse updateRoute(
             @RequestParam String userId,
             @PathVariable Long routeId,
@@ -61,7 +61,7 @@ public class RouteController {
 
     // 루트 삭제
     // 루트를 삭제하면 cascade 설정에 의해 RouteSpot도 함께 삭제된다.
-    @DeleteMapping("/{routeId}")
+    @DeleteMapping("/routes/{routeId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteRoute(
             @RequestParam String userId,
@@ -71,7 +71,7 @@ public class RouteController {
     }
 
     // 루트에 장소 추가
-    @PostMapping("/{routeId}/items")
+    @PostMapping("/routes/{routeId}/items")
     @ResponseStatus(HttpStatus.CREATED)
     public RouteResponse addRouteItem(
             @RequestParam String userId,
@@ -82,7 +82,7 @@ public class RouteController {
     }
 
     // 루트 내 순서 변경
-    @PatchMapping("/{routeId}/items/order")
+    @PatchMapping("/routes/{routeId}/sequence/order")
     public RouteResponse updateRouteItemOrder(
             @RequestParam String userId,
             @PathVariable Long routeId,
@@ -92,12 +92,13 @@ public class RouteController {
     }
 
     // 루트 내 장소 제거
-    @DeleteMapping("/{routeId}/items/{itemId}")
+    @DeleteMapping("/routes/{routeId}/items/{itemId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteRouteItem(
-            @RequestParam String userId,
             @PathVariable Long routeId,
-            @PathVariable Long itemId
+            @PathVariable Long itemId,
+            @RequestParam String userId
+
     ){
         routeService.deleteRouteItem(userId, routeId, itemId);
     }
