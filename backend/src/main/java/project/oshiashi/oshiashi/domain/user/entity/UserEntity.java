@@ -20,7 +20,7 @@ import java.util.List;
 @AllArgsConstructor(access = AccessLevel.PRIVATE) // 빌더 패턴 내부에서 사용하기 위한 모든 필드 생성자
 @Entity
 @Table(
-		name = "User",
+		name = "user",
 		uniqueConstraints = {
 				@UniqueConstraint(name = "UX_User_Email", columnNames = "email"), // DB 레벨에서 이메일 중복 방지
 				@UniqueConstraint(name = "UX_User_Nickname", columnNames = "nickname") // DB 레벨에서 닉네임 중복 방지
@@ -32,7 +32,7 @@ public class UserEntity {
 	@Column(name = "user_id", length = 50, nullable = false)
 	private String userId; // 사용자가 직접 입력하는 고유 ID (PK)
 
-	@Column(name="name", length=50, nullable = false)
+	@Column(name="user_name", length=50, nullable = false)
 	private String name; // 사용자의 실명
 
 	@Column(name = "email", length = 255, nullable = false)
