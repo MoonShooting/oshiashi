@@ -76,7 +76,8 @@ const PostDetailPage = () => {
 
   if (!post || !activeEntry) {
     return (
-      <MainLayout isMapPage={false} activeMenuKey="community">
+      // 존재하지 않는 게시글도 "게시물 검색 영역(posts)" 컨텍스트로 되돌리기 위해 active를 posts로 유지합니다.
+      <MainLayout isMapPage={false} activeMenuKey="posts">
         <section className={styles.pageShell}>
           <div className={styles.notFoundCard}>
             <h1>게시물을 찾을 수 없습니다</h1>
@@ -95,7 +96,8 @@ const PostDetailPage = () => {
   }
 
   return (
-    <MainLayout isMapPage={false} activeMenuKey="community">
+    // 이 상세는 route 기반 일반 게시글 상세이므로 community가 아닌 posts 탭을 활성화합니다.
+    <MainLayout isMapPage={false} activeMenuKey="posts">
       <section
         className={styles.pageShell}
         style={{ '--post-detail-bg': `url(${activeEntry.userImageUrl})` }}>

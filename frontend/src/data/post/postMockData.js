@@ -1,3 +1,9 @@
+// 게시판 타입 확장 대비용 상수입니다. 현재는 자유게시판(FREE)만 사용합니다.
+export const BOARD_TYPES = {
+  FREE: 'FREE',
+};
+
+// 댓글 목업 객체 형태를 통일합니다.
 const createComment = (comment) => ({
   id: comment.id,
   author: comment.author,
@@ -6,6 +12,7 @@ const createComment = (comment) => ({
   content: comment.content,
 });
 
+// 상세 페이지의 장소(entry) 목업 구조를 통일합니다.
 const createEntry = (entry) => ({
   id: entry.id,
   title: entry.title,
@@ -24,7 +31,9 @@ const createEntry = (entry) => ({
 export const mockPostDetails = [
   {
     id: '1',
+    routeId: 201,
     title: '작중 시간대 그대로 걸은 너의 이름은 하루 코스',
+    boardType: BOARD_TYPES.FREE,
     summary:
       '황혼 시간대에 맞춰 신주쿠와 요츠야를 따라 걸으며, 장면마다 직접 찍은 대표 사진과 감상을 남긴 게시물입니다.',
     author: {
@@ -32,6 +41,7 @@ export const mockPostDetails = [
       name: 'Yuki_Tanaka',
       avatarLabel: 'YT',
     },
+    createdAt: '2026-02-06T15:30:00+09:00',
     publishedDateLabel: '2026.02.06',
     publishedTimeLabel: '15:30',
     tags: ['도쿄', '너의이름은', '성지순례', '황혼'],
@@ -145,14 +155,17 @@ export const mockPostDetails = [
   },
   {
     id: '2',
-    title: '카마쿠라 해안선에서 슬램덩크 컷 따라찍기',
+    routeId: 315,
+    title: '카마쿠라 건널목, 오전 8시/10시 중 언제가 촬영하기 좋을까요?',
+    boardType: BOARD_TYPES.FREE,
     summary:
-      '카마쿠라 건널목과 해안 도로를 중심으로 대표 장면을 따라 걸으며 남긴 짧은 기록입니다.',
+      '이번 주말에 카마쿠라 성지순례를 가는데, 같은 장소라도 시간대마다 난이도가 다르다고 해서 선배 유저분들 경험을 묻고 싶습니다.',
     author: {
       userId: 'sho_trip',
       name: 'Sho_Trip',
       avatarLabel: 'ST',
     },
+    createdAt: '2026-01-28T10:12:00+09:00',
     publishedDateLabel: '2026.01.28',
     publishedTimeLabel: '10:12',
     tags: ['카마쿠라', '슬램덩크', '해안'],
@@ -208,14 +221,17 @@ export const mockPostDetails = [
   },
   {
     id: '3',
-    title: '교토에서 센과 치히로 분위기만 골라 걷기',
+    routeId: 108,
+    title: '교토 센과 치히로 분위기 코스, 비 오는 날에도 괜찮을까요?',
+    boardType: BOARD_TYPES.FREE,
     summary:
-      '붐비는 스팟보다 분위기가 살아 있는 골목과 계단 위주로 골라서 남긴 교토 산책 게시물입니다.',
+      '비 예보가 있어도 감성 컷을 건질 수 있는지, 우천 시 동선이나 추천 시간대를 공유하는 자유게시판 게시물입니다.',
     author: {
       userId: 'sakurafan',
       name: 'SakuraFan',
       avatarLabel: 'SF',
     },
+    createdAt: '2026-01-19T13:05:00+09:00',
     publishedDateLabel: '2026.01.19',
     publishedTimeLabel: '13:05',
     tags: ['교토', '센과치히로', '분위기'],
@@ -270,18 +286,287 @@ export const mockPostDetails = [
   },
 ];
 
-export const mockPostSummaries = mockPostDetails.map((post) => ({
-  id: post.id,
-  title: post.title,
-  content: post.summary,
-  userId: post.author.name,
-  viewCount: post.stats.views,
-  likeCount: post.stats.likes,
-  commentCount: post.comments.length,
-  tags: post.tags,
-  imageUrl: post.entries[0]?.userImageUrl ?? post.entries[0]?.referenceImageUrl ?? '',
-  publishedAt: post.publishedDateLabel,
-}));
+// routeId가 null인 데이터만 커뮤니티(자유게시판) 목업으로 취급합니다.
+const communityPostDetails = [
+  {
+    id: 'community-101',
+    routeId: null,
+    boardType: BOARD_TYPES.FREE,
+    title: '도쿄 첫 성지순례 다녀왔어요. 동선 후기 공유합니다.',
+    summary: '신주쿠-요츠야 위주로 천천히 걸었고, 초행이라면 오전보다 오후 시작이 훨씬 편했습니다.',
+    content:
+      '첫 방문이라 이동 시간이 가장 걱정됐는데, 실제로는 장소 사이 이동보다 대기 시간이 변수였습니다. 스팟 사이마다 15분 정도 여유를 두고 움직이니 꽤 안정적으로 소화할 수 있었어요. 초행이신 분들은 무리해서 스팟을 많이 넣기보다 2~3곳 집중 추천드립니다.',
+    author: {
+      userId: 'route_starter',
+      name: 'RouteStarter',
+      avatarLabel: 'RS',
+    },
+    createdAt: '2026-03-17T10:24:00+09:00',
+    publishedDateLabel: '2026.03.17',
+    publishedTimeLabel: '10:24',
+    tags: ['도쿄', '초행', '후기'],
+    stats: {
+      views: 482,
+      likes: 29,
+    },
+    comments: [
+      createComment({
+        id: 'community-101-c1',
+        author: 'tokyo_note',
+        avatarLabel: 'TN',
+        timeLabel: '2시간 전',
+        content: '여유 시간 15분 규칙 좋네요. 저도 그대로 적용해보겠습니다.',
+      }),
+    ],
+  },
+  {
+    id: 'community-102',
+    routeId: null,
+    boardType: BOARD_TYPES.FREE,
+    title: '카마쿠라 오전 촬영 팁 정리해봅니다',
+    summary: '역광 피하려면 8시~8시 30분 사이가 제일 무난했고, 바람 대비가 중요했습니다.',
+    content:
+      '지난 주말 기준으로 9시가 넘으면 대기 인원이 체감상 확 늘었습니다. 건널목 촬영은 셔터를 너무 느리게 가져가면 실패 컷이 많아서, 초행이면 셔터 우선으로 먼저 안전하게 찍는 걸 추천합니다.',
+    author: {
+      userId: 'coast_memo',
+      name: 'CoastMemo',
+      avatarLabel: 'CM',
+    },
+    createdAt: '2026-03-16T08:10:00+09:00',
+    publishedDateLabel: '2026.03.16',
+    publishedTimeLabel: '08:10',
+    tags: ['카마쿠라', '촬영팁'],
+    stats: {
+      views: 620,
+      likes: 41,
+    },
+    comments: [
+      createComment({
+        id: 'community-102-c1',
+        author: 'sunrise_trip',
+        avatarLabel: 'ST',
+        timeLabel: '어제',
+        content: '시간대 정보가 실제로 가장 도움이 되네요. 감사합니다.',
+      }),
+    ],
+  },
+  {
+    id: 'community-103',
+    routeId: null,
+    boardType: BOARD_TYPES.FREE,
+    title: '교토 골목 루트는 비 오는 날이 오히려 좋았어요',
+    summary: '사람이 적어서 천천히 보기 좋았고, 사진 톤도 오히려 분위기 있게 나왔습니다.',
+    content:
+      '비 오는 날 이동이 불편하긴 했지만, 메인 거리보다 골목 위주로 걷는 루트라면 만족도가 높았습니다. 우산 때문에 촬영이 불편할 수 있으니 손목 스트랩 있는 카메라나 가벼운 장비를 추천드립니다.',
+    author: {
+      userId: 'rain_kyoto',
+      name: 'RainKyoto',
+      avatarLabel: 'RK',
+    },
+    createdAt: '2026-03-15T19:48:00+09:00',
+    publishedDateLabel: '2026.03.15',
+    publishedTimeLabel: '19:48',
+    tags: ['교토', '우천', '분위기'],
+    stats: {
+      views: 358,
+      likes: 26,
+    },
+    comments: [],
+  },
+  {
+    id: 'community-104',
+    routeId: null,
+    boardType: BOARD_TYPES.FREE,
+    title: '처음 가는 분들을 위한 준비물 체크리스트',
+    summary: '배터리/보조배터리/편한 신발은 필수, 일정은 절대 빡빡하게 잡지 않는 걸 추천합니다.',
+    content:
+      '하루 안에 많은 스팟을 넣으면 결국 사진도 기억도 애매해지더라고요. 스팟 수를 줄이고 체류 시간을 늘리는 방식이 더 만족도가 높았습니다. 특히 이동 간 휴식 장소를 미리 정해두면 체력 소모가 크게 줄어요.',
+    author: {
+      userId: 'first_trip_lab',
+      name: 'FirstTripLab',
+      avatarLabel: 'FL',
+    },
+    createdAt: '2026-03-14T14:05:00+09:00',
+    publishedDateLabel: '2026.03.14',
+    publishedTimeLabel: '14:05',
+    tags: ['준비물', '초행', '팁'],
+    stats: {
+      views: 779,
+      likes: 63,
+    },
+    comments: [
+      createComment({
+        id: 'community-104-c1',
+        author: 'light_pack',
+        avatarLabel: 'LP',
+        timeLabel: '3일 전',
+        content: '체류 시간을 늘리라는 조언이 정말 공감됩니다.',
+      }),
+    ],
+  },
+];
 
-export const getMockPostDetail = (postId) =>
-  mockPostDetails.find((post) => String(post.id) === String(postId)) ?? null;
+// 공통 데이터 소스는 하나로 두고, 화면별로 routeId 조건으로 분기합니다.
+const allPostDetails = [...mockPostDetails, ...communityPostDetails];
+
+// createdAt이 없는 데이터도 정렬 가능하도록 publishedDateLabel을 보조값으로 사용합니다.
+const parseCreatedAt = (post) => {
+  if (!post) return 0;
+  if (post.createdAt) return new Date(post.createdAt).getTime();
+  if (post.publishedDateLabel) {
+    return new Date(`${post.publishedDateLabel.replaceAll('.', '-')}T00:00:00+09:00`).getTime();
+  }
+  return 0;
+};
+
+// 상세 데이터를 카드/목록 렌더링에 맞는 요약 모델로 변환합니다.
+const createSummary = (post) => ({
+  id: post.id,
+  routeId: post.routeId ?? null,
+  title: post.title,
+  content: post.summary ?? post.content ?? '',
+  userId: post.author?.name ?? post.author?.userId ?? '익명',
+  viewCount: post.stats?.views ?? 0,
+  likeCount: post.stats?.likes ?? 0,
+  commentCount: post.comments?.length ?? 0,
+  tags: post.tags ?? [],
+  imageUrl: post.entries?.[0]?.userImageUrl ?? post.entries?.[0]?.referenceImageUrl ?? '',
+  publishedAt: post.publishedDateLabel ?? '',
+  boardType: post.boardType ?? BOARD_TYPES.FREE,
+  category: post.routeId == null ? '커뮤니티' : '게시물',
+});
+
+// 최신/인기/조회 정렬 공통 함수
+const sortSummaries = (summaries, sortBy = 'latest') => {
+  const sorted = [...summaries];
+
+  if (sortBy === 'popular') {
+    return sorted.sort((a, b) => b.likeCount - a.likeCount);
+  }
+  if (sortBy === 'views') {
+    return sorted.sort((a, b) => b.viewCount - a.viewCount);
+  }
+  return sorted.sort((a, b) => parseCreatedAt(getPostDetailById(b.id)) - parseCreatedAt(getPostDetailById(a.id)));
+};
+
+// 상세 조회 공통 헬퍼
+const getPostDetailById = (postId) =>
+  allPostDetails.find((post) => String(post.id) === String(postId)) ?? null;
+
+// 검색어를 제목/본문/태그에 공통 적용합니다.
+const filterBySearch = (summaries, search = '') => {
+  const query = search.trim().toLowerCase();
+  if (!query) return summaries;
+
+  return summaries.filter((post) => {
+    const inTitle = post.title.toLowerCase().includes(query);
+    const inContent = post.content.toLowerCase().includes(query);
+    const inTags = post.tags.some((tag) => String(tag).toLowerCase().includes(query));
+    return inTitle || inContent || inTags;
+  });
+};
+
+/**
+ * routeId != null 인 "일반 게시물" 목록만 반환합니다.
+ * /posts(게시물 검색) 화면이 이 함수를 사용합니다.
+ */
+export const getRoutePosts = ({ tags = [], sortBy = 'views', search = '' } = {}) => {
+  const normalizedTags = tags.map((tag) => String(tag).trim()).filter(Boolean);
+  const routeSummaries = allPostDetails
+    .filter((post) => post.routeId != null)
+    .map(createSummary);
+
+  const withTagFilter =
+    normalizedTags.length > 0
+      ? routeSummaries.filter((post) => normalizedTags.every((tag) => post.tags.includes(tag)))
+      : routeSummaries;
+
+  return sortSummaries(filterBySearch(withTagFilter, search), sortBy);
+};
+
+/**
+ * routeId == null 인 "커뮤니티 글" 목록만 반환합니다.
+ * /community 및 홈 커뮤니티 미리보기의 원본 데이터입니다.
+ */
+export const getCommunityPosts = ({ search = '', sortBy = 'latest' } = {}) => {
+  const communitySummaries = allPostDetails
+    .filter((post) => post.routeId == null)
+    .map(createSummary);
+
+  return sortSummaries(filterBySearch(communitySummaries, search), sortBy);
+};
+
+// 홈 섹션에서 최신 N개만 보여줄 때 사용합니다.
+export const getCommunityPreviewPosts = (limit = 4) =>
+  getCommunityPosts({ sortBy: 'latest' }).slice(0, limit);
+
+export const mockPostSummaries = getRoutePosts();
+
+export const getMockPostDetail = (postId) => {
+  const post = getPostDetailById(postId);
+  // 상세 페이지 라우팅 보호: 커뮤니티 글은 일반 게시물 상세에서 제외
+  if (!post || post.routeId == null) return null;
+  return post;
+};
+
+export const getCommunityPostDetail = (postId) => {
+  const post = getPostDetailById(postId);
+  // 상세 페이지 라우팅 보호: 일반 route 게시글은 커뮤니티 상세에서 제외
+  if (!post || post.routeId != null) return null;
+  return post;
+};
+
+// 작성자 이름을 아바타 축약 라벨(최대 2글자)로 변환합니다.
+const buildAvatarLabel = (name = '나') =>
+  String(name)
+    .replace(/[^a-zA-Z0-9가-힣]/g, '')
+    .slice(0, 2)
+    .toUpperCase() || '나';
+
+const formatDateLabel = (date) => {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  return `${year}.${month}.${day}`;
+};
+
+const formatTimeLabel = (date) => {
+  const hour = `${date.getHours()}`.padStart(2, '0');
+  const minute = `${date.getMinutes()}`.padStart(2, '0');
+  return `${hour}:${minute}`;
+};
+
+/**
+ * 커뮤니티 목업 글 생성 유틸
+ * - 백엔드 연동 전 UI/플로우 점검용 함수
+ * - routeId를 null로 고정해 커뮤니티 데이터 규칙을 유지
+ */
+export const createCommunityMockPost = ({ title, content, authorName = '나', authorId = 'me' }) => {
+  const now = new Date();
+  const id = `community-${Date.now()}`;
+  const post = {
+    id,
+    routeId: null,
+    boardType: BOARD_TYPES.FREE,
+    title: title.trim(),
+    summary: content.trim().slice(0, 120),
+    content: content.trim(),
+    author: {
+      userId: authorId,
+      name: authorName,
+      avatarLabel: buildAvatarLabel(authorName),
+    },
+    createdAt: now.toISOString(),
+    publishedDateLabel: formatDateLabel(now),
+    publishedTimeLabel: formatTimeLabel(now),
+    tags: [],
+    stats: {
+      views: 0,
+      likes: 0,
+    },
+    comments: [],
+  };
+
+  communityPostDetails.unshift(post);
+  return post;
+};

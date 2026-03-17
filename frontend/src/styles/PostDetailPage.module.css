@@ -652,6 +652,17 @@
   gap: 12px;
 }
 
+.commentReadonlyNotice {
+  margin-top: 18px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px dashed rgba(139, 92, 246, 0.34);
+  background: rgba(139, 92, 246, 0.12);
+  color: #d7c7ff;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
 .commentTextarea {
   min-height: 112px;
   padding: 16px;
@@ -717,6 +728,73 @@
   margin-top: 8px;
   color: var(--pd-text-soft);
   line-height: 1.8;
+}
+
+.commentEditWrap {
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.commentEditTextarea {
+  width: 100%;
+  min-height: 96px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--pd-text);
+  font: inherit;
+  resize: vertical;
+}
+
+.commentEditTextarea:focus {
+  outline: none;
+  border-color: rgba(139, 92, 246, 0.45);
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.12);
+}
+
+.commentEditActions,
+.commentActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.commentActionButton,
+.commentEditCancelButton,
+.commentEditSaveButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--pd-text-soft);
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.commentActionButton:disabled,
+.commentEditCancelButton:disabled,
+.commentEditSaveButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.commentEditSaveButton {
+  border-color: rgba(139, 92, 246, 0.42);
+  background: rgba(139, 92, 246, 0.16);
+  color: #f3e8ff;
+}
+
+.commentActionDanger {
+  border-color: rgba(248, 113, 113, 0.38);
+  background: rgba(248, 113, 113, 0.12);
+  color: #fecaca;
 }
 
 .modalBackdrop {

@@ -1,0 +1,210 @@
+.pageShell {
+  width: 100%;
+}
+
+.pageCard {
+  width: 100%;
+  min-height: calc(100vh - 160px);
+  padding: 28px;
+  border: 1px solid #2d2d44;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(107, 70, 193, 0.14), transparent 28%),
+    radial-gradient(circle at 86% 6%, rgba(236, 72, 153, 0.1), transparent 22%),
+    #101026;
+  display: grid;
+  gap: 16px;
+}
+
+.backButton {
+  width: fit-content;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid #2d2d44;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #d5d7eb;
+  background: #1a1a2e;
+  font-size: 14px;
+}
+
+.headerCard,
+.contentCard {
+  padding: 20px;
+  border: 1px solid #2d2d44;
+  border-radius: 16px;
+  background: #17172d;
+}
+
+.headerCard {
+  display: grid;
+  gap: 12px;
+}
+
+.headerCard h1 {
+  margin: 0;
+  color: #fff;
+  font-size: 30px;
+  line-height: 1.25;
+}
+
+.titleInput {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(167, 139, 250, 0.34);
+  background: rgba(107, 70, 193, 0.16);
+  color: #fff;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.headerMeta {
+  margin: 0;
+  color: #b6b8ce;
+  font-size: 14px;
+}
+
+.tagRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tagRow span {
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  color: #f4b7df;
+  border: 1px solid rgba(167, 139, 250, 0.3);
+  background: rgba(107, 70, 193, 0.16);
+  font-size: 12px;
+}
+
+.contentCard h2 {
+  margin: 0 0 10px;
+  color: #fff;
+  font-size: 20px;
+}
+
+.contentCard p {
+  margin: 0;
+  color: #d4d6ea;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+.contentTextarea {
+  width: 100%;
+  min-height: 220px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid #2d2d44;
+  background: #101026;
+  color: #f4f4ff;
+  line-height: 1.8;
+  resize: vertical;
+  font: inherit;
+}
+
+.manageRow {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.manageButton {
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid #2d2d44;
+  background: #1a1a2e;
+  color: #d5d7eb;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.manageButtonDanger {
+  border-color: rgba(244, 114, 182, 0.34);
+  color: #ffd6eb;
+  background: rgba(190, 24, 93, 0.18);
+}
+
+.actionError {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(244, 114, 182, 0.36);
+  background: rgba(244, 114, 182, 0.14);
+  color: #ffd4e9;
+  font-size: 13px;
+}
+
+.notFoundCard {
+  min-height: calc(100vh - 160px);
+  border: 1px solid #2d2d44;
+  border-radius: 24px;
+  display: grid;
+  place-content: center;
+  gap: 10px;
+  text-align: center;
+  background: #101026;
+}
+
+.loadingCard {
+  min-height: calc(100vh - 160px);
+  border: 1px solid #2d2d44;
+  border-radius: 24px;
+  display: grid;
+  place-content: center;
+  gap: 8px;
+  text-align: center;
+  background: #101026;
+}
+
+.loadingCard p {
+  margin: 0;
+  color: #b6b8ce;
+}
+
+.notFoundCard h1 {
+  margin: 0;
+  color: #fff;
+}
+
+.notFoundCard p {
+  margin: 0;
+  color: #a0a0b8;
+}
+
+.notFoundCard .backButton {
+  margin: 4px auto 0;
+}
+
+@media (max-width: 768px) {
+  .pageCard {
+    padding: 20px;
+  }
+
+  .headerCard h1 {
+    font-size: 24px;
+  }
+
+  .titleInput {
+    font-size: 22px;
+  }
+
+  .manageRow {
+    justify-content: flex-start;
+  }
+}

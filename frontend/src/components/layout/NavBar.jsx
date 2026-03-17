@@ -9,9 +9,9 @@ const NavBar = () => {
   const navigate = useNavigate();
   const profileMenuRef = useRef(null);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
-  const { isLoggedIn, isInitialized, user, logout } = useAuthStore();
-  const hasAuthenticatedUser = Boolean(user?.userId || user?.nickname || user?.email);
-  const showProfileMenu = isLoggedIn && isInitialized && hasAuthenticatedUser;
+  const { isLoggedIn, logout } = useAuthStore();
+  // /auth/me 초기화 타이밍과 무관하게, 토큰 기준 로그인 상태면 메뉴를 안정적으로 노출합니다.
+  const showProfileMenu = isLoggedIn;
   const isGuestAction = !isLoggedIn;
   const ActionIcon = isGuestAction ? LogIn : Upload;
 

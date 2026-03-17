@@ -163,7 +163,8 @@ const PostCreatePage = () => {
   };
 
   return (
-    <MainLayout isMapPage={false} activeMenuKey="community">
+    // 루트 기반 게시물 작성 페이지이므로 사이드바 active는 posts로 고정합니다.
+    <MainLayout isMapPage={false} activeMenuKey="posts">
       <section className={styles.pageShell}>
         <header className={styles.pageHeader}>
           <span className={styles.pageEyebrow}>Post Creation</span>

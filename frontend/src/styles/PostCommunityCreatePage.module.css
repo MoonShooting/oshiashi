@@ -1,0 +1,162 @@
+.pageShell {
+  width: 100%;
+}
+
+.pageCard {
+  width: 100%;
+  min-height: calc(100vh - 160px);
+  padding: 28px;
+  border: 1px solid #2d2d44;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 10% 0%, rgba(107, 70, 193, 0.14), transparent 28%),
+    radial-gradient(circle at 90% 8%, rgba(236, 72, 153, 0.1), transparent 22%),
+    #101026;
+  display: grid;
+  gap: 18px;
+}
+
+.backButton {
+  width: fit-content;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid #2d2d44;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #d5d7eb;
+  background: #1a1a2e;
+  font-size: 14px;
+}
+
+.header {
+  display: grid;
+  gap: 8px;
+}
+
+.eyebrow {
+  width: fit-content;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  color: #d7c7ff;
+  border: 1px solid rgba(167, 139, 250, 0.38);
+  background: rgba(107, 70, 193, 0.2);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.header h1 {
+  margin: 0;
+  color: #fff;
+  font-size: 32px;
+  line-height: 1.2;
+}
+
+.header p {
+  margin: 0;
+  color: #b6b8ce;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.formSection {
+  display: grid;
+  gap: 10px;
+}
+
+.formSection label {
+  color: #d7d8ea;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.formSection input,
+.formSection textarea {
+  width: 100%;
+  border: 1px solid #2d2d44;
+  border-radius: 14px;
+  background: #17172d;
+  color: #f4f4ff;
+  font-size: 15px;
+}
+
+.formSection input {
+  min-height: 48px;
+  padding: 0 14px;
+}
+
+.formSection textarea {
+  min-height: 280px;
+  padding: 14px;
+  resize: vertical;
+  line-height: 1.7;
+}
+
+.submitError {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(244, 114, 182, 0.36);
+  background: rgba(244, 114, 182, 0.14);
+  color: #ffd4e9;
+  font-size: 13px;
+}
+
+.actionRow {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.cancelButton,
+.submitButton {
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.cancelButton {
+  border: 1px solid #2d2d44;
+  color: #d5d7eb;
+  background: #1a1a2e;
+}
+
+.submitButton {
+  border: 1px solid rgba(167, 139, 250, 0.42);
+  color: #fff;
+  background: linear-gradient(90deg, rgba(107, 70, 193, 0.7), rgba(236, 72, 153, 0.58));
+}
+
+.submitButtonDisabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .pageCard {
+    padding: 20px;
+  }
+
+  .header h1 {
+    font-size: 26px;
+  }
+
+  .actionRow {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .cancelButton,
+  .submitButton {
+    justify-content: center;
+  }
+}
