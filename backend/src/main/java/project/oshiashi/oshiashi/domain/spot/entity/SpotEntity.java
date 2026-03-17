@@ -6,6 +6,9 @@ import project.oshiashi.oshiashi.domain.artwork.entity.ArtworkEntity;
 
 import java.math.BigDecimal;
 
+
+@AllArgsConstructor
+@Builder
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
@@ -61,4 +64,13 @@ public class SpotEntity {
     // length를 300으로 수정
     @Column(name = "scene_image_url", length = 300, nullable = false, unique = true) // 유니크
     private String sceneImgUrl;
+    
+    //수정을 위한것이기 때문에 Id는 제외했습니다
+    public void update(String name, BigDecimal latitude, BigDecimal longitude, String address, String sceneImgUrl) {
+        this.name = name;
+        this.latitude = latitude;
+        this.longitude = longitude;
+        this.address = address;
+        this.sceneImgUrl = sceneImgUrl;
+    }
 }

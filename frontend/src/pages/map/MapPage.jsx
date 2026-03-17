@@ -44,6 +44,7 @@ export default function MapPage() {
     <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}>
       <MainLayout
         isMapPage={true} // 높이 100% CSS를 위한 필수 옵션
+        lockScroll={true}
         activeMenuKey="map"
         // 사이드바 영역
         leftSidebar={

@@ -10,9 +10,7 @@ public interface TagService {
 	
 	TagResponse createTag(TagRequest request);
 	
-	void deleteTag(Long tagId);
-	
-	List<TagResponse> searchTags(String keyword);
+	void deleteTagsByArtwork(Long artworkId);
 }
 /*
   인터페이스 분리 이유

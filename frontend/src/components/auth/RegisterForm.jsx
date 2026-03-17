@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import InputGroup from '@/components/input/InputGroup.jsx';
 import ActionInputGroup from '@/components/input/ActionInputGroup.jsx';
 import SubmitGuide from '@/components/input/SubmitGuide.jsx';
@@ -9,8 +10,10 @@ import { sendEmailAPI, verifyEmailAPI, registerAPI, checkEmailAPI, checkIdAPI, c
 import './RegisterForm.css';
 
 const RegisterForm = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     userId: '',
+    name: '',
     password: '',
     confirmPassword: '',
     nickname: '',
@@ -34,25 +37,24 @@ const RegisterForm = () => {
     if (name === 'userId') {
       const idRegex = /^[a-z0-9]{4,20}$/;
       if (!idRegex.test(value)) error = '4~20자의 영문 소문자, 숫자만 가능합니다.';
-      setStatus((prev) => ({ ...prev, isIdChecked: false })); // 아이디 수정 시 중복체크 초기화
+      setStatus((prev) => ({ ...prev, isIdChecked: false }));
     }
     if (name === 'nickname') {
       const nickRegex = /^[a-zA-Z0-9가-힣]{2,12}$/;
       if (!nickRegex.test(value)) {
         error = '2~12자의 한글, 영문, 숫자만 가능합니다.';
       }
-      // 값이 바뀌면 중복체크 상태 초기화 (다시 버튼 누르게 유도)
       setStatus((prev) => ({ ...prev, isNickNameChecked: false }));
     }
     if (name === 'password') {
-      if (value.length < 8 || value.length > 20) error = '8~20자로 입력해주세요.';
+      // 영문, 숫자, 특수문자가 각각 1개 이상 포함된 8~20자
+      const pwRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,20}$/;
+      if (!pwRegex.test(value)) {
+        error = '8~20자의 영문, 숫자, 특수문자를 포함해야 합니다.';
+      }
     }
     if (name === 'confirmPassword') {
       if (value !== formData.password) error = '비밀번호가 일치하지 않습니다.';
-    }
-    if (name === 'nickname') {
-      const nickRegex = /^[a-zA-Z0-9가-힣]{2,12}$/;
-      if (!nickRegex.test(value)) error = '2~12자의 한글, 영문, 숫자만 가능합니다.';
     }
     if (name === 'email') {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -68,20 +70,20 @@ const RegisterForm = () => {
     validate(name, value);
   };
 
-  //최종 버튼 활성화 조건
   const isFormValid =
     status.isIdChecked &&
     status.isNickNameChecked &&
     status.isEmailVerified &&
     !Object.values(errors).some((e) => e) &&
     formData.nickname &&
+    formData.name &&
     agreements.service &&
     agreements.privacy;
 
-  // --- 버튼 활성화를 위한 동적 안내 메시지 생성 ---
   const getSubmitGuideMessage = () => {
-    if (isFormValid) return null; // 모든 조건 충족 시 메시지 없음
+    if (isFormValid) return null;
     if (!status.isIdChecked) return '아이디 중복 확인이 필요합니다.';
+    if (!formData.name) return '이름을 입력해주세요.';
     if (!formData.nickname || errors.nickname) return '올바른 닉네임을 입력해주세요.';
     if (!status.isEmailVerified) return '이메일 인증을 완료해주세요.';
     if (!agreements.service || !agreements.privacy) return '필수 약관에 동의해주세요.';
@@ -91,12 +93,10 @@ const RegisterForm = () => {
   };
   const guideMessage = getSubmitGuideMessage();
 
-  // ----- API 연동 -----
-  //아이디 중복 체크
   const handleIdCheck = async () => {
     if (errors.userId || !formData.userId) return alert('유효한 아이디를 입력해주세요.');
     try {
-      await checkIdAPI(formData.userId); // API 함수 사용
+      await checkIdAPI(formData.userId);
       alert('사용 가능한 아이디입니다.');
       setStatus((prev) => ({ ...prev, isIdChecked: true }));
     } catch (e) {
@@ -104,29 +104,22 @@ const RegisterForm = () => {
     }
   };
 
-  //닉네임 중복체크 핸들러 (API 연동)
   const handleNickNameCheck = async () => {
-    // 에러 메시지가 있거나 빈값이면 API 안보냄.
     if (errors.nickname || !formData.nickname) return alert('유효한 닉네임을 입력해주세요.');
 
     try {
-      // Auth.js에 설정한 API 함수 호출
       await checkNicknameAPI(formData.nickname);
-
       alert('사용 가능한 닉네임입니다.');
       setStatus((prev) => ({ ...prev, isNickNameChecked: true }));
     } catch (e) {
-      // 400이나 409 등 에러 응답 시 FetchClient가 던지는 메시지
       alert(e.message || '이미 사용 중인 닉네임입니다.');
       setStatus((prev) => ({ ...prev, isNickNameChecked: false }));
     }
   };
 
-  // 이메일 중복 체크 및 발송 부분 수정
   const handleEmailCheckAndSend = async () => {
     if (errors.email || !formData.email) return alert('유효한 이메일을 입력해주세요.');
     try {
-      // checkEmailAPI 함수 사용
       await checkEmailAPI(formData.email);
       await sendEmailAPI(formData.email);
 
@@ -141,38 +134,42 @@ const RegisterForm = () => {
     if (!formData.authCode) return alert('인증번호를 입력해주세요.');
 
     try {
-      // verifyEmailAPI 함수 사용
       await verifyEmailAPI(formData.email, formData.authCode);
-
       alert('인증에 성공했습니다.');
       setStatus((prev) => ({ ...prev, isEmailVerified: true }));
     } catch (e) {
-      // FetchClient에서 에러를 던지므로 catch에서 메시지 처리
       alert(e.message || '인증번호가 일치하지 않습니다.');
       setStatus((prev) => ({ ...prev, isEmailVerified: false }));
     }
   };
 
-  // 회원가입 제출 부분 수정
   const handleSignup = async (e) => {
     e.preventDefault();
     try {
-      await registerAPI(formData); // register API 호출하여 사용
+      const { userId, name, email, password, nickname } = formData;
+      await registerAPI({ userId, name, email, password, nickname });
+
       alert('회원가입이 완료되었습니다!');
-      // 이후 로그인 페이지 이동 로직 등 추가
+      navigate('/login'); // 이동할 화면: 메인 화면으로 이동하고 싶으면 '/'로 작성
     } catch (e) {
       alert(e.message || '가입 실패');
     }
   };
+
+  // 필수 항목 표시를 위한 공통 컴포넌트
+  const RequiredLabel = ({ text }) => (
+    <span>
+      {text} <span className="required-asterisk">*</span>
+    </span>
+  );
 
   return (
     <div className="register-container">
       <form className="register-content" onSubmit={handleSignup}>
         <h3>회원가입</h3>
 
-        {/* 아이디 중복체크 버튼 */}
         <ActionInputGroup
-          label="아이디"
+          label={<RequiredLabel text="아이디" />}
           name="userId"
           value={formData.userId}
           onChange={handleChange}
@@ -181,10 +178,17 @@ const RegisterForm = () => {
           error={errors.userId}
           successMsg={status.isIdChecked && '사용 가능한 아이디입니다.'}
         />
-
-        <InputGroup label="비밀번호" type="password" name="password" value={formData.password} onChange={handleChange} error={errors.password} />
+        <InputGroup label={<RequiredLabel text="이름(실명)" />} name="name" value={formData.name} onChange={handleChange} error={errors.name} />
         <InputGroup
-          label="비밀번호 확인"
+          label={<RequiredLabel text="비밀번호" />}
+          type="password"
+          name="password"
+          value={formData.password}
+          onChange={handleChange}
+          error={errors.password}
+        />
+        <InputGroup
+          label={<RequiredLabel text="비밀번호 확인" />}
           type="password"
           name="confirmPassword"
           value={formData.confirmPassword}
@@ -192,9 +196,8 @@ const RegisterForm = () => {
           error={errors.confirmPassword}
         />
 
-        {/* 닉네임 버튼 */}
         <ActionInputGroup
-          label="닉네임"
+          label={<RequiredLabel text="닉네임" />}
           name="nickname"
           value={formData.nickname}
           onChange={handleChange}
@@ -206,7 +209,7 @@ const RegisterForm = () => {
         />
 
         <ActionInputGroup
-          label="이메일"
+          label={<RequiredLabel text="이메일" />}
           name="email"
           value={formData.email}
           onChange={handleChange}
@@ -219,6 +222,7 @@ const RegisterForm = () => {
 
         {status.isEmailSent && (
           <ActionInputGroup
+            label={<RequiredLabel text="인증번호" />}
             placeholder="인증번호 6자리"
             name="authCode"
             value={formData.authCode}
@@ -253,7 +257,9 @@ const RegisterForm = () => {
                 onChange={() => setAgreements((prev) => ({ ...prev, [type]: !prev[type] }))}
                 id={type}
               />
-              <label htmlFor={type}>(필수) {type === 'service' ? '이용약관 동의' : '개인정보 처리방침 동의'}</label>
+              <label htmlFor={type}>
+                <span className="required-asterisk">*</span>(필수) {type === 'service' ? '이용약관 동의' : '개인정보 처리방침 동의'}
+              </label>
               <button
                 type="button"
                 className="btn-view"
@@ -268,7 +274,6 @@ const RegisterForm = () => {
           ))}
         </div>
 
-        {/* 가이드 메시지 및 버튼 영역 */}
         <div className="submit-area" style={{ marginTop: '20px', textAlign: 'center' }}>
           <SubmitGuide message={guideMessage} />
           <Button type="submit" className="register-submit-button" variant="primary" size="lg" disabled={!isFormValid}>

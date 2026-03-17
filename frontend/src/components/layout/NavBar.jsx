@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Menu, Search, Upload } from 'lucide-react';
+import { ChevronDown, LogIn, Menu, Upload } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { SidebarTrigger } from '@/components/layout/SidebarContext';
 import { useAuthStore } from '@/stores/useAuthStore';
@@ -12,6 +12,12 @@ const NavBar = () => {
   const { isLoggedIn, isInitialized, user, logout } = useAuthStore();
   const hasAuthenticatedUser = Boolean(user?.userId || user?.nickname || user?.email);
   const showProfileMenu = isLoggedIn && isInitialized && hasAuthenticatedUser;
+  const isGuestAction = !isLoggedIn;
+  const ActionIcon = isGuestAction ? LogIn : Upload;
+
+  const handlePrimaryAction = () => {
+    navigate(isGuestAction ? '/login' : '/posts/create');
+  };
 
   // 프로필 메뉴는 버튼 외부를 누르면 닫히도록 처리해, 상단 UI가 계속 열린 채 남지 않게 합니다.
   useEffect(() => {
@@ -42,20 +48,26 @@ const NavBar = () => {
         <SidebarTrigger className={styles.menuBtn}>
           <Menu size={20} strokeWidth={2.2} />
         </SidebarTrigger>
-        <h1 className={styles.logo} lang="ja">
+        <h1
+          className={styles.logo}
+          lang="ja"
+          role="button"
+          tabIndex={0}
+          onClick={() => navigate('/')}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              navigate('/');
+            }
+          }}>
           推し足 (Oshiashi)
         </h1>
       </div>
 
-      <form className={styles.searchWrapper} onSubmit={(e) => e.preventDefault()}>
-        <Search className={styles.searchIcon} strokeWidth={2.4} />
-        <input type="text" placeholder="작품명, 장소, 태그 검색..." className={styles.searchInput} />
-      </form>
-
       <div className={styles.navRight}>
-        <button className={styles.uploadBtn} onClick={() => navigate('/posts/create')}>
-          <Upload className={styles.uploadIcon} strokeWidth={2.1} />
-          <span>게시물 작성</span>
+        <button type="button" className={styles.uploadBtn} onClick={handlePrimaryAction}>
+          <ActionIcon className={styles.uploadIcon} strokeWidth={2.1} />
+          <span>{isGuestAction ? '로그인하기' : '게시물 작성'}</span>
         </button>
 
         {showProfileMenu ? (

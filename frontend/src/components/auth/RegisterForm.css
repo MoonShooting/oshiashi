@@ -1,3 +1,9 @@
+.required-asterisk {
+  color: #ff4d4f; /* 눈에 띄는 빨간색 */
+  margin-left: 4px;
+  font-weight: bold;
+}
+
 .register-container {
   width: 100%;
   padding: 44px 48px 40px;

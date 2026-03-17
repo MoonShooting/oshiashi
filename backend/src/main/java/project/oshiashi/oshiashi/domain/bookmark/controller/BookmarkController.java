@@ -16,57 +16,45 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 // API 명세에 맞춰 수정
-@RequestMapping("/api/v1")
+@RequestMapping("/api/v1/bookmarks")
 public class BookmarkController {
 
     private final BookmarkService bookmarkService;
-
-    // 북마크 생성
+    
+    /**
+     * 북마크 생성
+     * POST /api/bookmarks
+     */
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public BookmarkResponse createBookmark(
+    public ResponseEntity<BookmarkResponse> createBookmark(
             @RequestParam String userId,
-            @RequestBody BookmarkCreateRequest request
-    ) {
-        return bookmarkService.createBookmark(userId, request);
+            @RequestBody BookmarkCreateRequest request) {
+        
+        BookmarkResponse response = bookmarkService.createBookmark(userId, request);
+        
+        // 서비스에서 중복 등의 이유로 null을 반환했을 경우 (명세서 2번: 삽입 중단)
+        if (response == null) {
+            // 204 No Content 혹은 200 OK로 '변화 없음'을 알림
+            return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+        }
+        
+        // 정상 생성 시 201 Created 응답
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
-
-    // 북마크 목록 조회
-    @GetMapping
-    public List<BookmarkResponse> getBookmarks(@RequestParam String userId) {
-        return bookmarkService.getBookmarksByUser(userId);
-    }
-
-    // 북마크 삭제
+    
+    /**
+     * 북마크 삭제
+     * DELETE /api/bookmarks/{bookmarkId}
+     */
     @DeleteMapping("/{bookmarkId}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteBookmark(
-            @PathVariable Long bookmarkId,
-            @RequestParam String userId
-    ) {
+    public ResponseEntity<Void> deleteBookmark(
+            @RequestParam String userId,
+            @PathVariable Long bookmarkId) {
+        
         bookmarkService.deleteBookmark(userId, bookmarkId);
+        
+        // 삭제 성공 시 204 No Content 반환
+        return ResponseEntity.noContent().build();
     }
     
-    /**
-     * 1) 북마크 토글 (ON/OFF)
-     * POST /api/v1/posts/{postId}/bookmark
-     * 결과: true(북마크 됨), false(북마크 해제됨)
-     */
-    @PostMapping("/posts/{postId}/bookmark")
-    public ResponseEntity<Boolean> toggleBookmark(@PathVariable Long postId) {
-        log.debug("북마크 토글 요청 - 게시글 ID: {}", postId);
-        boolean isBookmarked = bookmarkService.toggleBookmark(postId);
-        return ResponseEntity.ok(isBookmarked);
-    }
-    
-    /**
-     * 2) 내 북마크 목록 조회 (마이페이지용)
-     * 마이페이지에서 북마크 조회 누르면 작동합니
-     */
-    @GetMapping("user/bookmarks")
-    public ResponseEntity<List<PostResponse>> getMyBookmarks() {
-        log.debug("내 북마크 목록 조회 요청");
-        List<PostResponse> myBookmarks = bookmarkService.getMyBookmarks();
-        return ResponseEntity.ok(myBookmarks);
-    }
 }

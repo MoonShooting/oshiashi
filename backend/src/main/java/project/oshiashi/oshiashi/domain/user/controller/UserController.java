@@ -1,15 +1,21 @@
 package project.oshiashi.oshiashi.domain.user.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import project.oshiashi.oshiashi.domain.user.dto.UserResponse;
 import project.oshiashi.oshiashi.domain.user.service.UserService;
 
+import java.util.List;
+import java.util.Map;
+
 /**
- * [사용자 정보 관리 컨트롤러]
- * 설계서 경로: /api/v1/user/**
- * 담당 기능: 마이페이지 조회, 정보 수정, 회원 탈퇴 등 (인증된 유저 전용)
+ * [UserController: 사용자 정보 및 활동 관리 컨트롤러]
+ * - 담당 경로: /api/v1/user/**
+ * - 역할: 마이페이지 정보 조회, 개인정보 수정, 사용자가 작성한 콘텐츠(글, 댓글 등) 목록 제공.
  */
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/user")
 @RequiredArgsConstructor
@@ -17,7 +23,61 @@ public class UserController {
 
 	private final UserService userService;
 
-	/*
-	 * TODO: 마이페이지 프로필 조회 (GET /api/v1/user/profile)
-	 */
+	// 내 정보 상세 조회: /api/v1/user/me
+	@GetMapping("/me")
+	public ResponseEntity<UserResponse> getMyInfo() {
+		log.info("[API] 내 정보 조회 호출!");
+		return ResponseEntity.ok(userService.getMyInfo());
+	}
+
+	// 회원 프로필 요약 조회: /api/v1/user/profile
+	@GetMapping("/profile")
+	public ResponseEntity<?> getUserProfile() {
+		log.info("[API] 프로필 요약 조회 호출");
+		return ResponseEntity.ok(userService.getUserProfile());
+	}
+
+	// 내 루트 목록 조회: /api/v1/user/myRoute
+	@GetMapping("/myRoute")
+	public ResponseEntity<List<?>> getMyRoutes() {
+		log.info("[API] 내 루트 목록 조회 호출");
+		return ResponseEntity.ok(userService.getMyRoutes());
+	}
+
+	// 내가 쓴 글 목록 조회: /api/v1/user/posts
+	@GetMapping("/posts")
+	public ResponseEntity<List<?>> getMyPosts() {
+		log.info("[API] 내가 쓴 글 조회 호출");
+		return ResponseEntity.ok(userService.getMyPosts());
+	}
+
+	// 내가 쓴 댓글 목록 조회: /api/v1/user/comments
+	@GetMapping("/comments")
+	public ResponseEntity<List<?>> getMyComments() {
+		log.info("[API] 내가 쓴 댓글 조회 호출");
+		return ResponseEntity.ok(userService.getMyComments());
+	}
+
+	// 북마크 목록 조회: /api/v1/user/myBookmarks
+	@GetMapping("/myBookmarks")
+	public ResponseEntity<List<?>> getMyBookmarks() {
+		log.info("[API] 북마크 조회 호출");
+		return ResponseEntity.ok(userService.getMyBookmarks());
+	}
+
+	// 보유 칭호 목록 조회: /api/v1/user/achievement
+	@GetMapping("/achievement")
+	public ResponseEntity<List<?>> getMyAchievements() {
+		log.info("[API] 칭호 목록 조회 호출");
+		return ResponseEntity.ok(userService.getMyAchievements());
+	}
+
+	// 대표 칭호 변경: /api/v1/user/mainAchievement
+	@PatchMapping("/mainAchievement")
+	public ResponseEntity<String> updateMainAchievement(@RequestBody Map<String, Long> request) {
+		Long achievementId = request.get("achievementId");
+		log.info("[API] 대표 칭호 변경 호출: {}", achievementId);
+		userService.updateMainAchievement(achievementId);
+		return ResponseEntity.ok("대표 칭호가 변경되었습니다.");
+	}
 }

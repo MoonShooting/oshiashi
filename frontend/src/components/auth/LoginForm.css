@@ -75,14 +75,20 @@
 
 .login-field-icon {
   position: absolute;
-  left: 14px;
-  top: 54px;
-  transform: translateY(-50%);
-  z-index: 1;
-  color: #71717a;
+  left: 20px;
+  bottom: 16px;
+  z-index: 2;
+  color: #8f90a6;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   pointer-events: none;
+}
+
+.login-field-icon svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2;
 }
 
 .login-field .input-group {
@@ -97,15 +103,15 @@
   color: #a0a0ab;
 }
 
-.login-input {
+.login-field .input-group input.login-input {
   background-color: #252533;
   border: 1px solid #333345;
   border-radius: 8px;
-  padding: 12px 16px 12px 42px;
+  padding: 0 16px 0 64px;
   color: white;
 }
 
-.login-input:focus {
+.login-field .input-group input.login-input:focus {
   border-color: #9d50bb;
 }
 

@@ -9,7 +9,7 @@ import project.oshiashi.oshiashi.domain.tag.entity.TagEntity;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(
-        name = "User_tag"
+        name = "user_tag"
         /*,uniqueConstraints = {
                 @UniqueConstraint(
                         name = "UX_user_tag_user_tag",

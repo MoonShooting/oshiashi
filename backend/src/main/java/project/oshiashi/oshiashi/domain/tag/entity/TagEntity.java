@@ -40,4 +40,12 @@ public class TagEntity {
 
     @Column(name = "tag_name", length = 100, nullable = false, unique = true) // 유니크 추가
     private String tagName;
+
+    /**
+     * TagEntity 객체를 생성하는 생성자입니다.
+     */
+    public TagEntity(ArtworkEntity artwork, String cleanName) {
+        this.artwork = artwork; // 타입이 ArtworkEntity, 전달받은 'artwork' 객체를 엔티티 내부의 'artwork' 필드에 대입합니다.
+        this.tagName = cleanName; // 가공(Trim, 소문자화)된 태그 이름인 'cleanName' 을 엔티티의 'tagName' 필드에 대입합니다.
+    }
 }

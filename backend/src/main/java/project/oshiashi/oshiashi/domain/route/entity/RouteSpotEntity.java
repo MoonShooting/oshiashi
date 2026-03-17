@@ -37,4 +37,26 @@ public class RouteSpotEntity {
 
     @Column(name = "visit_order", nullable = false)
     private Integer visitOrder = 1;
+
+    // RouteSpot 생성용 빌더
+    @Builder
+    private RouteSpotEntity(RouteEntity route, SpotEntity spot, Integer visitOrder) {
+        this.route = route;
+        this.spot = spot;
+        this.visitOrder = visitOrder;
+    }
+
+    // RouteSpot 생성 팩토리 메서드
+    public static RouteSpotEntity of(RouteEntity route, SpotEntity spot, Integer visitOrder) {
+        return RouteSpotEntity.builder()
+                .route(route)
+                .spot(spot)
+                .visitOrder(visitOrder != null ? visitOrder : 1)
+                .build();
+    }
+
+    // visitOrder 수정 메서드
+    public void updateVisitOrder(Integer visitOrder) {
+        this.visitOrder = visitOrder;
+    }
 }

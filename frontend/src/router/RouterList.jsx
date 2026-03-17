@@ -9,6 +9,7 @@ import MyPage from '@/pages/MyPage';
 import AchievementsPage from '@/pages/AchievementsPage';
 import ArtworkSearchPage from '@/pages/post/ArtworkSearchPage';
 import PostCreatePage from '@/pages/post/PostCreatePage';
+import PostDetailPage from '@/pages/post/PostDetailPage';
 import PostSearchResultPage from '@/pages/post/PostSearchResultPage';
 
 const authList = [
@@ -25,6 +26,8 @@ const mapList = [
 const postList = [
   { path: '/artworks', element: <ArtworkSearchPage /> },
   { path: '/posts/create', element: <PostCreatePage /> },
+  { path: '/posts/:postId', element: <PostDetailPage /> },
+  { path: '/post/:postId', element: <PostDetailPage /> },
   { path: '/posts', element: <PostSearchResultPage /> },
 ];
 

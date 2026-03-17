@@ -5,7 +5,7 @@ import InputGroup from '@/components/input/InputGroup.jsx';
 import Button from '@/components/common/Button.jsx';
 import { loginAPI } from '@/api/auth.js';
 import { useAuthStore } from '@/stores/useAuthStore.js';
-import './LoginForm.css';
+import '@/components/auth/LoginForm.css';
 
 const LoginForm = () => {
   const navigate = useNavigate();
@@ -24,23 +24,16 @@ const LoginForm = () => {
     setFormError('');
 
     try {
-      // LoginForm은 fetch를 직접 호출하지 않고, 팀 공통 api 레이어만 사용합니다.
-      // 이렇게 해야 엔드포인트 변경이나 에러 처리 규칙이 한 곳에 모입니다.
-      const token = await loginAPI(loginData);
+      // API 호출: 백엔드에서 토큰과 유저 정보(userInfo)를 같이 준다고 가정
+      const { token, userInfo } = await loginAPI(loginData);
 
-      // 현재 로그인 응답은 토큰 중심이므로, 화면에서 즉시 필요한 최소 사용자 정보만 임시로 구성합니다.
-      // 추후 /me 응답이 확장되면 이 부분은 fetchMe 결과로 대체할 수 있습니다.
-      const tempUser = { userId: loginData.userId };
-
-      // 로그인 유지 체크 여부에 따라 저장소가 local/session으로 갈리므로
-      // rememberMe 값을 함께 넘겨 실제 저장 정책까지 맞춥니다.
-      login(tempUser, token, rememberMe);
+      // 상태 관리 스토어 저장: 실제 닉네임 등이 담긴 userInfo와 토큰 저장
+      login(userInfo, token, rememberMe);
 
       // 인증 상태가 반영되면 홈으로 이동합니다.
       navigate('/');
     } catch (error) {
       console.error('로그인 에러:', error);
-      // 서버가 내려준 메시지를 폼 내부에 보여주면 사용자가 다시 입력하기가 더 수월합니다.
       setFormError(error.message || '아이디 또는 비밀번호를 확인해주세요.');
     }
   };
@@ -86,7 +79,7 @@ const LoginForm = () => {
               name="userId"
               value={loginData.userId}
               onChange={handleChange}
-              placeholder="user_id 또는 email 입력"
+              placeholder="아이디를 입력하세요"
               autoComplete="username"
               inputClassName="login-input"
             />
@@ -110,12 +103,7 @@ const LoginForm = () => {
 
           <div className="form-options">
             <label className="remember-me">
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-              />{' '}
-              로그인 유지
+              <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} /> 로그인 유지
             </label>
             <div className="find-links">
               {/* state에 tab 정보를 담아서 보냅니다 */}
