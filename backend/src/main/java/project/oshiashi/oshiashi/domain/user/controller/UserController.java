@@ -71,7 +71,7 @@ public class UserController {
 		return ResponseEntity.ok(userService.getMyComments());
 	}
 
-	// 북마크 목록 조회: /api/v1/user/bookmarks
+	// 북마크 목록 조회: /api/v1/user/myBookmarks
 	@GetMapping("/myBookmarks")
 	public ResponseEntity<List<?>> getMyBookmarks() {
 		log.info("[API] 북마크 조회 호출");
