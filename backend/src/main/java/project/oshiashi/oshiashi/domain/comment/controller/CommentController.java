@@ -30,7 +30,7 @@ public class CommentController {
     }
     
     // 2. 특정 게시글에 달린 모든 댓글 목록을 조회합니다.
-    @GetMapping("/{postId}/comments")
+    @GetMapping("/posts/{postId}/comments")
     public ResponseEntity<List<CommentResponse>> getCommentsByPost(
             @PathVariable(name = "postId") Long postId
     ) {
