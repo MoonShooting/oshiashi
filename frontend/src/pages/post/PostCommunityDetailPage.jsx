@@ -1,34 +1,29 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Pencil, Save, Trash2, XCircle } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import MainLayout from '@/components/layout/MainLayout';
+import PostDiaryCard from '@/components/post/detail/PostDiaryCard';
 import PostCommentSection from '@/components/post/detail/PostCommentSection';
 import {
+  createCommunityBookmark,
   createCommunityComment,
+  deleteCommunityBookmark,
+  deleteCommunityComment,
   deleteCommunityPost,
   fetchCommunityPostById,
-  deleteCommunityComment,
+  fetchMyCommunityBookmarks,
+  likeCommunityPost,
   updateCommunityComment,
   updateCommunityPost,
 } from '@/api/communityApi';
 import { useAuthStore } from '@/stores/useAuthStore';
-import styles from '@/styles/PostCommunityDetailPage.module.css';
+import styles from '@/styles/PostDetailPage.module.css';
 
-const formatDateTime = (isoString) => {
-  if (!isoString) return '-';
-
-  const date = new Date(isoString);
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, '0');
-  const day = `${date.getDate()}`.padStart(2, '0');
-  const hours = `${date.getHours()}`.padStart(2, '0');
-  const minutes = `${date.getMinutes()}`.padStart(2, '0');
-  return `${year}.${month}.${day} ${hours}:${minutes}`;
-};
-
-// 커뮤니티 자유게시판 상세
-// - 비로그인: 조회만 허용
-// - 로그인 작성자: 게시글/댓글 수정·삭제 가능
+/*
+[PostCommunityDetailPage]
+- 커뮤니티 상세를 게시물 상세 컴포넌트(PostDiaryCard/PostCommentSection)로 조립
+- 기능: 본인 글 수정/삭제, 댓글 CRUD, 좋아요, 북마크
+*/
 const PostCommunityDetailPage = () => {
   const navigate = useNavigate();
   const { postId } = useParams();
@@ -47,31 +42,49 @@ const PostCommunityDetailPage = () => {
   const [editContent, setEditContent] = useState('');
   const [isSavingPost, setIsSavingPost] = useState(false);
 
+  const [likeBusy, setLikeBusy] = useState(false);
+  const [liked, setLiked] = useState(false);
+
+  const [bookmarkBusy, setBookmarkBusy] = useState(false);
+  const [bookmarkInfo, setBookmarkInfo] = useState(null);
+
   const [actionError, setActionError] = useState('');
 
-  // 인증 응답 스키마 차이(userId/id)를 흡수해 현재 로그인 사용자를 통일해서 비교합니다.
   const currentUserId = user?.userId || user?.id || '';
-
-  // 게시글 수정/삭제 버튼 노출 기준: "로그인 + 작성자 본인".
-  const isAuthor = Boolean(post && currentUserId && post.author?.userId === currentUserId);
+  const isAuthor = Boolean(
+    post && currentUserId && String(post.author?.userId) === String(currentUserId),
+  );
 
   useEffect(() => {
-    // 상세 페이지 언마운트 이후 비동기 완료가 와도 setState 하지 않도록 가드합니다.
     let alive = true;
 
     const loadPost = async () => {
       setIsLoading(true);
       setLoadError('');
       setActionError('');
-      // 다른 글로 이동하면 기존 편집 상태를 초기화합니다.
+      setLiked(false);
       setIsEditingPost(false);
+      setBookmarkInfo(null);
 
       try {
         const found = await fetchCommunityPostById(postId);
-        if (!alive) return;
 
+        if (!alive) return;
         setPost(found);
         setCommentInput('');
+
+        if (found && isLoggedIn && currentUserId) {
+          try {
+            const bookmarks = await fetchMyCommunityBookmarks({ userId: currentUserId });
+            if (!alive) return;
+
+            const matched =
+              bookmarks.find((bookmark) => String(bookmark.postId) === String(found.id)) ?? null;
+            setBookmarkInfo(matched);
+          } catch {
+            setBookmarkInfo(null);
+          }
+        }
       } catch (error) {
         if (!alive) return;
 
@@ -89,12 +102,30 @@ const PostCommunityDetailPage = () => {
     return () => {
       alive = false;
     };
-  }, [postId]);
+  }, [postId, isLoggedIn, currentUserId]);
+
+  // PostDiaryCard에 맞추는 커뮤니티 전용 가상 entry 모델
+  const diaryEntry = useMemo(
+    () => ({
+      id: `community-entry-${post?.id ?? '0'}`,
+      title: post?.title ?? '',
+      artworkTitle: '커뮤니티 자유게시판',
+      address: '커뮤니티',
+      referenceImageUrl: '',
+      userImageUrl: '',
+      sceneNote: isEditingPost ? editContent : post?.content ?? '',
+      soundtrack: '기록된 OST 없음',
+      visitTimeLabel: post?.publishedTimeLabel ?? '-',
+      moodTags: Array.isArray(post?.tags) ? post.tags : [],
+    }),
+    [post, isEditingPost, editContent],
+  );
 
   const handleStartEdit = () => {
-    if (!post) return;
-    setEditTitle(post.title);
-    setEditContent(post.content);
+    if (!post || !isAuthor) return;
+
+    setEditTitle(post.title ?? '');
+    setEditContent(post.content ?? '');
     setActionError('');
     setIsEditingPost(true);
   };
@@ -103,11 +134,9 @@ const PostCommunityDetailPage = () => {
     setIsEditingPost(false);
     setEditTitle('');
     setEditContent('');
-    setActionError('');
   };
 
   const handleSavePost = async () => {
-    // UI에서 버튼을 숨기더라도, 핸들러 자체에서도 권한/중복요청을 한 번 더 차단합니다.
     if (!post || !isAuthor || isSavingPost) return;
 
     setActionError('');
@@ -139,10 +168,7 @@ const PostCommunityDetailPage = () => {
     setIsSavingPost(true);
 
     try {
-      await deleteCommunityPost({
-        postId: post.id,
-      });
-
+      await deleteCommunityPost({ postId: post.id });
       navigate('/community');
     } catch (error) {
       setActionError(error.message || '게시글 삭제에 실패했습니다.');
@@ -150,8 +176,62 @@ const PostCommunityDetailPage = () => {
     }
   };
 
+  const handleToggleLike = async () => {
+    if (!post || likeBusy) return;
+
+    if (!isLoggedIn) {
+      navigate('/login');
+      return;
+    }
+
+    setActionError('');
+    setLikeBusy(true);
+
+    try {
+      const refreshed = await likeCommunityPost({ postId: post.id });
+      setPost(refreshed);
+      setLiked(true);
+    } catch (error) {
+      setActionError(error.message || '좋아요 처리에 실패했습니다.');
+    } finally {
+      setLikeBusy(false);
+    }
+  };
+
+  const handleToggleBookmark = async () => {
+    if (!post || bookmarkBusy) return;
+
+    if (!isLoggedIn) {
+      navigate('/login');
+      return;
+    }
+
+    setActionError('');
+    setBookmarkBusy(true);
+
+    try {
+      if (bookmarkInfo?.bookmarkId) {
+        await deleteCommunityBookmark({
+          bookmarkId: bookmarkInfo.bookmarkId,
+          userId: currentUserId,
+        });
+        setBookmarkInfo(null);
+      } else {
+        const created = await createCommunityBookmark({
+          postId: post.id,
+          userId: currentUserId,
+          bookmarkName: `${post.title} 북마크`,
+        });
+        setBookmarkInfo(created ?? null);
+      }
+    } catch (error) {
+      setActionError(error.message || '북마크 처리에 실패했습니다.');
+    } finally {
+      setBookmarkBusy(false);
+    }
+  };
+
   const handleSubmitComment = async () => {
-    // 비로그인 사용자는 조회만 가능, 댓글 작성은 차단합니다.
     if (!post || !isLoggedIn || isSubmittingComment) return;
 
     const next = commentInput.trim();
@@ -161,12 +241,12 @@ const PostCommunityDetailPage = () => {
     setIsSubmittingComment(true);
 
     try {
-      const updatedPost = await createCommunityComment({
+      const updated = await createCommunityComment({
         postId: post.id,
         content: next,
       });
 
-      setPost(updatedPost);
+      setPost(updated);
       setCommentInput('');
     } catch (error) {
       setActionError(error.message || '댓글 등록에 실패했습니다.');
@@ -179,16 +259,15 @@ const PostCommunityDetailPage = () => {
     if (!post) return;
 
     setActionError('');
-    // 댓글별 busy 상태를 둬서 동시에 여러 수정/삭제 요청이 겹치지 않게 합니다.
     setCommentBusyId(String(commentId));
 
     try {
-      const updatedPost = await updateCommunityComment({
+      const updated = await updateCommunityComment({
         postId: post.id,
         commentId,
         content: nextContent,
       });
-      setPost(updatedPost);
+      setPost(updated);
     } catch (error) {
       setActionError(error.message || '댓글 수정에 실패했습니다.');
     } finally {
@@ -203,11 +282,11 @@ const PostCommunityDetailPage = () => {
     setCommentBusyId(String(commentId));
 
     try {
-      const updatedPost = await deleteCommunityComment({
+      const updated = await deleteCommunityComment({
         postId: post.id,
         commentId,
       });
-      setPost(updatedPost);
+      setPost(updated);
     } catch (error) {
       setActionError(error.message || '댓글 삭제에 실패했습니다.');
     } finally {
@@ -219,7 +298,7 @@ const PostCommunityDetailPage = () => {
     return (
       <MainLayout isMapPage={false} activeMenuKey="community">
         <section className={styles.pageShell}>
-          <div className={styles.loadingCard}>
+          <div className={styles.notFoundCard}>
             <p>커뮤니티 게시글을 불러오는 중입니다.</p>
           </div>
         </section>
@@ -246,45 +325,50 @@ const PostCommunityDetailPage = () => {
 
   return (
     <MainLayout isMapPage={false} activeMenuKey="community">
-      <section className={styles.pageShell}>
-        <div className={styles.pageCard}>
+      <section className={styles.pageShell} style={{ '--post-detail-bg': 'none' }}>
+        <div className={styles.backgroundGlow} />
+
+        <div className={styles.pageInner}>
           <button type="button" className={styles.backButton} onClick={() => navigate('/community')}>
             <ArrowLeft size={16} />
             목록으로
           </button>
 
           <header className={styles.headerCard}>
+            <p className={styles.headerEyebrow}>Community Detail</p>
+
             {isEditingPost ? (
-              <input
-                className={styles.titleInput}
-                value={editTitle}
-                onChange={(event) => setEditTitle(event.target.value)}
-                placeholder="제목을 입력해 주세요."
-              />
+              <div className={styles.postEditWrap}>
+                <input
+                  className={styles.postEditInput}
+                  value={editTitle}
+                  onChange={(event) => setEditTitle(event.target.value)}
+                  placeholder="제목을 입력해 주세요."
+                />
+                <textarea
+                  className={styles.postEditTextarea}
+                  value={editContent}
+                  onChange={(event) => setEditContent(event.target.value)}
+                  placeholder="게시글 설명을 입력해 주세요."
+                />
+              </div>
             ) : (
-              <h1>{post.title}</h1>
+              <>
+                <h1 className={styles.headerTitle}>{post.title}</h1>
+                <p className={styles.headerSummary}>
+                  작성자 {post.author?.name ?? '익명'} · 조회 {(post.stats?.views ?? 0).toLocaleString()} ·
+                  공감 {(post.stats?.likes ?? 0).toLocaleString()}
+                </p>
+              </>
             )}
 
-            <p className={styles.headerMeta}>
-              작성자 {post.author.name} · {formatDateTime(post.createdAt)} · 조회 {post.stats.views.toLocaleString()} · 공감{' '}
-              {post.stats.likes.toLocaleString()}
-            </p>
-
-            {(post.tags ?? []).length > 0 ? (
-              <div className={styles.tagRow}>
-                {post.tags.map((tag) => (
-                  <span key={tag}>#{tag}</span>
-                ))}
-              </div>
-            ) : null}
-
             {isAuthor ? (
-              <div className={styles.manageRow}>
+              <div className={styles.postManageRow}>
                 {isEditingPost ? (
                   <>
                     <button
                       type="button"
-                      className={styles.manageButton}
+                      className={styles.postManageButton}
                       disabled={isSavingPost}
                       onClick={handleSavePost}>
                       <Save size={14} />
@@ -292,7 +376,7 @@ const PostCommunityDetailPage = () => {
                     </button>
                     <button
                       type="button"
-                      className={styles.manageButton}
+                      className={styles.postManageButton}
                       disabled={isSavingPost}
                       onClick={handleCancelEdit}>
                       <XCircle size={14} />
@@ -301,13 +385,13 @@ const PostCommunityDetailPage = () => {
                   </>
                 ) : (
                   <>
-                    <button type="button" className={styles.manageButton} onClick={handleStartEdit}>
+                    <button type="button" className={styles.postManageButton} onClick={handleStartEdit}>
                       <Pencil size={14} />
                       게시글 수정
                     </button>
                     <button
                       type="button"
-                      className={`${styles.manageButton} ${styles.manageButtonDanger}`}
+                      className={`${styles.postManageButton} ${styles.postManageButtonDanger}`}
                       disabled={isSavingPost}
                       onClick={handleDeletePost}>
                       <Trash2 size={14} />
@@ -319,45 +403,43 @@ const PostCommunityDetailPage = () => {
             ) : null}
           </header>
 
-          <article className={styles.contentCard}>
-            <h2>내용</h2>
-            {isEditingPost ? (
-              <textarea
-                className={styles.contentTextarea}
-                value={editContent}
-                onChange={(event) => setEditContent(event.target.value)}
-                placeholder="내용을 입력해 주세요."
-              />
-            ) : (
-              <p>{post.content}</p>
-            )}
-          </article>
+          {actionError ? <p className={styles.postActionError}>{actionError}</p> : null}
 
-          {actionError ? <p className={styles.actionError}>{actionError}</p> : null}
+          <div className={styles.mainColumn}>
+            <PostDiaryCard
+              post={post}
+              entry={diaryEntry}
+              likeCount={post.stats?.likes ?? 0}
+              commentCount={post.comments?.length ?? 0}
+              liked={liked || likeBusy}
+              bookmarked={Boolean(bookmarkInfo)}
+              onToggleLike={handleToggleLike}
+              onToggleBookmark={handleToggleBookmark}
+            />
 
-          <PostCommentSection
-            comments={post.comments ?? []}
-            value={commentInput}
-            onChange={setCommentInput}
-            onSubmit={handleSubmitComment}
-            canComment={isLoggedIn}
-            hintText="서로 예의를 지키며 댓글을 남겨 주세요."
-            readOnlyMessage="로그인 후 댓글을 작성할 수 있습니다."
-            placeholder="커뮤니티 글을 보고 느낀 점을 남겨 주세요."
-            submitLabel={isSubmittingComment ? '등록 중...' : '댓글 달기'}
-            canManageComment={(comment) =>
-              // 댓글도 게시글과 동일하게 "본인 작성분만 수정/삭제" 정책을 적용합니다.
-              Boolean(
-                isLoggedIn &&
-                  currentUserId &&
-                  comment?.authorId &&
-                  String(comment.authorId) === String(currentUserId),
-              )
-            }
-            onEditComment={handleUpdateComment}
-            onDeleteComment={handleDeleteComment}
-            isCommentBusy={(commentId) => String(commentBusyId) === String(commentId)}
-          />
+            <PostCommentSection
+              comments={post.comments ?? []}
+              value={commentInput}
+              onChange={setCommentInput}
+              onSubmit={handleSubmitComment}
+              canComment={isLoggedIn}
+              hintText="서로 예의를 지키며 댓글을 남겨 주세요."
+              readOnlyMessage="로그인 후 댓글을 작성할 수 있습니다."
+              placeholder="커뮤니티 글을 보고 느낀 점을 남겨 주세요."
+              submitLabel={isSubmittingComment ? '등록 중...' : '댓글 달기'}
+              canManageComment={(comment) =>
+                Boolean(
+                  isLoggedIn &&
+                    currentUserId &&
+                    comment?.authorId &&
+                    String(comment.authorId) === String(currentUserId),
+                )
+              }
+              onEditComment={handleUpdateComment}
+              onDeleteComment={handleDeleteComment}
+              isCommentBusy={(commentId) => String(commentBusyId) === String(commentId)}
+            />
+          </div>
         </div>
       </section>
     </MainLayout>

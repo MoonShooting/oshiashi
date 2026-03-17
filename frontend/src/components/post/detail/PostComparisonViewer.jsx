@@ -14,6 +14,11 @@ const PostComparisonViewer = ({
 
   if (!activeEntry) return null;
 
+  // 서버 데이터가 일부 비어도 화면이 깨지지 않도록
+  // reference/user 이미지를 서로 fallback 처리합니다.
+  const referenceImageUrl = activeEntry.referenceImageUrl || activeEntry.userImageUrl || '';
+  const userImageUrl = activeEntry.userImageUrl || activeEntry.referenceImageUrl || '';
+
   return (
     <section className={styles.viewerCard}>
       <div className={styles.viewerMediaGrid}>
@@ -22,7 +27,7 @@ const PostComparisonViewer = ({
           className={styles.viewerPane}
           onClick={() => onOpenLocation(activeEntry)}>
           <img
-            src={activeEntry.referenceImageUrl}
+            src={referenceImageUrl}
             alt={activeEntry.artworkTitle}
             className={styles.viewerImage}
           />
@@ -38,7 +43,7 @@ const PostComparisonViewer = ({
           className={styles.viewerPane}
           onClick={() => onOpenLocation(activeEntry)}>
           <img
-            src={activeEntry.userImageUrl}
+            src={userImageUrl}
             alt={activeEntry.title}
             className={styles.viewerImage}
           />

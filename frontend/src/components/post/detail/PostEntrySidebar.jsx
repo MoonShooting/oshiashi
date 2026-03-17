@@ -12,6 +12,8 @@ const PostEntrySidebar = ({ entries, activeEntryId, onSelectEntry }) => {
       <div className={styles.entryNavList}>
         {entries.map((entry, index) => {
           const isActive = entry.id === activeEntryId;
+          // 썸네일도 reference/user 중 존재하는 값을 우선 사용합니다.
+          const thumbnailUrl = entry.userImageUrl || entry.referenceImageUrl || '';
 
           return (
             <button
@@ -21,7 +23,7 @@ const PostEntrySidebar = ({ entries, activeEntryId, onSelectEntry }) => {
               onClick={() => onSelectEntry(entry.id)}>
               <div className={styles.entryNavThumbWrap}>
                 <img
-                  src={entry.userImageUrl}
+                  src={thumbnailUrl}
                   alt={entry.title}
                   className={styles.entryNavThumb}
                 />

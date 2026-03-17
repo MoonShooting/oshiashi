@@ -84,6 +84,75 @@
   color: var(--pd-text-soft);
 }
 
+/* 게시글 작성자 전용 수정 모드(제목/본문 인라인 편집) */
+.postEditWrap {
+  margin-top: 10px;
+  display: grid;
+  gap: 10px;
+}
+
+.postEditInput,
+.postEditTextarea {
+  width: 100%;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--pd-text);
+  font: inherit;
+}
+
+.postEditInput {
+  min-height: 46px;
+  padding: 0 14px;
+}
+
+.postEditTextarea {
+  min-height: 120px;
+  padding: 12px 14px;
+  resize: vertical;
+}
+
+.postEditInput:focus,
+.postEditTextarea:focus {
+  outline: none;
+  border-color: rgba(139, 92, 246, 0.5);
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.12);
+}
+
+/* 작성자 관리 버튼(수정/삭제) */
+.postManageRow {
+  margin-top: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.postManageButton {
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--pd-text);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.postManageButtonDanger {
+  color: #fecaca;
+  border-color: rgba(248, 113, 113, 0.32);
+  background: rgba(248, 113, 113, 0.12);
+}
+
+.postActionError {
+  margin-top: 12px;
+  color: #fecaca;
+  font-size: 13px;
+}
+
 .detailGrid {
   margin-top: 22px;
   display: grid;

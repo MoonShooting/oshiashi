@@ -5,7 +5,13 @@ import styles from '@/styles/PostDetailPage.module.css';
 const PostLocationModal = ({ entry, onClose }) => {
   if (!entry) return null;
 
-  const googleMapsUrl = `https://www.google.com/maps?q=${entry.lat},${entry.lng}`;
+  // 좌표가 있으면 lat/lng 링크를, 없으면 주소 검색 링크를 사용합니다.
+  const lat = Number(entry.lat);
+  const lng = Number(entry.lng);
+  const hasCoordinates = Number.isFinite(lat) && Number.isFinite(lng);
+  const googleMapsUrl = hasCoordinates
+    ? `https://www.google.com/maps?q=${lat},${lng}`
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(entry.address || entry.title || '')}`;
 
   return (
     <div className={styles.modalBackdrop} onClick={onClose}>
@@ -27,9 +33,13 @@ const PostLocationModal = ({ entry, onClose }) => {
 
         <div className={styles.modalMapMock}>
           <div className={styles.modalPin} />
-          <div className={styles.modalCoords}>
-            Lat {entry.lat.toFixed(4)} · Lng {entry.lng.toFixed(4)}
-          </div>
+          {hasCoordinates ? (
+            <div className={styles.modalCoords}>
+              Lat {lat.toFixed(4)} · Lng {lng.toFixed(4)}
+            </div>
+          ) : (
+            <div className={styles.modalCoords}>좌표 정보가 없어 주소 기준으로 안내합니다.</div>
+          )}
         </div>
 
         <div className={styles.modalActions}>

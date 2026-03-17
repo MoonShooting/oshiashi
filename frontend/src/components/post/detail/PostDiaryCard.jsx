@@ -20,6 +20,12 @@ const PostDiaryCard = ({
   onToggleLike,
   onToggleBookmark,
 }) => {
+  // 응답 누락 시에도 렌더링이 가능하도록 배열/문자열 기본값을 고정합니다.
+  const moodTags = Array.isArray(entry?.moodTags) ? entry.moodTags : [];
+  const postTags = Array.isArray(post?.tags) ? post.tags : [];
+  const sceneNote = entry?.sceneNote || post?.content || '작성된 장면 기록이 없습니다.';
+  const soundtrack = entry?.soundtrack || '기록된 OST 없음';
+
   return (
     <section className={styles.diaryCard}>
       <div className={styles.diaryHeader}>
@@ -71,15 +77,15 @@ const PostDiaryCard = ({
 
       <div className={styles.diaryContent}>
         <p className={styles.diaryLead}>{post.title}</p>
-        <p className={styles.diaryParagraph}>{entry.sceneNote}</p>
+        <p className={styles.diaryParagraph}>{sceneNote}</p>
 
         <div className={styles.diaryInfoBar}>
           <div className={styles.diaryInfoItem}>
             <Music4 size={16} />
-            <span>{entry.soundtrack}</span>
+            <span>{soundtrack}</span>
           </div>
           <div className={styles.diaryMoodTags}>
-            {entry.moodTags.map((tag) => (
+            {moodTags.map((tag) => (
               <span key={tag} className={styles.diaryTag}>
                 #{tag}
               </span>
@@ -88,7 +94,7 @@ const PostDiaryCard = ({
         </div>
 
         <div className={styles.diaryTagList}>
-          {post.tags.map((tag) => (
+          {postTags.map((tag) => (
             <span key={tag} className={styles.diaryTagSoft}>
               #{tag}
             </span>

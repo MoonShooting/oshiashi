@@ -172,6 +172,8 @@ const PostSceneEntryCard = ({
             onChange={(event) => {
               const files = Array.from(event.target.files ?? []);
               if (files.length > 0) {
+                // 참고 이미지는 작성 UI 비교용 상태만 업데이트합니다.
+                // (이번 범위 서버 업로드 대상은 대표사진 files 파트)
                 onUploadReferenceImage(entry.id, files[0]);
               }
               event.target.value = '';
@@ -198,7 +200,8 @@ const PostSceneEntryCard = ({
           <input
             ref={photoInputRef}
             type="file"
-            accept="image/*"
+            // 생성 정책 고정: 대표사진은 jpg/png/webp만 허용
+            accept="image/jpeg,image/png,image/webp"
             hidden
             onChange={(event) => {
               const files = Array.from(event.target.files ?? []);

@@ -1,11 +1,16 @@
 import React, { useState } from 'react';
-import { ArrowLeft, PenSquare } from 'lucide-react';
+import { AlertCircle, PenSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import MainLayout from '@/components/layout/MainLayout';
+import PostEditorFields from '@/components/post/create/PostEditorFields';
 import { createCommunityPost } from '@/api/communityApi';
-import styles from '@/styles/PostCommunityCreatePage.module.css';
+import styles from '@/styles/PostCreatePage.module.css';
 
-// 커뮤니티 전용 작성 페이지 (제목 + 내용 단순 폼)
+/*
+[PostCommunityCreatePage]
+- 커뮤니티 작성도 게시물 작성과 동일한 공통 입력 컴포넌트(PostEditorFields)로 조립
+- 정책: 제목/내용 필수, 생성 성공 시 상세(/community/:id) 이동
+*/
 const PostCommunityCreatePage = () => {
   const navigate = useNavigate();
   const [title, setTitle] = useState('');
@@ -39,50 +44,65 @@ const PostCommunityCreatePage = () => {
   return (
     <MainLayout isMapPage={false} activeMenuKey="community">
       <section className={styles.pageShell}>
-        <div className={styles.pageCard}>
-          <button type="button" className={styles.backButton} onClick={() => navigate('/community')}>
-            <ArrowLeft size={16} />
-            커뮤니티로 돌아가기
-          </button>
+        <header className={styles.pageHeader}>
+          <span className={styles.pageEyebrow}>Community Post</span>
+          <h1 className={styles.pageTitle}>커뮤니티 게시글 작성</h1>
+          <p className={styles.pageDescription}>
+            커뮤니티 작성 화면도 게시물 작성 공통 컴포넌트로 구성했습니다. 제목과 내용을 입력하고
+            바로 게시할 수 있습니다.
+          </p>
+        </header>
 
-          <header className={styles.header}>
-            <span className={styles.eyebrow}>Community Post</span>
-            <h1>커뮤니티 게시글 작성</h1>
-            <p>자유게시판 글은 제목과 내용만으로 간단히 작성할 수 있습니다.</p>
-          </header>
+        {submitError ? (
+          <div className={styles.banner}>
+            <AlertCircle size={16} />
+            {submitError}
+          </div>
+        ) : null}
 
-          <section className={styles.formSection}>
-            <label htmlFor="community-post-title">제목</label>
-            <input
-              id="community-post-title"
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-              placeholder="예: 도쿄 첫 방문 동선 후기 공유합니다"
-            />
-          </section>
+        <PostEditorFields
+          title={title}
+          onChangeTitle={setTitle}
+          titleLabel="제목"
+          titlePlaceholder="예: 도쿄 첫 방문 동선 후기 공유합니다"
+          showContent
+          content={content}
+          onChangeContent={setContent}
+          contentLabel="내용"
+          contentPlaceholder="커뮤니티에 공유할 내용을 자유롭게 작성해 주세요."
+        />
 
-          <section className={styles.formSection}>
-            <label htmlFor="community-post-content">내용</label>
-            <textarea
-              id="community-post-content"
-              value={content}
-              onChange={(event) => setContent(event.target.value)}
-              placeholder="커뮤니티에 공유할 내용을 자유롭게 작성해 주세요."
-            />
-          </section>
+        <section className={styles.overviewCard}>
+          <div className={styles.overviewLead}>
+            <PenSquare size={18} />
+            <strong>작성 상태</strong>
+          </div>
+          <p className={styles.overviewText}>
+            제목 {title.trim().length > 0 ? '입력 완료' : '미입력'} · 내용{' '}
+            {content.trim().length > 0 ? '입력 완료' : '미입력'}
+          </p>
+        </section>
+      </section>
 
-          {submitError ? <p className={styles.submitError}>{submitError}</p> : null}
+      <div className={styles.bottomBar}>
+        <div className={styles.bottomBarInner}>
+          <div className={styles.bottomSummary}>
+            <strong className={styles.bottomSummaryTitle}>커뮤니티 자유게시판</strong>
+            <p className={styles.bottomSummaryText}>
+              게시 후에는 상세 페이지에서 수정/삭제/댓글 관리를 이어서 할 수 있습니다.
+            </p>
+          </div>
 
-          <div className={styles.actionRow}>
-            <button type="button" className={styles.cancelButton} onClick={() => navigate('/community')}>
+          <div className={styles.bottomActions}>
+            <button type="button" className={styles.secondaryCtaButton} onClick={() => navigate('/community')}>
               취소
             </button>
             <button
               type="button"
               className={
                 canSubmit && !isSubmitting
-                  ? styles.submitButton
-                  : `${styles.submitButton} ${styles.submitButtonDisabled}`
+                  ? styles.primaryCtaButton
+                  : `${styles.primaryCtaButton} ${styles.primaryCtaButtonDisabled}`
               }
               disabled={!canSubmit || isSubmitting}
               onClick={handleSubmit}>
@@ -91,7 +111,7 @@ const PostCommunityCreatePage = () => {
             </button>
           </div>
         </div>
-      </section>
+      </div>
     </MainLayout>
   );
 };
