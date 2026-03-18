@@ -60,23 +60,23 @@ public class PostEntity {
 
 	@OneToMany(mappedBy = "post")
 	private List<PostImageEntity> images = new ArrayList<>();
-
+	
 	// --- 1. Enum 정의 ---
 	public enum PostStatus {
-		/** @JsonValue: 이 Enum이 JSON으로 나갈 때 사용할 실제 값을 지정
-		 * 자바는 대문자로 명명하는게 일반적이나 프론트는 소문자로 명명하는게 좋다고 판단
-		 * 만약 꼭 그럴필요가 없다면 기존에 했던 PostStatus로 돌려도 괜찮음
-		 * */
-		@com.fasterxml.jackson.annotation.JsonValue
+		// 여기는 그냥 정의만 합니다.
 		PUBLIC("public"),
-
-		@com.fasterxml.jackson.annotation.JsonValue
 		PRIVATE("private");
-
+		
 		private final String value;
-
+		
 		PostStatus(String value) {
 			this.value = value;
+		}
+		
+		// "이 Enum이 JSON으로 변환될 때는 이 메서드의 결과값을 사용해라"라는 뜻입니다.
+		@com.fasterxml.jackson.annotation.JsonValue
+		public String getValue() {
+			return value;
 		}
 	}
 
