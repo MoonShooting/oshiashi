@@ -1,9 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { ChevronDown, Hash, RotateCcw, Search, SearchX, X } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import MainLayout from '@/components/layout/MainLayout';
 import PostCard from '@/components/post/PostCard';
 import { fetchRoutePosts, routePostsUpdatedEvent } from '@/api/routePostApi';
+import usePostListLoader from '@/pages/post/hooks/usePostListLoader';
 import styles from '@/styles/PostSearchPage.module.css';
 
 // 사용자가 "#도쿄", "도쿄", " 도쿄 "처럼 입력해도
@@ -21,9 +22,6 @@ const PostSearchPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [sortBy, setSortBy] = useState('views');
   const [inputValue, setInputValue] = useState('');
-  const [posts, setPosts] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState('');
 
   /**
    * 화면 흐름
@@ -40,47 +38,22 @@ const PostSearchPage = () => {
       .filter(Boolean);
   }, [searchParams]);
 
-  useEffect(() => {
-    let alive = true;
+  // 목록 로딩 조건(tags/sort)을 하나의 콜백으로 묶어 공통 훅에 주입합니다.
+  const loadRoutePosts = useCallback(
+    () =>
+      fetchRoutePosts({
+        tags: selectedTags,
+        sortBy,
+      }),
+    [selectedTags, sortBy],
+  );
 
-    const loadPosts = async () => {
-      setIsLoading(true);
-      setLoadError('');
-
-      try {
-        const nextPosts = await fetchRoutePosts({
-          tags: selectedTags,
-          sortBy,
-        });
-
-        if (alive) {
-          setPosts(nextPosts);
-        }
-      } catch (error) {
-        if (alive) {
-          setPosts([]);
-          setLoadError(error.message || '게시글 목록을 불러오지 못했습니다.');
-        }
-      } finally {
-        if (alive) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    const handlePostsUpdated = () => {
-      loadPosts();
-    };
-
-    // 게시글 생성/수정/삭제 이후에도 목록이 즉시 최신 상태가 되도록 이벤트를 구독합니다.
-    loadPosts();
-    window.addEventListener(routePostsUpdatedEvent, handlePostsUpdated);
-
-    return () => {
-      alive = false;
-      window.removeEventListener(routePostsUpdatedEvent, handlePostsUpdated);
-    };
-  }, [selectedTags, sortBy]);
+  // 로딩/에러/이벤트 재조회 보일러플레이트는 공통 훅으로 위임합니다.
+  const { posts, isLoading, loadError } = usePostListLoader({
+    loadPosts: loadRoutePosts,
+    updatedEventName: routePostsUpdatedEvent,
+    fallbackErrorMessage: '게시글 목록을 불러오지 못했습니다.',
+  });
 
   const updateTags = (tags) => {
     // 검색 결과 페이지는 tags query를 기준으로 상태를 유지합니다.

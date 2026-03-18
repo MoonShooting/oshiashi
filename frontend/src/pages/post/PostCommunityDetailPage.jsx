@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { ArrowLeft, Pencil, Save, Trash2, XCircle } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import MainLayout from '@/components/layout/MainLayout';
@@ -17,6 +17,7 @@ import {
   updateCommunityPost,
 } from '@/api/communityApi';
 import { useAuthStore } from '@/stores/useAuthStore';
+import usePostDetailController from '@/pages/post/hooks/usePostDetailController';
 import styles from '@/styles/PostDetailPage.module.css';
 
 /*
@@ -24,85 +25,66 @@ import styles from '@/styles/PostDetailPage.module.css';
 - 커뮤니티 상세를 게시물 상세 컴포넌트(PostDiaryCard/PostCommentSection)로 조립
 - 기능: 본인 글 수정/삭제, 댓글 CRUD, 좋아요, 북마크
 */
+// 상세 공통 훅에 주입할 "커뮤니티 전용" API 어댑터입니다.
+// PostDetailPage와 동일한 컨트롤러 로직을 공유하되 API만 교체합니다.
+const COMMUNITY_POST_DETAIL_API = {
+  fetchPostById: fetchCommunityPostById,
+  fetchMyBookmarks: fetchMyCommunityBookmarks,
+  updatePost: updateCommunityPost,
+  deletePost: deleteCommunityPost,
+  likePost: likeCommunityPost,
+  createBookmark: createCommunityBookmark,
+  deleteBookmark: deleteCommunityBookmark,
+  createComment: createCommunityComment,
+  updateComment: updateCommunityComment,
+  deleteComment: deleteCommunityComment,
+};
+
 const PostCommunityDetailPage = () => {
   const navigate = useNavigate();
   const { postId } = useParams();
   const { isLoggedIn, user } = useAuthStore();
 
-  const [post, setPost] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState('');
-
-  const [commentInput, setCommentInput] = useState('');
-  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
-  const [commentBusyId, setCommentBusyId] = useState('');
-
-  const [isEditingPost, setIsEditingPost] = useState(false);
-  const [editTitle, setEditTitle] = useState('');
-  const [editContent, setEditContent] = useState('');
-  const [isSavingPost, setIsSavingPost] = useState(false);
-
-  const [likeBusy, setLikeBusy] = useState(false);
-  const [liked, setLiked] = useState(false);
-
-  const [bookmarkBusy, setBookmarkBusy] = useState(false);
-  const [bookmarkInfo, setBookmarkInfo] = useState(null);
-
-  const [actionError, setActionError] = useState('');
-
-  const currentUserId = user?.userId || user?.id || '';
-  const isAuthor = Boolean(
-    post && currentUserId && String(post.author?.userId) === String(currentUserId),
-  );
-
-  useEffect(() => {
-    let alive = true;
-
-    const loadPost = async () => {
-      setIsLoading(true);
-      setLoadError('');
-      setActionError('');
-      setLiked(false);
-      setIsEditingPost(false);
-      setBookmarkInfo(null);
-
-      try {
-        const found = await fetchCommunityPostById(postId);
-
-        if (!alive) return;
-        setPost(found);
-        setCommentInput('');
-
-        if (found && isLoggedIn && currentUserId) {
-          try {
-            const bookmarks = await fetchMyCommunityBookmarks({ userId: currentUserId });
-            if (!alive) return;
-
-            const matched =
-              bookmarks.find((bookmark) => String(bookmark.postId) === String(found.id)) ?? null;
-            setBookmarkInfo(matched);
-          } catch {
-            setBookmarkInfo(null);
-          }
-        }
-      } catch (error) {
-        if (!alive) return;
-
-        setPost(null);
-        setLoadError(error.message || '커뮤니티 게시글을 불러오지 못했습니다.');
-      } finally {
-        if (alive) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    loadPost();
-
-    return () => {
-      alive = false;
-    };
-  }, [postId, isLoggedIn, currentUserId]);
+  const {
+    post,
+    isLoading,
+    loadError,
+    actionError,
+    isAuthor,
+    commentInput,
+    setCommentInput,
+    isSubmittingComment,
+    commentBusyId,
+    isEditingPost,
+    editTitle,
+    setEditTitle,
+    editContent,
+    setEditContent,
+    isSavingPost,
+    likeBusy,
+    liked,
+    bookmarkInfo,
+    handleStartEdit,
+    handleCancelEdit,
+    handleSavePost,
+    handleDeletePost,
+    handleToggleLike,
+    handleToggleBookmark,
+    handleSubmitComment,
+    handleUpdateComment,
+    handleDeleteComment,
+    canManageComment,
+  } = usePostDetailController({
+    postId,
+    isLoggedIn,
+    user,
+    navigate,
+    listPath: '/community',
+    api: COMMUNITY_POST_DETAIL_API,
+    messages: {
+      loadError: '커뮤니티 게시글을 불러오지 못했습니다.',
+    },
+  });
 
   // PostDiaryCard에 맞추는 커뮤니티 전용 가상 entry 모델
   const diaryEntry = useMemo(
@@ -120,179 +102,6 @@ const PostCommunityDetailPage = () => {
     }),
     [post, isEditingPost, editContent],
   );
-
-  const handleStartEdit = () => {
-    if (!post || !isAuthor) return;
-
-    setEditTitle(post.title ?? '');
-    setEditContent(post.content ?? '');
-    setActionError('');
-    setIsEditingPost(true);
-  };
-
-  const handleCancelEdit = () => {
-    setIsEditingPost(false);
-    setEditTitle('');
-    setEditContent('');
-  };
-
-  const handleSavePost = async () => {
-    if (!post || !isAuthor || isSavingPost) return;
-
-    setActionError('');
-    setIsSavingPost(true);
-
-    try {
-      const updated = await updateCommunityPost({
-        postId: post.id,
-        title: editTitle,
-        content: editContent,
-      });
-
-      setPost(updated);
-      setIsEditingPost(false);
-    } catch (error) {
-      setActionError(error.message || '게시글 수정에 실패했습니다.');
-    } finally {
-      setIsSavingPost(false);
-    }
-  };
-
-  const handleDeletePost = async () => {
-    if (!post || !isAuthor || isSavingPost) return;
-
-    const confirmed = window.confirm('이 게시글을 삭제할까요? 삭제 후 복구할 수 없습니다.');
-    if (!confirmed) return;
-
-    setActionError('');
-    setIsSavingPost(true);
-
-    try {
-      await deleteCommunityPost({ postId: post.id });
-      navigate('/community');
-    } catch (error) {
-      setActionError(error.message || '게시글 삭제에 실패했습니다.');
-      setIsSavingPost(false);
-    }
-  };
-
-  const handleToggleLike = async () => {
-    if (!post || likeBusy) return;
-
-    if (!isLoggedIn) {
-      navigate('/login');
-      return;
-    }
-
-    setActionError('');
-    setLikeBusy(true);
-
-    try {
-      const refreshed = await likeCommunityPost({ postId: post.id });
-      setPost(refreshed);
-      setLiked(true);
-    } catch (error) {
-      setActionError(error.message || '좋아요 처리에 실패했습니다.');
-    } finally {
-      setLikeBusy(false);
-    }
-  };
-
-  const handleToggleBookmark = async () => {
-    if (!post || bookmarkBusy) return;
-
-    if (!isLoggedIn) {
-      navigate('/login');
-      return;
-    }
-
-    setActionError('');
-    setBookmarkBusy(true);
-
-    try {
-      if (bookmarkInfo?.bookmarkId) {
-        await deleteCommunityBookmark({
-          bookmarkId: bookmarkInfo.bookmarkId,
-          userId: currentUserId,
-        });
-        setBookmarkInfo(null);
-      } else {
-        const created = await createCommunityBookmark({
-          postId: post.id,
-          userId: currentUserId,
-          bookmarkName: `${post.title} 북마크`,
-        });
-        setBookmarkInfo(created ?? null);
-      }
-    } catch (error) {
-      setActionError(error.message || '북마크 처리에 실패했습니다.');
-    } finally {
-      setBookmarkBusy(false);
-    }
-  };
-
-  const handleSubmitComment = async () => {
-    if (!post || !isLoggedIn || isSubmittingComment) return;
-
-    const next = commentInput.trim();
-    if (!next) return;
-
-    setActionError('');
-    setIsSubmittingComment(true);
-
-    try {
-      const updated = await createCommunityComment({
-        postId: post.id,
-        content: next,
-      });
-
-      setPost(updated);
-      setCommentInput('');
-    } catch (error) {
-      setActionError(error.message || '댓글 등록에 실패했습니다.');
-    } finally {
-      setIsSubmittingComment(false);
-    }
-  };
-
-  const handleUpdateComment = async (commentId, nextContent) => {
-    if (!post) return;
-
-    setActionError('');
-    setCommentBusyId(String(commentId));
-
-    try {
-      const updated = await updateCommunityComment({
-        postId: post.id,
-        commentId,
-        content: nextContent,
-      });
-      setPost(updated);
-    } catch (error) {
-      setActionError(error.message || '댓글 수정에 실패했습니다.');
-    } finally {
-      setCommentBusyId('');
-    }
-  };
-
-  const handleDeleteComment = async (commentId) => {
-    if (!post) return;
-
-    setActionError('');
-    setCommentBusyId(String(commentId));
-
-    try {
-      const updated = await deleteCommunityComment({
-        postId: post.id,
-        commentId,
-      });
-      setPost(updated);
-    } catch (error) {
-      setActionError(error.message || '댓글 삭제에 실패했습니다.');
-    } finally {
-      setCommentBusyId('');
-    }
-  };
 
   if (isLoading) {
     return (
@@ -427,14 +236,7 @@ const PostCommunityDetailPage = () => {
               readOnlyMessage="로그인 후 댓글을 작성할 수 있습니다."
               placeholder="커뮤니티 글을 보고 느낀 점을 남겨 주세요."
               submitLabel={isSubmittingComment ? '등록 중...' : '댓글 달기'}
-              canManageComment={(comment) =>
-                Boolean(
-                  isLoggedIn &&
-                    currentUserId &&
-                    comment?.authorId &&
-                    String(comment.authorId) === String(currentUserId),
-                )
-              }
+              canManageComment={canManageComment}
               onEditComment={handleUpdateComment}
               onDeleteComment={handleDeleteComment}
               isCommentBusy={(commentId) => String(commentBusyId) === String(commentId)}

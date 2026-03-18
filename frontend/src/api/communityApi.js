@@ -1,4 +1,14 @@
 import { FetchJson } from '@/api/FetchClient';
+import {
+  appendUserIdQuery,
+  buildAvatarLabel,
+  extractArrayPayload,
+  fetchBookmarksWithFallback,
+  formatDateLabel,
+  formatRelativeTimeLabel,
+  formatTimeLabel,
+  normalizeBookmark,
+} from '@/api/postApiShared';
 
 /*
 [communityApi - 핵심 CRUD 경량화 버전]
@@ -14,16 +24,7 @@ const emitCommunityPostsUpdated = () => {
   }
 };
 
-// ------------------------------
-// 공통 정규화 유틸
-// ------------------------------
-// 백엔드 응답이 배열/페이지(content)/래핑(data) 중 어떤 형태로 와도 배열로 통일합니다.
-const extractArray = (response) => {
-  if (Array.isArray(response)) return response;
-  if (Array.isArray(response?.content)) return response.content;
-  if (Array.isArray(response?.data)) return response.data;
-  return [];
-};
+// postApiShared 유틸을 재사용해 route/community 간 응답 처리 규칙을 통일합니다.
 
 const resolvePostId = (post) => String(post?.postId ?? post?.id ?? '');
 
@@ -36,85 +37,6 @@ const resolveRouteId = (post) => {
   return null;
 };
 
-const toDate = (value) => {
-  if (!value) return null;
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-};
-
-const formatDate = (isoString) => {
-  const date = toDate(isoString);
-  if (!date) return '-';
-  return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(
-    date.getDate(),
-  ).padStart(2, '0')}`;
-};
-
-const formatTime = (isoString) => {
-  const date = toDate(isoString);
-  if (!date) return '-';
-  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-};
-
-const formatRelativeTime = (isoString) => {
-  const date = toDate(isoString);
-  if (!date) return '';
-
-  const diffMs = Date.now() - date.getTime();
-  const minute = 60 * 1000;
-  const hour = 60 * minute;
-  const day = 24 * hour;
-
-  if (diffMs < hour) return `${Math.max(1, Math.floor(diffMs / minute))}분 전`;
-  if (diffMs < day) return `${Math.max(1, Math.floor(diffMs / hour))}시간 전`;
-  if (diffMs < day * 7) return `${Math.max(1, Math.floor(diffMs / day))}일 전`;
-
-  return formatDate(isoString);
-};
-
-const avatarLabel = (name = '나') =>
-  String(name)
-    .replace(/[^a-zA-Z0-9가-힣]/g, '')
-    .slice(0, 2)
-    .toUpperCase() || '나';
-
-const appendUserIdQuery = (endpoint, userId) => {
-  if (!userId) return endpoint;
-  const delimiter = endpoint.includes('?') ? '&' : '?';
-  return `${endpoint}${delimiter}userId=${encodeURIComponent(userId)}`;
-};
-
-const normalizeBookmark = (bookmark) => ({
-  bookmarkId: String(bookmark?.bookmarkId ?? bookmark?.id ?? ''),
-  bookmarkName: bookmark?.bookmarkName ?? '',
-  postId: String(bookmark?.postId ?? ''),
-});
-
-// 북마크 조회 endpoint가 환경마다 다를 수 있어 후보를 순차 시도합니다.
-const fetchBookmarksList = async ({ userId } = {}) => {
-  const endpoints = [
-    '/api/v1/user/myBookmarks',
-    userId ? appendUserIdQuery('/api/v1/user/bookmarks', userId) : null,
-  ].filter(Boolean);
-
-  let lastError = null;
-
-  for (const endpoint of endpoints) {
-    try {
-      const response = await FetchJson(endpoint);
-      return extractArray(response);
-    } catch (error) {
-      lastError = error;
-    }
-  }
-
-  if (lastError) {
-    throw lastError;
-  }
-
-  return [];
-};
-
 const normalizeComment = (comment) => {
   const author = comment.nickname ?? comment.userName ?? comment.userId ?? '익명';
 
@@ -122,8 +44,8 @@ const normalizeComment = (comment) => {
     id: String(comment.commentId ?? comment.id ?? ''),
     author,
     authorId: comment.userId ?? null,
-    avatarLabel: avatarLabel(author),
-    timeLabel: formatRelativeTime(comment.createdAt),
+    avatarLabel: buildAvatarLabel(author),
+    timeLabel: formatRelativeTimeLabel(comment.createdAt),
     createdAt: comment.createdAt,
     content: comment.content ?? '',
   };
@@ -148,11 +70,11 @@ const toCommunityDetail = (post, comments = []) => {
     author: {
       userId: authorId,
       name: authorName,
-      avatarLabel: avatarLabel(authorName),
+      avatarLabel: buildAvatarLabel(authorName),
     },
     createdAt,
-    publishedDateLabel: formatDate(createdAt),
-    publishedTimeLabel: formatTime(createdAt),
+    publishedDateLabel: formatDateLabel(createdAt),
+    publishedTimeLabel: formatTimeLabel(createdAt),
     tags: Array.isArray(post.tags) ? post.tags : [],
     stats: {
       views: Number(post.viewCount ?? 0),
@@ -195,7 +117,7 @@ export const fetchCommunityPosts = async ({ search = '', sortBy = 'latest', limi
   if (keyword) params.set('search', keyword);
 
   const response = await FetchJson(`/api/v1/posts?${params.toString()}`);
-  const posts = extractArray(response)
+  const posts = extractArrayPayload(response)
     .map((post) => toCommunityDetail(post, []))
     .filter((post) => post && post.routeId == null && post.id)
     .map(toSummary);
@@ -213,7 +135,7 @@ export const fetchCommunityPostById = async (postId) => {
   if (resolveRouteId(post) != null) return null;
 
   const rawComments = await FetchJson(`/api/v1/posts/${postId}/comments`);
-  return toCommunityDetail(post, extractArray(rawComments));
+  return toCommunityDetail(post, extractArrayPayload(rawComments));
 };
 
 // ------------------------------
@@ -297,7 +219,7 @@ export const likeCommunityPost = async ({ postId }) => {
 };
 
 export const fetchMyCommunityBookmarks = async ({ userId } = {}) => {
-  const bookmarks = await fetchBookmarksList({ userId });
+  const bookmarks = await fetchBookmarksWithFallback({ fetchJson: FetchJson, userId });
 
   return bookmarks
     .filter((bookmark) => bookmark?.postId != null)

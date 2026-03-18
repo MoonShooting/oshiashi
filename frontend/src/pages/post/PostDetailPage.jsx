@@ -21,6 +21,7 @@ import {
   updateRoutePost,
 } from '@/api/routePostApi';
 import { useAuthStore } from '@/stores/useAuthStore';
+import usePostDetailController from '@/pages/post/hooks/usePostDetailController';
 import styles from '@/styles/PostDetailPage.module.css';
 
 /*
@@ -31,93 +32,66 @@ import styles from '@/styles/PostDetailPage.module.css';
   - 댓글 수정/삭제: 댓글 작성자 본인만
   - 좋아요/북마크/댓글작성: 로그인 사용자만
 */
+// 상세 공통 훅에 주입할 "일반 게시물 전용" API 어댑터입니다.
+// 페이지는 이 어댑터만 바꾸면 동일한 컨트롤러 로직을 재사용할 수 있습니다.
+const ROUTE_POST_DETAIL_API = {
+  fetchPostById: fetchRoutePostById,
+  fetchMyBookmarks: fetchMyPostBookmarks,
+  updatePost: updateRoutePost,
+  deletePost: deleteRoutePost,
+  likePost: likeRoutePost,
+  createBookmark: createPostBookmark,
+  deleteBookmark: deletePostBookmark,
+  createComment: createRouteComment,
+  updateComment: updateRouteComment,
+  deleteComment: deleteRouteComment,
+};
+
 const PostDetailPage = () => {
   const navigate = useNavigate();
   const { postId } = useParams();
   const { isLoggedIn, user } = useAuthStore();
 
-  const [post, setPost] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState('');
+  const {
+    post,
+    isLoading,
+    loadError,
+    actionError,
+    isAuthor,
+    commentInput,
+    setCommentInput,
+    isSubmittingComment,
+    commentBusyId,
+    isEditingPost,
+    editTitle,
+    setEditTitle,
+    editContent,
+    setEditContent,
+    isSavingPost,
+    likeBusy,
+    liked,
+    bookmarkInfo,
+    handleStartEdit,
+    handleCancelEdit,
+    handleSavePost,
+    handleDeletePost,
+    handleToggleLike,
+    handleToggleBookmark,
+    handleSubmitComment,
+    handleUpdateComment,
+    handleDeleteComment,
+    canManageComment,
+  } = usePostDetailController({
+    postId,
+    isLoggedIn,
+    user,
+    navigate,
+    listPath: '/posts',
+    api: ROUTE_POST_DETAIL_API,
+  });
 
   const [activeEntryId, setActiveEntryId] = useState('');
   const [locationEntry, setLocationEntry] = useState(null);
-
-  const [commentInput, setCommentInput] = useState('');
-  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
-  const [commentBusyId, setCommentBusyId] = useState('');
-
-  const [isEditingPost, setIsEditingPost] = useState(false);
-  const [editTitle, setEditTitle] = useState('');
-  const [editContent, setEditContent] = useState('');
-  const [isSavingPost, setIsSavingPost] = useState(false);
-
-  const [likeBusy, setLikeBusy] = useState(false);
-  const [liked, setLiked] = useState(false);
-
-  const [bookmarkBusy, setBookmarkBusy] = useState(false);
-  const [bookmarkInfo, setBookmarkInfo] = useState(null);
-
-  const [actionError, setActionError] = useState('');
-
-  // 인증 응답 스키마 차이(userId/id)를 흡수해 현재 로그인 사용자를 통일해서 비교합니다.
-  const currentUserId = user?.userId || user?.id || '';
-
-  // 게시글 수정/삭제 버튼 노출 기준: "로그인 + 작성자 본인".
-  const isAuthor = Boolean(
-    post && currentUserId && String(post.author?.userId) === String(currentUserId),
-  );
-
-  useEffect(() => {
-    let alive = true;
-
-    const loadPost = async () => {
-      // 다른 글로 이동하면 기존 편집/액션 상태를 초기화합니다.
-      setIsLoading(true);
-      setLoadError('');
-      setActionError('');
-      setLiked(false);
-      setIsEditingPost(false);
-      setBookmarkInfo(null);
-
-      try {
-        const found = await fetchRoutePostById(postId);
-
-        if (!alive) return;
-        setPost(found);
-        setCommentInput('');
-
-        // 북마크 여부는 상세 API가 아닌 북마크 목록 기준으로 판단합니다.
-        if (found && isLoggedIn && currentUserId) {
-          try {
-            const bookmarks = await fetchMyPostBookmarks({ userId: currentUserId });
-            if (!alive) return;
-
-            const matched =
-              bookmarks.find((bookmark) => String(bookmark.postId) === String(found.id)) ?? null;
-            setBookmarkInfo(matched);
-          } catch {
-            setBookmarkInfo(null);
-          }
-        }
-      } catch (error) {
-        if (!alive) return;
-
-        setPost(null);
-        setLoadError(error.message || '게시글을 불러오지 못했습니다.');
-      } finally {
-        if (alive) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    loadPost();
-
-    return () => {
-      alive = false;
-    };
-  }, [postId, isLoggedIn, currentUserId]);
 
   useEffect(() => {
     const firstEntryId = post?.entries?.[0]?.id ?? '';
@@ -140,183 +114,6 @@ const PostDetailPage = () => {
   );
 
   const activeEntry = post?.entries?.[activeIndex] ?? null;
-
-  const handleStartEdit = () => {
-    if (!post || !isAuthor) return;
-
-    setEditTitle(post.title ?? '');
-    setEditContent(post.content ?? '');
-    setActionError('');
-    setIsEditingPost(true);
-  };
-
-  const handleCancelEdit = () => {
-    setIsEditingPost(false);
-    setEditTitle('');
-    setEditContent('');
-  };
-
-  const handleSavePost = async () => {
-    // UI에서 버튼을 숨기더라도 핸들러 내부에서 권한/중복 요청을 한 번 더 차단합니다.
-    if (!post || !isAuthor || isSavingPost) return;
-
-    setActionError('');
-    setIsSavingPost(true);
-
-    try {
-      const updated = await updateRoutePost({
-        postId: post.id,
-        title: editTitle,
-        content: editContent,
-      });
-
-      setPost(updated);
-      setIsEditingPost(false);
-    } catch (error) {
-      setActionError(error.message || '게시글 수정에 실패했습니다.');
-    } finally {
-      setIsSavingPost(false);
-    }
-  };
-
-  const handleDeletePost = async () => {
-    if (!post || !isAuthor || isSavingPost) return;
-
-    const confirmed = window.confirm('이 게시글을 삭제할까요? 삭제 후 복구할 수 없습니다.');
-    if (!confirmed) return;
-
-    setActionError('');
-    setIsSavingPost(true);
-
-    try {
-      await deleteRoutePost({ postId: post.id });
-      navigate('/posts');
-    } catch (error) {
-      setActionError(error.message || '게시글 삭제에 실패했습니다.');
-      setIsSavingPost(false);
-    }
-  };
-
-  const handleToggleLike = async () => {
-    if (!post || likeBusy) return;
-
-    if (!isLoggedIn) {
-      navigate('/login');
-      return;
-    }
-
-    setActionError('');
-    setLikeBusy(true);
-
-    try {
-      const refreshed = await likeRoutePost({ postId: post.id });
-      setPost(refreshed);
-      setLiked(true);
-    } catch (error) {
-      setActionError(error.message || '좋아요 처리에 실패했습니다.');
-    } finally {
-      setLikeBusy(false);
-    }
-  };
-
-  const handleToggleBookmark = async () => {
-    if (!post || bookmarkBusy) return;
-
-    if (!isLoggedIn) {
-      navigate('/login');
-      return;
-    }
-
-    setActionError('');
-    setBookmarkBusy(true);
-
-    try {
-      // 북마크 존재 여부(bookmarkInfo)에 따라 생성/삭제를 토글합니다.
-      if (bookmarkInfo?.bookmarkId) {
-        await deletePostBookmark({
-          bookmarkId: bookmarkInfo.bookmarkId,
-          userId: currentUserId,
-        });
-        setBookmarkInfo(null);
-      } else {
-        const created = await createPostBookmark({
-          postId: post.id,
-          userId: currentUserId,
-          bookmarkName: `${post.title} 북마크`,
-        });
-
-        setBookmarkInfo(created ?? null);
-      }
-    } catch (error) {
-      setActionError(error.message || '북마크 처리에 실패했습니다.');
-    } finally {
-      setBookmarkBusy(false);
-    }
-  };
-
-  const handleSubmitComment = async () => {
-    // 비로그인 사용자는 조회만 가능, 댓글 작성은 차단합니다.
-    if (!post || !isLoggedIn || isSubmittingComment) return;
-
-    const next = commentInput.trim();
-    if (!next) return;
-
-    setActionError('');
-    setIsSubmittingComment(true);
-
-    try {
-      const updated = await createRouteComment({
-        postId: post.id,
-        content: next,
-      });
-
-      setPost(updated);
-      setCommentInput('');
-    } catch (error) {
-      setActionError(error.message || '댓글 등록에 실패했습니다.');
-    } finally {
-      setIsSubmittingComment(false);
-    }
-  };
-
-  const handleUpdateComment = async (commentId, nextContent) => {
-    if (!post) return;
-
-    setActionError('');
-    setCommentBusyId(String(commentId));
-
-    try {
-      const updated = await updateRouteComment({
-        postId: post.id,
-        commentId,
-        content: nextContent,
-      });
-      setPost(updated);
-    } catch (error) {
-      setActionError(error.message || '댓글 수정에 실패했습니다.');
-    } finally {
-      setCommentBusyId('');
-    }
-  };
-
-  const handleDeleteComment = async (commentId) => {
-    if (!post) return;
-
-    setActionError('');
-    setCommentBusyId(String(commentId));
-
-    try {
-      const updated = await deleteRouteComment({
-        postId: post.id,
-        commentId,
-      });
-      setPost(updated);
-    } catch (error) {
-      setActionError(error.message || '댓글 삭제에 실패했습니다.');
-    } finally {
-      setCommentBusyId('');
-    }
-  };
 
   if (isLoading) {
     return (
@@ -478,25 +275,14 @@ const PostDetailPage = () => {
                 readOnlyMessage="로그인 후 댓글을 작성할 수 있습니다."
                 placeholder="예: 같은 시간대에 가보려는데 대기 줄은 어느 정도였나요?"
                 submitLabel={isSubmittingComment ? '등록 중...' : '댓글 달기'}
-                canManageComment={(comment) =>
-                  Boolean(
-                    isLoggedIn &&
-                      currentUserId &&
-                      comment?.authorId &&
-                      String(comment.authorId) === String(currentUserId),
-                  )
-                }
+                canManageComment={canManageComment}
                 onEditComment={handleUpdateComment}
                 onDeleteComment={handleDeleteComment}
                 isCommentBusy={(commentId) => String(commentBusyId) === String(commentId)}
               />
             </main>
 
-            <PostInfoSidebar
-              post={post}
-              activeEntry={activeEntry}
-              onOpenLocation={setLocationEntry}
-            />
+            <PostInfoSidebar post={post} activeEntry={activeEntry} onOpenLocation={setLocationEntry} />
           </div>
         </div>
 

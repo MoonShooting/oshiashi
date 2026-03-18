@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { ChevronDown, Search, SearchX, SquarePen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import MainLayout from '@/components/layout/MainLayout';
 import PostCard from '@/components/post/PostCard';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { communityPostsUpdatedEvent, fetchCommunityPosts } from '@/api/communityApi';
+import usePostListLoader from '@/pages/post/hooks/usePostListLoader';
 import styles from '@/styles/PostSearchResultPage.module.css';
 
 // 실제로는 커뮤니티 자유게시판 목록 페이지 역할(/community)
@@ -14,52 +15,23 @@ const PostSearchResultPage = () => {
   const [sortBy, setSortBy] = useState('latest');
   const [searchInput, setSearchInput] = useState('');
   const [searchKeyword, setSearchKeyword] = useState('');
-  const [posts, setPosts] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState('');
 
-  useEffect(() => {
-    // 비동기 완료 시점에 언마운트된 컴포넌트 setState를 막기 위한 가드입니다.
-    let alive = true;
+  // 목록 로딩 조건(search/sort)을 하나의 콜백으로 묶어 공통 훅에 주입합니다.
+  const loadCommunityPosts = useCallback(
+    () =>
+      fetchCommunityPosts({
+        search: searchKeyword,
+        sortBy,
+      }),
+    [searchKeyword, sortBy],
+  );
 
-    const loadPosts = async () => {
-      setIsLoading(true);
-      setLoadError('');
-
-      try {
-        const nextPosts = await fetchCommunityPosts({
-          search: searchKeyword,
-          sortBy,
-        });
-
-        if (alive) {
-          setPosts(nextPosts);
-        }
-      } catch (error) {
-        if (alive) {
-          setPosts([]);
-          setLoadError(error.message || '커뮤니티 글을 불러오지 못했습니다.');
-        }
-      } finally {
-        if (alive) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    const handlePostsUpdated = () => {
-      // 작성/수정/삭제/댓글 변경 이벤트를 받으면 현재 조건으로 다시 조회합니다.
-      loadPosts();
-    };
-
-    loadPosts();
-    window.addEventListener(communityPostsUpdatedEvent, handlePostsUpdated);
-
-    return () => {
-      alive = false;
-      window.removeEventListener(communityPostsUpdatedEvent, handlePostsUpdated);
-    };
-  }, [searchKeyword, sortBy]);
+  // 로딩/에러/이벤트 재조회 보일러플레이트는 공통 훅으로 위임합니다.
+  const { posts, isLoading, loadError } = usePostListLoader({
+    loadPosts: loadCommunityPosts,
+    updatedEventName: communityPostsUpdatedEvent,
+    fallbackErrorMessage: '커뮤니티 글을 불러오지 못했습니다.',
+  });
 
   return (
     <MainLayout isMapPage={false} activeMenuKey="community">

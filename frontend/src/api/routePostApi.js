@@ -1,4 +1,15 @@
 import { FetchJson } from '@/api/FetchClient';
+import {
+  appendUserIdQuery,
+  buildAvatarLabel,
+  extractArrayPayload,
+  fetchBookmarksWithFallback,
+  formatDateLabel,
+  formatRelativeTimeLabel,
+  formatTimeLabel,
+  normalizeBookmark,
+  toDateOrNull,
+} from '@/api/postApiShared';
 import { MOCK_POST_CREATE_ROUTES } from '@/data/post/postCreateMockData';
 
 /*
@@ -68,60 +79,6 @@ const ENABLE_POST_CREATE_MOCK_ROUTES =
 // 선택값: 실제 백엔드에 존재하는 routeId를 넣으면 "목업 루트 선택 + 실서버 생성"까지 검증할 수 있습니다.
 const DEV_TEST_ROUTE_ID = parseNumber(import.meta.env.VITE_DEV_TEST_ROUTE_ID);
 
-const toDateOrNull = (value) => {
-  if (!value) return null;
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-};
-
-const formatDateLabel = (isoString) => {
-  const date = toDateOrNull(isoString);
-  if (!date) return '-';
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, '0');
-  const day = `${date.getDate()}`.padStart(2, '0');
-  return `${year}.${month}.${day}`;
-};
-
-const formatTimeLabel = (isoString) => {
-  const date = toDateOrNull(isoString);
-  if (!date) return '-';
-  const hour = `${date.getHours()}`.padStart(2, '0');
-  const minute = `${date.getMinutes()}`.padStart(2, '0');
-  return `${hour}:${minute}`;
-};
-
-const formatRelativeTimeLabel = (isoString) => {
-  const date = toDateOrNull(isoString);
-  if (!date) return '';
-
-  const now = Date.now();
-  const diffMs = now - date.getTime();
-  const minute = 60 * 1000;
-  const hour = 60 * minute;
-  const day = 24 * hour;
-
-  if (diffMs < hour) {
-    return `${Math.max(1, Math.floor(diffMs / minute))}분 전`;
-  }
-
-  if (diffMs < day) {
-    return `${Math.max(1, Math.floor(diffMs / hour))}시간 전`;
-  }
-
-  if (diffMs < day * 7) {
-    return `${Math.max(1, Math.floor(diffMs / day))}일 전`;
-  }
-
-  return formatDateLabel(isoString);
-};
-
-const buildAvatarLabel = (name = '나') =>
-  String(name)
-    .replace(/[^a-zA-Z0-9가-힣]/g, '')
-    .slice(0, 2)
-    .toUpperCase() || '나';
-
 const normalizeTagList = (value) => {
   if (Array.isArray(value)) return value.filter(Boolean).map(String);
   if (typeof value === 'string') {
@@ -130,14 +87,6 @@ const normalizeTagList = (value) => {
       .map((item) => item.trim())
       .filter(Boolean);
   }
-  return [];
-};
-
-const extractArrayPayload = (response) => {
-  if (Array.isArray(response)) return response;
-  if (Array.isArray(response?.content)) return response.content;
-  if (Array.isArray(response?.data)) return response.data;
-  if (Array.isArray(response?.result)) return response.result;
   return [];
 };
 
@@ -430,12 +379,6 @@ const buildDevMockRoutes = () => {
 const dedupeRoutes = (routes) =>
   Array.from(new Map(routes.filter(Boolean).map((route) => [String(route.id), route])).values());
 
-const appendUserIdQuery = (endpoint, userId) => {
-  if (!userId) return endpoint;
-  const delimiter = endpoint.includes('?') ? '&' : '?';
-  return `${endpoint}${delimiter}userId=${encodeURIComponent(userId)}`;
-};
-
 // JSON 생성 payload 빌더:
 // - 백엔드 계약(PostCreateRequest)에 맞춰 images[]만 전송
 // - 이미지 파일 자체는 보내지 않고 imageUrl 문자열만 보냅니다.
@@ -489,36 +432,6 @@ const buildRouteCreatePayload = ({ selectedRoute, title, entries }) => {
   return post;
 };
 
-const normalizeBookmark = (bookmark) => ({
-  bookmarkId: String(bookmark?.bookmarkId ?? bookmark?.id ?? ''),
-  bookmarkName: bookmark?.bookmarkName ?? '',
-  postId: String(bookmark?.postId ?? ''),
-});
-
-// 북마크 목록 endpoint가 환경마다 다를 수 있어 후보 endpoint 순서대로 시도합니다.
-const fetchBookmarksList = async ({ userId } = {}) => {
-  const endpoints = [
-    '/api/v1/user/myBookmarks',
-    userId ? appendUserIdQuery('/api/v1/user/bookmarks', userId) : null,
-  ].filter(Boolean);
-
-  let lastError = null;
-
-  for (const endpoint of endpoints) {
-    try {
-      const response = await FetchJson(endpoint);
-      return extractArrayPayload(response);
-    } catch (error) {
-      lastError = error;
-    }
-  }
-
-  if (lastError) {
-    throw lastError;
-  }
-
-  return [];
-};
 
 /*
 [목록 조회]
@@ -615,7 +528,10 @@ export const loadPostCreateRoutes = async (userId) => {
   }
 
   try {
-    const bookmarks = await fetchBookmarksList({ userId: resolvedUserId });
+    const bookmarks = await fetchBookmarksWithFallback({
+      fetchJson: FetchJson,
+      userId: resolvedUserId,
+    });
     const routeBookmarks = bookmarks.filter((bookmark) => bookmark?.routeId != null);
 
     for (const bookmark of routeBookmarks) {
@@ -760,7 +676,7 @@ export const likeRoutePost = async ({ postId }) => {
 };
 
 export const fetchMyPostBookmarks = async ({ userId } = {}) => {
-  const bookmarks = await fetchBookmarksList({ userId });
+  const bookmarks = await fetchBookmarksWithFallback({ fetchJson: FetchJson, userId });
 
   return bookmarks
     .filter((bookmark) => bookmark?.postId != null)
