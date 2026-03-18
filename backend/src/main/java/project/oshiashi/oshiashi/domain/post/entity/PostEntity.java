@@ -10,66 +10,98 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-@Data // Getter + Setter
+@Data
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor // 빌더를 쓰기 위해 추가 필수!
-@Builder // 이제 서비스에서 .builder()를 호출할 수 있습니다.
+@AllArgsConstructor
+@Builder
 @Entity
 @Table(name = "post")
 public class PostEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "post_id")
-    //제약조건 오토 인크리먼트
-    private Long postId;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(name = "post_id")
+	private Long postId;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(
-            name = "user_id",
-            nullable = false,
-            foreignKey = @ForeignKey(name = "FK_Post_User")
-    )
-    private UserEntity user;
+	@ManyToOne(fetch = FetchType.LAZY, optional = false)
+	@JoinColumn(name = "user_id", nullable = false)
+	private UserEntity user;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(
-            name = "route_id",
-            nullable = false,
-            foreignKey = @ForeignKey(name = "FK_Post_Route")
-    )
-    private RouteEntity route;
+	@ManyToOne(fetch = FetchType.LAZY, optional = false)
+	@JoinColumn(name = "route_id", nullable = false)
+	private RouteEntity route;
 
-    @Column(name = "title", length = 255, nullable = false)
-    private String title;
+	@Column(name = "title", nullable = false)
+	private String title;
 
-    //DB가 text + NULL 가능입니다만 nullable 항목을 지웠습니다
-    @Lob
-    @Column(name = "content", columnDefinition = "TEXT")
-    private String content;
+	@Lob
+	@Column(name = "content", columnDefinition = "TEXT")
+	private String content;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
-    private PostStatus status = PostStatus.PRIVATE; // PUBLIC / PRIVATE 디폴트 Private
+	// [체크] 파일을 하나로 합칠 때는 @Convert를 직접 명시해주는 게 가장 확실합니다.
+	@Convert(converter = PostStatusConverter.class)
+	@Column(name = "status", nullable = false)
+	private PostStatus status = PostStatus.PRIVATE;
 
-    @Column(name = "view_count")
-    private Integer viewCount = 0; //
+	@Column(name = "view_count")
+	private Integer viewCount = 0;
 
-    @Column(name = "like_count")
-    private Integer likeCount = 0;
+	@Column(name = "like_count")
+	private Integer likeCount = 0;
 
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
+	@Column(name = "created_at")
+	private LocalDateTime createdAt;
 
-    // 오타아님. DB에서 이렇게 되어있습니다. AI는 updated가 어울린다고 합니다만 일단 DB에 따랐습니다
-    @Column(name = "update_at")
-    private LocalDateTime updateAt;
+	@Column(name = "update_at")
+	private LocalDateTime updateAt;
 
-    @OneToMany(mappedBy = "post")
-    private List<CommentEntity> comments = new ArrayList<>();
+	@OneToMany(mappedBy = "post")
+	private List<CommentEntity> comments = new ArrayList<>();
 
-    @OneToMany(mappedBy = "post")
-    private List<PostImageEntity> images = new ArrayList<>();
+	@OneToMany(mappedBy = "post")
+	private List<PostImageEntity> images = new ArrayList<>();
 
-    public enum PostStatus {PUBLIC, PRIVATE}
+	// --- 1. Enum 정의 ---
+	public enum PostStatus {
+		/** @JsonValue: 이 Enum이 JSON으로 나갈 때 사용할 실제 값을 지정
+		 * 자바는 대문자로 명명하는게 일반적이나 프론트는 소문자로 명명하는게 좋다고 판단
+		 * 만약 꼭 그럴필요가 없다면 기존에 했던 PostStatus로 돌려도 괜찮음
+		 * */
+		@com.fasterxml.jackson.annotation.JsonValue
+		PUBLIC("public"),
+
+		@com.fasterxml.jackson.annotation.JsonValue
+		PRIVATE("private");
+
+		private final String value;
+
+		PostStatus(String value) {
+			this.value = value;
+		}
+	}
+
+	// --- 2. 컨버터 정의 (내부 클래스로 수용) ---
+	/**
+	 * [ @Converter ]
+	 * - 이 클래스가 JPA 데이터 변환기임을 선언
+	 * - 엔티티 내부의 static class로 선언하여 파일 하나로 관리 가능
+	 * * [ 데이터 변환 방향 ]
+	 * - DB -> 자바 : 소문자("public")를 대문자(PUBLIC)로 변환 (조회 시)
+	 * - 자바 -> DB : 대문자(PUBLIC)를 소문자("public")로 변환 (저장 시)
+	 */
+	@Converter
+	public static class PostStatusConverter implements AttributeConverter<PostStatus, String> {
+		//@Override 사용 이유 : 같은 이름의 메서드가 없지만 오타 방지 및 오류를 찾는데 용이함으로 삽입
+		@Override
+		public String convertToDatabaseColumn(PostStatus attribute) {
+			if (attribute == null) return null;
+			return attribute.name().toLowerCase(); // 자바(PUBLIC) -> DB(public)
+		}
+		
+		@Override
+		public PostStatus convertToEntityAttribute(String dbData) {
+			if (dbData == null || dbData.isBlank()) return null;
+			return PostStatus.valueOf(dbData.toUpperCase()); // DB(public) -> 자바(PUBLIC)
+		}
+	}
 }
