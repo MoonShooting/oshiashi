@@ -10,7 +10,11 @@ import AchievementsPage from '@/pages/AchievementsPage';
 import ArtworkSearchPage from '@/pages/post/ArtworkSearchPage';
 import PostCreatePage from '@/pages/post/PostCreatePage';
 import PostDetailPage from '@/pages/post/PostDetailPage';
+import PostCommunityDetailPage from '@/pages/post/PostCommunityDetailPage';
+import PostSearchPage from '@/pages/post/PostSearchPage';
 import PostSearchResultPage from '@/pages/post/PostSearchResultPage';
+import PostCommunityCreatePage from '@/pages/post/PostCommunityCreatePage';
+import ProtectedRoute from '@/router/ProtectedRoute';
 
 const authList = [
   { path: '/login', element: <LoginPage /> },
@@ -25,10 +29,29 @@ const mapList = [
 
 const postList = [
   { path: '/artworks', element: <ArtworkSearchPage /> },
-  { path: '/posts/create', element: <PostCreatePage /> },
+  {
+    path: '/posts/create',
+    element: (
+      <ProtectedRoute>
+        <PostCreatePage />
+      </ProtectedRoute>
+    ),
+  },
   { path: '/posts/:postId', element: <PostDetailPage /> },
   { path: '/post/:postId', element: <PostDetailPage /> },
-  { path: '/posts', element: <PostSearchResultPage /> },
+  {
+    path: '/community/create',
+    element: (
+      // 커뮤니티는 열람은 공개, 작성은 로그인 사용자만 허용.
+      <ProtectedRoute>
+        <PostCommunityCreatePage />
+      </ProtectedRoute>
+    ),
+  },
+  { path: '/community/:postId', element: <PostCommunityDetailPage /> },
+  // 커뮤니티와 기존 게시물 검색 라우트를 명확히 분리합니다.
+  { path: '/community', element: <PostSearchResultPage /> },
+  { path: '/posts', element: <PostSearchPage /> },
 ];
 
 const mypageList = [

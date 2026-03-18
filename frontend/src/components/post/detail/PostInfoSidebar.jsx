@@ -3,6 +3,9 @@ import { Headphones, MapPinned, MessageCircleMore, Sparkles } from 'lucide-react
 import styles from '@/styles/PostDetailPage.module.css';
 
 const PostInfoSidebar = ({ post, activeEntry, onOpenLocation }) => {
+  // 추천 OST는 배열이 아닐 수 있으므로 안전하게 정규화합니다.
+  const tracks = Array.isArray(post?.audioRecommendations) ? post.audioRecommendations : [];
+
   return (
     <aside className={styles.sidebarStack}>
       <section className={styles.infoCard}>
@@ -42,12 +45,16 @@ const PostInfoSidebar = ({ post, activeEntry, onOpenLocation }) => {
           <h3>추천 OST</h3>
         </div>
         <div className={styles.soundtrackList}>
-          {post.audioRecommendations.map((track) => (
-            <div key={track.id} className={styles.soundtrackItem}>
-              <strong>{track.title}</strong>
-              <p>{track.note}</p>
-            </div>
-          ))}
+          {tracks.length > 0 ? (
+            tracks.map((track) => (
+              <div key={track.id} className={styles.soundtrackItem}>
+                <strong>{track.title}</strong>
+                <p>{track.note}</p>
+              </div>
+            ))
+          ) : (
+            <p className={styles.infoCardText}>추천 OST 정보가 아직 없습니다.</p>
+          )}
         </div>
       </section>
 

@@ -1,14 +1,16 @@
 import React from 'react';
-import { Film, House, Map, MapPinned, MessageSquare, Settings, Trophy, UserRound, X } from 'lucide-react';
+import { Film, House, Map, MapPinned, MessageCircle, MessageSquare, Settings, Trophy, UserRound, X } from 'lucide-react';
 import { useAuthStore } from '@/stores/useAuthStore';
 import styles from '@/styles/Sidebar.module.css';
 
+// 상단 메뉴는 "루트 게시물 검색"과 "커뮤니티 자유게시판"을 별도 탭으로 분리합니다.
 const loggedInMenuItems = [
   { key: 'home', icon: House, label: '홈' },
   { key: 'artwork', icon: Film, label: '작품 탐색' },
   { key: 'map', icon: Map, label: '맵으로 보기' },
   { key: 'spot', icon: MapPinned, label: '루트 생성', disabled: true },
-  { key: 'community', icon: MessageSquare, label: '커뮤니티' },
+  { key: 'posts', icon: MessageSquare, label: '게시물 검색' },
+  { key: 'community', icon: MessageCircle, label: '커뮤니티' },
   { key: 'mypage', icon: UserRound, label: '마이페이지' },
 ];
 
@@ -16,7 +18,8 @@ const guestMenuItems = [
   { key: 'home', icon: House, label: '홈' },
   { key: 'artwork', icon: Film, label: '작품 탐색' },
   { key: 'map', icon: Map, label: '맵으로 보기' },
-  { key: 'community', icon: MessageSquare, label: '커뮤니티' },
+  { key: 'posts', icon: MessageSquare, label: '게시물 검색' },
+  { key: 'community', icon: MessageCircle, label: '커뮤니티' },
 ];
 
 const loggedInBottomItems = [

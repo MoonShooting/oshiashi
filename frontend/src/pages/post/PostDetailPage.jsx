@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { ArrowLeft, Pencil, Save, Trash2, XCircle } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import MainLayout from '@/components/layout/MainLayout';
 import PostEntrySidebar from '@/components/post/detail/PostEntrySidebar';
@@ -8,83 +8,133 @@ import PostDiaryCard from '@/components/post/detail/PostDiaryCard';
 import PostInfoSidebar from '@/components/post/detail/PostInfoSidebar';
 import PostCommentSection from '@/components/post/detail/PostCommentSection';
 import PostLocationModal from '@/components/post/detail/PostLocationModal';
-import { getMockPostDetail } from '@/data/post/postMockData';
 import {
-  getStoredPostBookmark,
-  removePostBookmark,
-  savePostBookmark,
-} from '@/data/postBookmarkStorage';
+  createPostBookmark,
+  createRouteComment,
+  deletePostBookmark,
+  deleteRouteComment,
+  deleteRoutePost,
+  fetchMyPostBookmarks,
+  fetchRoutePostById,
+  likeRoutePost,
+  updateRouteComment,
+  updateRoutePost,
+} from '@/api/routePostApi';
+import { useAuthStore } from '@/stores/useAuthStore';
+import usePostDetailController from '@/pages/post/hooks/usePostDetailController';
 import styles from '@/styles/PostDetailPage.module.css';
+
+/*
+[PostDetailPage]
+- 상세 조회 + 작성자 게시글 수정/삭제 + 댓글 CRUD + 좋아요 + 북마크를 한 화면에서 처리
+- 권한 규칙:
+  - 게시글 수정/삭제: 작성자 본인만
+  - 댓글 수정/삭제: 댓글 작성자 본인만
+  - 좋아요/북마크/댓글작성: 로그인 사용자만
+*/
+// 상세 공통 훅에 주입할 "일반 게시물 전용" API 어댑터입니다.
+// 페이지는 이 어댑터만 바꾸면 동일한 컨트롤러 로직을 재사용할 수 있습니다.
+const ROUTE_POST_DETAIL_API = {
+  fetchPostById: fetchRoutePostById,
+  fetchMyBookmarks: fetchMyPostBookmarks,
+  updatePost: updateRoutePost,
+  deletePost: deleteRoutePost,
+  likePost: likeRoutePost,
+  createBookmark: createPostBookmark,
+  deleteBookmark: deletePostBookmark,
+  createComment: createRouteComment,
+  updateComment: updateRouteComment,
+  deleteComment: deleteRouteComment,
+};
 
 const PostDetailPage = () => {
   const navigate = useNavigate();
   const { postId } = useParams();
+  const { isLoggedIn, user } = useAuthStore();
 
-  const post = useMemo(() => getMockPostDetail(postId), [postId]);
+  const {
+    post,
+    isLoading,
+    loadError,
+    actionError,
+    isAuthor,
+    commentInput,
+    setCommentInput,
+    isSubmittingComment,
+    commentBusyId,
+    isEditingPost,
+    editTitle,
+    setEditTitle,
+    editContent,
+    setEditContent,
+    isSavingPost,
+    likeBusy,
+    liked,
+    bookmarkInfo,
+    handleStartEdit,
+    handleCancelEdit,
+    handleSavePost,
+    handleDeletePost,
+    handleToggleLike,
+    handleToggleBookmark,
+    handleSubmitComment,
+    handleUpdateComment,
+    handleDeleteComment,
+    canManageComment,
+  } = usePostDetailController({
+    postId,
+    isLoggedIn,
+    user,
+    navigate,
+    listPath: '/posts',
+    api: ROUTE_POST_DETAIL_API,
+  });
+
   const [activeEntryId, setActiveEntryId] = useState('');
-  const [comments, setComments] = useState([]);
-  const [commentInput, setCommentInput] = useState('');
-  const [liked, setLiked] = useState(false);
-  const [bookmarked, setBookmarked] = useState(false);
   const [locationEntry, setLocationEntry] = useState(null);
 
   useEffect(() => {
-    if (!post) return;
-    setActiveEntryId(post.entries[0]?.id ?? '');
-    setComments(post.comments);
-    setCommentInput('');
-    setLiked(false);
-    setBookmarked(Boolean(getStoredPostBookmark(post.id)));
-  }, [post]);
+    const firstEntryId = post?.entries?.[0]?.id ?? '';
 
-  const activeIndex = Math.max(
-    post?.entries.findIndex((entry) => entry.id === activeEntryId) ?? 0,
-    0,
-  );
-  const activeEntry = post?.entries[activeIndex] ?? null;
-  const likeCount = post ? post.stats.likes + (liked ? 1 : 0) : 0;
-
-  const handleSubmitComment = () => {
-    const next = commentInput.trim();
-    if (!next) return;
-
-    setComments((prev) => [
-      {
-        id: `new-${Date.now()}`,
-        author: '나',
-        avatarLabel: '나',
-        timeLabel: '방금 전',
-        content: next,
-      },
-      ...prev,
-    ]);
-    setCommentInput('');
-  };
-
-  const handleToggleBookmark = () => {
-    if (!post) return;
-
-    if (bookmarked) {
-      removePostBookmark(post.id);
-      setBookmarked(false);
+    // 상세 재조회로 entry 목록이 바뀌면 현재 선택 인덱스를 안전하게 재보정합니다.
+    if (!post || !Array.isArray(post.entries) || post.entries.length === 0) {
+      setActiveEntryId('');
       return;
     }
 
-    savePostBookmark(post);
-    setBookmarked(true);
-  };
+    const exists = post.entries.some((entry) => String(entry.id) === String(activeEntryId));
+    if (!exists) {
+      setActiveEntryId(firstEntryId);
+    }
+  }, [post, activeEntryId]);
+
+  const activeIndex = Math.max(
+    post?.entries?.findIndex((entry) => String(entry.id) === String(activeEntryId)) ?? 0,
+    0,
+  );
+
+  const activeEntry = post?.entries?.[activeIndex] ?? null;
+
+  if (isLoading) {
+    return (
+      <MainLayout isMapPage={false} activeMenuKey="posts">
+        <section className={styles.pageShell}>
+          <div className={styles.notFoundCard}>
+            <p>게시글을 불러오는 중입니다.</p>
+          </div>
+        </section>
+      </MainLayout>
+    );
+  }
 
   if (!post || !activeEntry) {
     return (
-      <MainLayout isMapPage={false} activeMenuKey="community">
+      <MainLayout isMapPage={false} activeMenuKey="posts">
         <section className={styles.pageShell}>
           <div className={styles.notFoundCard}>
             <h1>게시물을 찾을 수 없습니다</h1>
-            <p>목업 데이터에 없는 게시물입니다. 목록에서 다시 선택해 주세요.</p>
-            <button
-              type="button"
-              className={styles.backButton}
-              onClick={() => navigate('/posts')}>
+            <p>{loadError || '요청하신 게시글이 존재하지 않습니다.'}</p>
+            <button type="button" className={styles.backButton} onClick={() => navigate('/posts')}>
               <ArrowLeft size={16} />
               게시글 목록으로
             </button>
@@ -95,26 +145,85 @@ const PostDetailPage = () => {
   }
 
   return (
-    <MainLayout isMapPage={false} activeMenuKey="community">
+    <MainLayout isMapPage={false} activeMenuKey="posts">
       <section
         className={styles.pageShell}
-        style={{ '--post-detail-bg': `url(${activeEntry.userImageUrl})` }}>
+        style={{ '--post-detail-bg': `url(${activeEntry.userImageUrl || activeEntry.referenceImageUrl || ''})` }}>
         <div className={styles.backgroundGlow} />
 
         <div className={styles.pageInner}>
-          <button
-            type="button"
-            className={styles.backButton}
-            onClick={() => navigate('/posts')}>
+          <button type="button" className={styles.backButton} onClick={() => navigate('/posts')}>
             <ArrowLeft size={16} />
             목록으로
           </button>
 
           <header className={styles.headerCard}>
             <p className={styles.headerEyebrow}>Post Detail</p>
-            <h1 className={styles.headerTitle}>{post.title}</h1>
-            <p className={styles.headerSummary}>{post.summary}</p>
+
+            {isEditingPost ? (
+              <div className={styles.postEditWrap}>
+                <input
+                  className={styles.postEditInput}
+                  value={editTitle}
+                  onChange={(event) => setEditTitle(event.target.value)}
+                  placeholder="제목을 입력해 주세요."
+                />
+                <textarea
+                  className={styles.postEditTextarea}
+                  value={editContent}
+                  onChange={(event) => setEditContent(event.target.value)}
+                  placeholder="게시글 설명을 입력해 주세요."
+                />
+              </div>
+            ) : (
+              <>
+                <h1 className={styles.headerTitle}>{post.title}</h1>
+                <p className={styles.headerSummary}>{post.summary || post.content}</p>
+              </>
+            )}
+
+            {isAuthor ? (
+              <div className={styles.postManageRow}>
+                {isEditingPost ? (
+                  <>
+                    <button
+                      type="button"
+                      className={styles.postManageButton}
+                      disabled={isSavingPost}
+                      onClick={handleSavePost}>
+                      <Save size={14} />
+                      {isSavingPost ? '저장 중...' : '수정 저장'}
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.postManageButton}
+                      disabled={isSavingPost}
+                      onClick={handleCancelEdit}>
+                      <XCircle size={14} />
+                      취소
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button type="button" className={styles.postManageButton} onClick={handleStartEdit}>
+                      <Pencil size={14} />
+                      게시글 수정
+                    </button>
+                    <button
+                      type="button"
+                      className={`${styles.postManageButton} ${styles.postManageButtonDanger}`}
+                      disabled={isSavingPost}
+                      onClick={handleDeletePost}>
+                      <Trash2 size={14} />
+                      게시글 삭제
+                    </button>
+                  </>
+                )}
+              </div>
+            ) : null}
           </header>
+
+          {actionError ? <p className={styles.postActionError}>{actionError}</p> : null}
 
           <div className={styles.detailGrid}>
             <PostEntrySidebar
@@ -148,27 +257,32 @@ const PostDetailPage = () => {
               <PostDiaryCard
                 post={post}
                 entry={activeEntry}
-                likeCount={likeCount}
-                commentCount={comments.length}
-                liked={liked}
-                bookmarked={bookmarked}
-                onToggleLike={() => setLiked((prev) => !prev)}
+                likeCount={post.stats?.likes ?? 0}
+                commentCount={post.comments?.length ?? 0}
+                liked={liked || likeBusy}
+                bookmarked={Boolean(bookmarkInfo)}
+                onToggleLike={handleToggleLike}
                 onToggleBookmark={handleToggleBookmark}
               />
 
               <PostCommentSection
-                comments={comments}
+                comments={post.comments ?? []}
                 value={commentInput}
                 onChange={setCommentInput}
                 onSubmit={handleSubmitComment}
+                canComment={isLoggedIn}
+                hintText="이 게시물을 본 뒤 느낀 점이나 실제 방문 팁을 남길 수 있습니다."
+                readOnlyMessage="로그인 후 댓글을 작성할 수 있습니다."
+                placeholder="예: 같은 시간대에 가보려는데 대기 줄은 어느 정도였나요?"
+                submitLabel={isSubmittingComment ? '등록 중...' : '댓글 달기'}
+                canManageComment={canManageComment}
+                onEditComment={handleUpdateComment}
+                onDeleteComment={handleDeleteComment}
+                isCommentBusy={(commentId) => String(commentBusyId) === String(commentId)}
               />
             </main>
 
-            <PostInfoSidebar
-              post={post}
-              activeEntry={activeEntry}
-              onOpenLocation={setLocationEntry}
-            />
+            <PostInfoSidebar post={post} activeEntry={activeEntry} onOpenLocation={setLocationEntry} />
           </div>
         </div>
 

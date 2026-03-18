@@ -36,7 +36,9 @@ const MainLayoutContent = (props) => {
       home: '/',
       artwork: '/artworks',
       map: '/map', // 지도 전체 보기
-      community: '/posts',
+      // 게시물 검색(/posts)과 커뮤니티(/community)를 분리 매핑합니다.
+      posts: '/posts',
+      community: '/community',
       mypage: '/mypage',
       achievement: '/achievements',
       settings: '/',
@@ -53,7 +55,9 @@ const MainLayoutContent = (props) => {
     if (location.pathname.startsWith('/artworks')) return 'artwork';
     if (location.pathname.startsWith('/map')) return 'map';
     if (location.pathname.startsWith('/pin')) return 'map';
-    if (location.pathname.startsWith('/posts')) return 'community';
+    // /community 계열은 커뮤니티 탭을, /posts 계열은 게시물 검색 탭을 활성화합니다.
+    if (location.pathname.startsWith('/community')) return 'community';
+    if (location.pathname.startsWith('/posts')) return 'posts';
     if (location.pathname.startsWith('/spot')) return 'spot';
     if (location.pathname.startsWith('/mypage')) return 'mypage';
     if (location.pathname.startsWith('/achievements')) return 'achievement';

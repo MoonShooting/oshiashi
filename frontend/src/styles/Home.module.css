@@ -99,6 +99,10 @@
   color: #ec4899;
   font-weight: 600;
   font-size: 15px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
 }
 
 .horizontalRow {
