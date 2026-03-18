@@ -2,6 +2,8 @@ import React from 'react';
 import { ChevronLeft } from 'lucide-react';
 import styles from '@/styles/AccountActionLayout.module.css';
 
+// 계정 관련 작업 페이지(회원탈퇴, 비밀번호 변경 등)가
+// 같은 상단 소개 + 안내 카드 + 폼 카드 구조를 재사용할 수 있도록 만든 공통 레이아웃입니다.
 const AccountActionLayout = ({
   badgeIcon: BadgeIcon,
   badgeLabel,
@@ -38,6 +40,7 @@ const AccountActionLayout = ({
             <p>{description}</p>
           </div>
 
+          {/* 사용자 식별 정보처럼 페이지마다 바뀌는 요약 데이터만 prop으로 받아 렌더링합니다. */}
           {summaryItems.length ? (
             <div className={styles.accountSummary}>
               {summaryItems.map((item) => (
@@ -77,6 +80,7 @@ const AccountActionLayout = ({
             </div>
           </div>
 
+          {/* 실제 입력 폼은 children으로 열어두어 각 작업 페이지가 자유롭게 조합합니다. */}
           {children}
         </article>
       </section>

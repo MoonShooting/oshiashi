@@ -38,6 +38,7 @@ const WithdrawPage = () => {
 
   const isConfirmationMatched = confirmationText.trim() === WITHDRAW_CONFIRMATION_TEXT;
   const isSubmitDisabled = isSubmitting || !password.trim() || !agreedToWarning || !isConfirmationMatched;
+  // 버튼 비활성화 이유를 페이지 하단에서 바로 설명해, 왜 제출이 안 되는지 사용자가 추측하지 않게 합니다.
   const submitGuide =
     !password.trim()
       ? '현재 비밀번호를 입력해주세요.'
@@ -86,6 +87,7 @@ const WithdrawPage = () => {
 
   return (
     <MainLayout isMapPage={false} activeMenuKey="mypage">
+      {/* 탈퇴 페이지 전용으로 마크업을 반복하지 않고, 계정 작업 공통 레이아웃에 데이터만 주입합니다. */}
       <AccountActionLayout
         badgeIcon={ShieldAlert}
         badgeLabel="위험 작업"
@@ -137,6 +139,7 @@ const WithdrawPage = () => {
               취소
             </Button>
 
+            {/* danger variant를 공통 버튼에 추가해 다른 파괴적 액션에서도 같은 톤을 재사용할 수 있습니다. */}
             <Button type="submit" variant="danger" size="md" disabled={isSubmitDisabled}>
               {isSubmitting ? (
                 <>

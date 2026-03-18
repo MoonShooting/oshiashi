@@ -38,6 +38,7 @@ const InputGroup = ({
         disabled={disabled}
         className={inputClassName}
       />
+      {/* 에러가 아닌 일반 안내 문구도 공통 위치에서 재사용할 수 있게 분리했습니다. */}
       {helperText && <span className="helper-msg">{helperText}</span>}
       {/* 검증 실패 문구는 입력 바로 아래에 붙여 사용자가 어느 필드에서 막혔는지 바로 알 수 있게 합니다. */}
       {error && <span className="error-msg">{error}</span>}

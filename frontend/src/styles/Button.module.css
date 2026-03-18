@@ -118,6 +118,7 @@
   box-shadow: 0 12px 24px rgba(255, 106, 85, 0.24);
 }
 
+/* 회원탈퇴처럼 되돌리기 어려운 작업은 primary와 분리된 시각 언어를 사용합니다. */
 .danger:hover:not(:disabled) {
   opacity: 0.96;
   transform: translateY(-1px);
