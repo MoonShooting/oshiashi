@@ -40,17 +40,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 		// 현재 어떤 요청이 들어왔는지 확인하기 위한 로그 (디버깅용)
 		log.debug("[Security Filter] 요청 감지: {} {}", request.getMethod(), request.getRequestURI());
-
 		// 1. HTTP 요청 헤더에서 "Authorization" 값을 꺼내옴
 		String authHeader = request.getHeader("Authorization");
-
+		// [1-1] Front에서 header값을 유저정보를 담아 잘 가져오는지 확인용 디버그
+		log.debug("[Security Filter] 수신된 헤더: {}", authHeader);
 		// 2. 토큰 존재 여부 및 "Bearer " 표준 규격 확인
 		// - Bearer: "이 토큰의 소지자(Bearer)에게 권한을 주라"는 약속된 인증 타입임.
 		if (authHeader != null && authHeader.startsWith("Bearer ")) {
-
 			// "Bearer " 이후의 실제 토큰 문자열만 추출 (인덱스 7번부터 끝까지)
 			String token = authHeader.substring(7);
-
 			// 3. [보안 추가] 블랙리스트 확인 (로그아웃 여부)
 			// - 유효한 토큰이라도 사용자가 로그아웃을 했다면 Redis에 등록되어 접근이 차단되어야 함.
 			if (isBlacklisted(token)) {
@@ -59,7 +57,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 				filterChain.doFilter(request, response);
 				return;
 			}
-
 			// 4. JWT 토큰의 유효성 검증 (위조, 변조, 만료 시간 체크)
 			if (jwtProvider.validateToken(token)) {
 
