@@ -11,6 +11,7 @@ const InputGroup = ({
   onChange,
   placeholder,
   error,
+  helperText,
   // 브라우저 자동완성 규칙을 페이지에서 제어할 수 있게 열어둡니다.
   // 로그인 폼에서는 username/current-password 같은 접근성 속성이 필요합니다.
   autoComplete,
@@ -37,6 +38,7 @@ const InputGroup = ({
         disabled={disabled}
         className={inputClassName}
       />
+      {helperText && <span className="helper-msg">{helperText}</span>}
       {/* 검증 실패 문구는 입력 바로 아래에 붙여 사용자가 어느 필드에서 막혔는지 바로 알 수 있게 합니다. */}
       {error && <span className="error-msg">{error}</span>}
     </div>

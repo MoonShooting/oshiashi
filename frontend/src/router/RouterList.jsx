@@ -6,6 +6,7 @@ import LoginPage from '@/pages/Login/LoginPage';
 import FindAuthPage from '@/pages/Login/FindAuthPage';
 import SignupPage from '@/pages/Login/RegisterPage';
 import MyPage from '@/pages/MyPage';
+import WithdrawPage from '@/pages/WithdrawPage';
 import AchievementsPage from '@/pages/AchievementsPage';
 import ArtworkSearchPage from '@/pages/post/ArtworkSearchPage';
 import PostCreatePage from '@/pages/post/PostCreatePage';
@@ -55,7 +56,22 @@ const postList = [
 ];
 
 const mypageList = [
-  { path: '/mypage', element: <MyPage /> },
+  {
+    path: '/mypage',
+    element: (
+      <ProtectedRoute>
+        <MyPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/mypage/withdraw',
+    element: (
+      <ProtectedRoute>
+        <WithdrawPage />
+      </ProtectedRoute>
+    ),
+  },
   { path: '/achievements', element: <AchievementsPage /> },
 ];
 

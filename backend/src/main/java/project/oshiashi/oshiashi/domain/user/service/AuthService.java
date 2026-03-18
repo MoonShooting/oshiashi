@@ -379,7 +379,7 @@ public class AuthService {
 	 * 3. 일치할 경우에만 DB에서 삭제 (영속성 컨텍스트 보장)
 	 */
 	@Transactional
-	public void withdraw(String rawPassword) {
+	public void withdraw(String rawPassword, String authHeader) {
 		// 1. 시큐리티 컨텍스트에서 유저 ID 추출
 		Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 		if (!(principal instanceof AuthenticatedUser authUser)) {
@@ -387,6 +387,9 @@ public class AuthService {
 		}
 		String userId = authUser.getUsername();
 		log.info("[AuthService] 회원 탈퇴 요청 - UserID: {}", userId);
+		if (rawPassword == null || rawPassword.trim().isEmpty()) {
+			throw new IllegalArgumentException("비밀번호를 입력해주세요.");
+		}
 		// 2. [해결 포인트] DB에서 최신 엔티티를 직접 조회 (삭제 보장을 위해)
 		UserEntity user = userRepository.findById(userId)
 				.orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다."));
@@ -394,6 +397,9 @@ public class AuthService {
 		if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
 			log.warn("[AuthService] 탈퇴 실패: 비밀번호 불일치 - UserID: {}", userId);
 			throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+		}
+		if (authHeader != null && authHeader.startsWith("Bearer ")) {
+			logout(authHeader);
 		}
 		// 4. [해결 포인트] 조회한 엔티티를 삭제 (이제 확실히 DELETE 쿼리가 나갑니다)
 		userRepository.delete(user);

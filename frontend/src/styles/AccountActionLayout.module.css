@@ -1,0 +1,193 @@
+.page {
+  width: min(1124px, 100%);
+  margin: 0 auto;
+  display: grid;
+  gap: 28px;
+}
+
+.heroCard {
+  position: relative;
+  overflow: hidden;
+  padding: 32px;
+  border: 1px solid rgba(255, 125, 92, 0.22);
+  border-radius: 32px;
+  background:
+    radial-gradient(circle at top right, rgba(255, 102, 102, 0.18), transparent 30%),
+    radial-gradient(circle at bottom left, rgba(255, 174, 66, 0.12), transparent 28%),
+    #19192b;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+  display: grid;
+  gap: 28px;
+}
+
+.backButton {
+  width: fit-content;
+  height: 46px;
+  padding: 0 18px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #f4f4ff;
+  background: rgba(255, 255, 255, 0.04);
+  transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.backButton:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.backIcon {
+  width: 18px;
+  height: 18px;
+}
+
+.heroContent {
+  display: grid;
+  gap: 20px;
+}
+
+.heroBadge {
+  width: fit-content;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #ffd1c2;
+  background: rgba(255, 125, 92, 0.12);
+  border: 1px solid rgba(255, 125, 92, 0.26);
+}
+
+.heroBadgeIcon {
+  width: 16px;
+  height: 16px;
+}
+
+.heroText {
+  display: grid;
+  gap: 10px;
+}
+
+.heroText h2 {
+  margin: 0;
+  color: #fff7f2;
+  font-size: 34px;
+  line-height: 1.2;
+  font-weight: 800;
+}
+
+.heroText p {
+  margin: 0;
+  max-width: 760px;
+  color: #d8d7e6;
+  font-size: 17px;
+  line-height: 1.7;
+}
+
+.accountSummary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.accountSummary div {
+  padding: 20px 22px;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(8, 8, 18, 0.18);
+  display: grid;
+  gap: 8px;
+}
+
+.accountSummary span {
+  color: #b8b7ca;
+  font-size: 14px;
+}
+
+.accountSummary strong {
+  color: #fff;
+  font-size: 20px;
+  line-height: 1.4;
+  word-break: break-all;
+}
+
+.contentGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 24px;
+}
+
+.infoCard,
+.formCard {
+  padding: 28px;
+  border: 1px solid #2d2d44;
+  border-radius: 28px;
+  background: #1a1a2e;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.24);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.sectionIcon {
+  width: 22px;
+  height: 22px;
+  color: #ff8d6b;
+  flex-shrink: 0;
+}
+
+.sectionHeader h3 {
+  margin: 0 0 8px;
+  color: #fff;
+  font-size: 24px;
+  line-height: 1.3;
+  font-weight: 800;
+}
+
+.sectionHeader p {
+  margin: 0;
+  color: #9c9db1;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.warningList {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 14px;
+  color: #d7d7e4;
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+@media (max-width: 960px) {
+  .contentGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .heroCard,
+  .infoCard,
+  .formCard {
+    padding: 24px;
+  }
+
+  .heroText h2 {
+    font-size: 28px;
+  }
+
+  .accountSummary {
+    grid-template-columns: 1fr;
+  }
+}
