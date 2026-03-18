@@ -17,11 +17,11 @@ public class JwtProvider {
 	 * [비밀 키 및 만료 시간 설정]
 	 * - secret: 토큰의 '서명(Signature)'을 만들 때 사용하는 암호화 키임.
 	 * - key: JJWT 라이브러리 규격에 맞게 SecretKey 객체로 변환하여 사용함.
-	 * - expirationTime: 토큰의 유효 기간 (현재 설정: 24시간).
+	 * - expirationTime: 토큰의 유효 기간 (현재 설정: 1시간).
 	 */
 	private final String secret = "your-very-secret-key-oshiashi-project-2024-kunoichi-anju-secret-key";
 	private final SecretKey key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
-	private final long expirationTime = 1000L * 60 * 60 * 24;
+	private final long expirationTime = 1000L * 60 * 60;
 
 	/**
 	 * [1. 토큰 생성: createToken]

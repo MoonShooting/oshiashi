@@ -2,6 +2,9 @@ import { create } from 'zustand';
 import { getMyInfoAPI } from '@/api/auth.js';
 // 위치 src기준으로 시작하려면 @/으로 작성합니다.
 
+let tokenExpiryTimeoutId = null;
+let tokenCountdownIntervalId = null;
+
 /*
 [인증 저장소 토큰 정책]
 - rememberMe=true  -> localStorage (브라우저 재시작 후에도 유지)
@@ -18,20 +21,35 @@ const decodeBase64Url = (value) => {
   return atob(padded);
 };
 
-const extractUserIdFromToken = (rawToken) => {
-  if (!rawToken) return '';
+const parseTokenPayload = (rawToken) => {
+  if (!rawToken) return null;
 
   const token = String(rawToken).replace(/^Bearer\s+/i, '').trim();
   const payloadPart = token.split('.')[1];
-  if (!payloadPart) return '';
+  if (!payloadPart) return null;
 
   try {
-    const payload = JSON.parse(decodeBase64Url(payloadPart));
-    const candidate = payload?.userId ?? payload?.sub ?? payload?.username ?? '';
-    return typeof candidate === 'string' ? candidate.trim() : '';
+    return JSON.parse(decodeBase64Url(payloadPart));
   } catch {
-    return '';
+    return null;
   }
+};
+
+const extractTokenExpiryAt = (rawToken) => {
+  const payload = parseTokenPayload(rawToken);
+  const exp = Number(payload?.exp);
+  return Number.isFinite(exp) && exp > 0 ? exp * 1000 : null;
+};
+
+const getRemainingMs = (expiresAt) => {
+  if (!Number.isFinite(expiresAt)) return 0;
+  return Math.max(0, expiresAt - Date.now());
+};
+
+const extractUserIdFromToken = (rawToken) => {
+  const payload = parseTokenPayload(rawToken);
+  const candidate = payload?.userId ?? payload?.sub ?? payload?.username ?? '';
+  return typeof candidate === 'string' ? candidate.trim() : '';
 };
 
 // 로그아웃/재로그인 직전, 저장소 충돌을 막기 위해 토큰은 항상 한 번에 정리합니다.
@@ -40,13 +58,112 @@ const clearStoredToken = () => {
   sessionStorage.removeItem('accessToken');
 };
 
+const clearTokenTimers = () => {
+  if (tokenExpiryTimeoutId != null) {
+    clearTimeout(tokenExpiryTimeoutId);
+    tokenExpiryTimeoutId = null;
+  }
+
+  if (tokenCountdownIntervalId != null) {
+    clearInterval(tokenCountdownIntervalId);
+    tokenCountdownIntervalId = null;
+  }
+};
+
+const applyLoggedOutState = (set, isInitialized = true) => {
+  clearStoredToken();
+  clearTokenTimers();
+  set({
+    user: null,
+    isLoggedIn: false,
+    isInitialized,
+    tokenExpiresAt: null,
+    tokenRemainingMs: 0,
+  });
+};
+
+const setupTokenLifecycle = (token, set) => {
+  clearTokenTimers();
+
+  const tokenExpiresAt = extractTokenExpiryAt(token);
+  if (tokenExpiresAt == null) {
+    return {
+      tokenExpiresAt: null,
+      tokenRemainingMs: 0,
+      isExpired: false,
+    };
+  }
+
+  const tokenRemainingMs = getRemainingMs(tokenExpiresAt);
+  if (tokenRemainingMs <= 0) {
+    applyLoggedOutState(set);
+    return {
+      tokenExpiresAt: null,
+      tokenRemainingMs: 0,
+      isExpired: true,
+    };
+  }
+
+  tokenExpiryTimeoutId = setTimeout(() => {
+    applyLoggedOutState(set);
+  }, tokenRemainingMs);
+
+  tokenCountdownIntervalId = setInterval(() => {
+    const nextRemainingMs = getRemainingMs(tokenExpiresAt);
+
+    if (nextRemainingMs <= 0) {
+      applyLoggedOutState(set);
+      return;
+    }
+
+    set({ tokenRemainingMs: nextRemainingMs });
+  }, 1000);
+
+  return {
+    tokenExpiresAt,
+    tokenRemainingMs,
+    isExpired: false,
+  };
+};
+
+const getInitialTokenSession = () => {
+  const token = getStoredToken();
+  if (!token) {
+    return {
+      token: '',
+      tokenExpiresAt: null,
+      tokenRemainingMs: 0,
+    };
+  }
+
+  const tokenExpiresAt = extractTokenExpiryAt(token);
+  if (tokenExpiresAt != null && getRemainingMs(tokenExpiresAt) <= 0) {
+    clearStoredToken();
+    return {
+      token: '',
+      tokenExpiresAt: null,
+      tokenRemainingMs: 0,
+    };
+  }
+
+  return {
+    token,
+    tokenExpiresAt,
+    tokenRemainingMs: tokenExpiresAt != null ? getRemainingMs(tokenExpiresAt) : 0,
+  };
+};
+
+const initialTokenSession = getInitialTokenSession();
+
 //로그인은 사용자 정보를 서비스 전체에서 계속 유지(State)해야 하므로 Store 필수
 export const useAuthStore = create((set) => ({
   user: null,
   // !!를 붙여서 값이 있으면 true, 없으면 false가 확실히 되도록
-  isLoggedIn: !!getStoredToken(),
+  isLoggedIn: !!initialTokenSession.token,
   isEmailVerified: false, // 이메일 인증 완료 여부 추가
   isInitialized: false, // 초기화 여부, 새로고침 시 토큰 검증이 끝나기 전까지 화면이 깜빡이는 현상(Flicker)을 방지
+  tokenExpiresAt: initialTokenSession.tokenExpiresAt,
+  tokenRemainingMs: initialTokenSession.tokenRemainingMs,
 
   // 이메일 인증 상태 업데이트 함수(인증 성공 시 호출할 함수)
   setEmailVerified: (status) => set({ isEmailVerified: status }),
@@ -62,12 +179,22 @@ export const useAuthStore = create((set) => ({
       sessionStorage.setItem('accessToken', token);
     }
 
-    set({ user: userData, isLoggedIn: true });
+    const session = setupTokenLifecycle(token, set);
+    if (session.isExpired) {
+      return;
+    }
+
+    set({
+      user: userData,
+      isLoggedIn: true,
+      isInitialized: true,
+      tokenExpiresAt: session.tokenExpiresAt,
+      tokenRemainingMs: session.tokenRemainingMs,
+    });
   },
 
   logout: () => {
-    clearStoredToken();
-    set({ user: null, isLoggedIn: false });
+    applyLoggedOutState(set);
     // 여기서 바로 alert를 띄우기보다, 필요시 해당 컴포넌트에서 띄우는 게 더 유연함.
   },
 
@@ -77,7 +204,12 @@ export const useAuthStore = create((set) => ({
 
     // 저장된 토큰이 없으면 복구 요청을 보내지 않고 초기화만 완료합니다.
     if (!token) {
-      set({ user: null, isLoggedIn: false, isInitialized: true });
+      applyLoggedOutState(set);
+      return;
+    }
+
+    const session = setupTokenLifecycle(token, set);
+    if (session.isExpired) {
       return;
     }
 
@@ -87,7 +219,13 @@ export const useAuthStore = create((set) => ({
       // - 토큰이 유효하면 최신 사용자 정보를 반환
       // - 프론트는 이 응답으로 새로고침 후 Zustand 상태를 복원
       const userData = await getMyInfoAPI();
-      set({ user: userData, isLoggedIn: true, isInitialized: true });
+      set({
+        user: userData,
+        isLoggedIn: true,
+        isInitialized: true,
+        tokenExpiresAt: session.tokenExpiresAt,
+        tokenRemainingMs: session.tokenRemainingMs,
+      });
     } catch (error) {
       // 인증 실패(만료/위조 토큰)는 토큰을 제거하고 로그아웃 처리합니다.
       // 네트워크 일시 오류는 토큰을 유지해 재시도 여지를 남깁니다.
@@ -98,8 +236,7 @@ export const useAuthStore = create((set) => ({
 
       if (authFailed) {
         // 토큰이 이미 무효하므로 즉시 정리하고 비로그인 상태로 확정합니다.
-        clearStoredToken();
-        set({ user: null, isLoggedIn: false, isInitialized: true });
+        applyLoggedOutState(set);
         return;
       }
 
@@ -114,8 +251,14 @@ export const useAuthStore = create((set) => ({
           user: state.user ?? fallbackUser,
           isLoggedIn: true,
           isInitialized: true,
+          tokenExpiresAt: session.tokenExpiresAt,
+          tokenRemainingMs: session.tokenRemainingMs,
         };
       });
     }
   },
 }));
+
+if (initialTokenSession.token) {
+  setupTokenLifecycle(initialTokenSession.token, useAuthStore.setState);
+}
