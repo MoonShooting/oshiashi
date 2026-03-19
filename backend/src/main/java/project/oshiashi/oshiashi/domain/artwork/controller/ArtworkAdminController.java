@@ -2,6 +2,7 @@ package project.oshiashi.oshiashi.domain.artwork.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import project.oshiashi.oshiashi.domain.artwork.repository.ArtworkTypeRepository;
 import project.oshiashi.oshiashi.domain.artwork.service.ArtworkImportService;
 
 import java.util.List;
@@ -14,6 +15,9 @@ public class ArtworkAdminController {
 
     private final ArtworkImportService artworkImportService;
 
+    // 임시로 만든 중복값 제거를 위한 아트워크 타입 삭제
+    private final ArtworkTypeRepository artworkTypeRepository;
+
     @PostMapping("/import/movie")
     public List<Long> importMovie(@RequestParam String query) {
         return artworkImportService.importMovies(query);
@@ -22,5 +26,11 @@ public class ArtworkAdminController {
     @PostMapping("/import/tv")
     public List<Long> importTv(@RequestParam String query) {
         return artworkImportService.importTv(query);
+    }
+
+    // 아트워크 타입 삭제
+    @DeleteMapping("/{id}")
+    public void deleteArtworkType(@PathVariable Long id) {
+        artworkTypeRepository.deleteById(id);
     }
 }

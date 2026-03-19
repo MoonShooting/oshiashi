@@ -28,6 +28,9 @@ public interface ArtworkRepository extends JpaRepository<ArtworkEntity, Long> {
      */
     List<ArtworkEntity> findByArtworkType_ArtworkTypeId(Long artworkTypeId);
 
+    // 사용자가 작품명을 입력했을 때 내부 DB에서 먼저 후보를 찾기 위한 검색
+    List<ArtworkEntity> findByTitleContainingIgnoreCase(String title);
+
     /*
      * title + artworkType 기준 중복 여부 확인
      *

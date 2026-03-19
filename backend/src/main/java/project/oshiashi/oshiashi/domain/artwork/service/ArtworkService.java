@@ -22,4 +22,7 @@ public interface ArtworkService {
 
     List<SpotResponse> getSpotsByArtwork(Long artworkId);
 
+    // 내부 DB에 이미 등록된 작품을 작품명 기준으로 먼저 검색
+    List<ArtworkResponse> searchArtworks(String keyword);
+
 }
