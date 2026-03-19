@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import project.oshiashi.oshiashi.domain.comment.dto.CommentResponse;
 import project.oshiashi.oshiashi.domain.comment.service.CommentService;
+import project.oshiashi.oshiashi.domain.post.dto.PostRequest;
 import project.oshiashi.oshiashi.domain.post.dto.PostResponse;
 import project.oshiashi.oshiashi.domain.post.entity.PostEntity;
 import project.oshiashi.oshiashi.domain.post.service.PostService;
@@ -41,7 +42,7 @@ public class PostController {
 	
 	// 3. 게시글 작성 (DB에 영구 저장)
 	@PostMapping
-	public PostResponse createPost(@RequestBody PostResponse request) {
+	public PostResponse createPost(@RequestBody PostRequest request) {
 		PostResponse savedResponse = postService.createPost(request);
 		
 		log.debug(">>> [Controller] 작성 완료! 생성된 게시글 ID: {}", savedResponse.getPostId());
@@ -60,7 +61,7 @@ public class PostController {
 	
 	// 5. 게시글 수정
 	@PatchMapping("/{postId}")
-	public PostResponse updatePost(@PathVariable Long postId, @RequestBody PostResponse request) {
+	public PostResponse updatePost(@PathVariable Long postId, @RequestBody PostRequest request) {
 		
 		log.debug(">>> [Controller] 게시글 수정 요청 발생! ID: {}", postId);
 		
