@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { AlertCircle, Camera, PlusCircle, Sparkles } from 'lucide-react';
+import { AlertCircle, Camera, Hash, PlusCircle, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import MainLayout from '@/components/layout/MainLayout';
 import PostEditorFields from '@/components/post/create/PostEditorFields';
@@ -26,6 +26,7 @@ const PostCreatePage = () => {
   const objectUrlsRef = useRef(new Set());
   const [selectedRouteId, setSelectedRouteId] = useState('');
   const [title, setTitle] = useState('');
+  const [artworkSearchInput, setArtworkSearchInput] = useState('');
   const [entries, setEntries] = useState([]);
   const [routes, setRoutes] = useState([]);
   const [routeIssues, setRouteIssues] = useState([]);
@@ -314,6 +315,28 @@ const PostCreatePage = () => {
           titleLabel="제목"
           titlePlaceholder="예: 너의 이름은 루트를 따라 걸으며 남긴 실제 촬영 기록"
         />
+
+        <section className={styles.formSection}>
+          <label htmlFor="post-artwork-tag-input" className={styles.sectionLabel}>
+            작품 태그 검색
+          </label>
+          <p className={styles.tagInputHint}>
+            태그 추천/저장은 제외하고 검색 입력창만 유지했습니다.
+          </p>
+
+          <div className={styles.tagSearchWrap}>
+            <div className={styles.tagSearchInputWrap}>
+              <Hash className={styles.tagSearchIcon} strokeWidth={2} />
+              <input
+                id="post-artwork-tag-input"
+                value={artworkSearchInput}
+                onChange={(event) => setArtworkSearchInput(event.target.value)}
+                className={styles.tagSearchInput}
+                placeholder="예: 너의 이름은, 도쿄, 아키하바라"
+              />
+            </div>
+          </div>
+        </section>
 
         <section className={styles.overviewCard}>
           <div className={styles.overviewLead}>
