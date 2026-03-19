@@ -13,6 +13,10 @@ import project.oshiashi.oshiashi.domain.artwork.tmdb.dto.TmdbArtworkDto;
 import project.oshiashi.oshiashi.domain.artwork.tmdb.dto.TmdbSearchResponse;
 import project.oshiashi.oshiashi.global.exception.BusinessException;
 import project.oshiashi.oshiashi.global.exception.ErrorCode;
+import project.oshiashi.oshiashi.domain.artwork.dto.ArtworkResponse;
+import project.oshiashi.oshiashi.domain.artwork.dto.ExternalArtworkCandidateResponse;
+import project.oshiashi.oshiashi.domain.artwork.dto.ExternalArtworkSaveRequest;
+import java.util.Comparator;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -292,4 +296,119 @@ public class ArtworkImportService {
         String normalized = title.trim().replaceAll("\\s+", " ");
         return normalized.isBlank() ? null : normalized;
     }
+
+
+    // 내부 DB에 없는 작품을 보충하기 위해 TMDB 영화/TV 검색 결과를 하나의 목록으로 합쳐 반환합니다.
+    public List<ExternalArtworkCandidateResponse> searchExternal(String query) {
+        if (query == null || query.isBlank()) {
+            return List.of();
+        }
+
+        List<ExternalArtworkCandidateResponse> candidates = new ArrayList<>();
+        candidates.addAll(mapMovieCandidates(tmdbClient.searchMovie(query)));
+        candidates.addAll(mapTvCandidates(tmdbClient.searchTv(query)));
+
+        return candidates.stream()
+                .filter(candidate -> candidate.getTitle() != null)
+                .sorted(Comparator.comparing(ExternalArtworkCandidateResponse::getTitle))
+                .toList();
+    }
+
+    // 사용자가 고른 TMDB 후보 1건을 Artwork로 저장하고, 이후 Tag 생성 등에 쓸 artworkId를 반환합니다.
+    public ArtworkResponse saveSelectedArtwork(ExternalArtworkSaveRequest request) {
+        String resolvedTitle = normalizeTitle(request.getTitle());
+
+        // Artwork.title은 필수값이므로 저장 전에 제목이 비어 있지 않은지 확인합니다.
+        if (resolvedTitle == null) {
+            throw new IllegalArgumentException("작품 제목은 필수입니다.");
+        }
+
+        // 현재 Artwork는 poster_url을 필수로 사용하므로, 포스터 경로가 없으면 저장하지 않습니다.
+        if (request.getPosterPath() == null || request.getPosterPath().isBlank()) {
+            throw new IllegalArgumentException("포스터 경로는 필수입니다.");
+        }
+
+        ArtworkTypeEntity artworkType = resolveArtworkType(
+                request.getMediaType(),
+                request.getGenreIds()
+        );
+
+        // 같은 작품이 중복 저장되지 않도록 title + artworkType 기준으로 먼저 확인합니다.
+        return artworkRepository
+                .findByTitleAndArtworkType_ArtworkTypeId(
+                        resolvedTitle,
+                        artworkType.getArtworkTypeId()
+                )
+                .map(ArtworkResponse::fromEntity)
+                .orElseGet(() -> {
+                    ArtworkEntity artwork = ArtworkEntity.of(
+                            resolvedTitle,
+                            buildPosterUrl(request.getPosterPath()),
+                            request.getOverview(),
+                            null,
+                            artworkType
+                    );
+                    return ArtworkResponse.fromEntity(artworkRepository.save(artwork));
+                });
+    }
+
+
+    // TMDB 영화 검색 결과를 프론트에 보여줄 후보 목록 형태로 변환합니다.
+    private List<ExternalArtworkCandidateResponse> mapMovieCandidates(TmdbSearchResponse response) {
+        if (response == null || response.getResults() == null) {
+            return List.of();
+        }
+
+        return response.getResults().stream()
+                .map(dto -> ExternalArtworkCandidateResponse.builder()
+                        .title(normalizeTitle(resolveMovieTitle(dto)))
+                        .overview(dto.getOverview())
+                        .posterPath(dto.getPoster_path())
+                        .posterUrl(dto.getPoster_path() == null || dto.getPoster_path().isBlank()
+                                ? null
+                                : buildPosterUrl(dto.getPoster_path()))
+                        .mediaType("MOVIE")
+                        .genreIds(dto.getGenre_ids())
+                        .build())
+                .filter(candidate -> candidate.getTitle() != null)
+                .toList();
+    }
+
+    // TMDB TV 검색 결과를 프론트에 보여줄 후보 목록 형태로 변환합니다.
+    private List<ExternalArtworkCandidateResponse> mapTvCandidates(TmdbSearchResponse response) {
+        if (response == null || response.getResults() == null) {
+            return List.of();
+        }
+
+        return response.getResults().stream()
+                .map(dto -> ExternalArtworkCandidateResponse.builder()
+                        .title(normalizeTitle(resolveTvTitle(dto)))
+                        .overview(dto.getOverview())
+                        .posterPath(dto.getPoster_path())
+                        .posterUrl(dto.getPoster_path() == null || dto.getPoster_path().isBlank()
+                                ? null
+                                : buildPosterUrl(dto.getPoster_path()))
+                        .mediaType("TV")
+                        .genreIds(dto.getGenre_ids())
+                        .build())
+                .filter(candidate -> candidate.getTitle() != null)
+                .toList();
+    }
+
+    // TMDB mediaType과 장르 정보를 바탕으로 내부 ArtworkType을 결정합니다.
+    private ArtworkTypeEntity resolveArtworkType(String mediaType, List<Integer> genreIds) {
+        boolean animation = genreIds != null && genreIds.contains(TMDB_ANIMATION_GENRE_ID);
+
+        // animation 장르가 있으면 movie/tv보다 우선해서 애니메이션으로 분류합니다.
+        if (animation) {
+            return getArtworkType("애니메이션");
+        }
+
+        if ("TV".equalsIgnoreCase(mediaType)) {
+            return getArtworkType("드라마");
+        }
+
+        return getArtworkType("영화");
+    }
+
 }

@@ -115,6 +115,12 @@ public class ArtworkController {
     public List<ArtworkTypeResponse> getArtworkTypes() {
         return artworkService.getArtworkTypes();
     }
+
+    // 사용자가 입력한 작품명이 이미 내부 Artwork 테이블에 있는지 먼저 확인하는 API
+    @GetMapping("/artwork/search")
+    public List<ArtworkResponse> searchArtworks(@RequestParam String keyword) {
+        return artworkService.searchArtworks(keyword);
+    }
     /*
     @GetMapping("/test")
     public List<ArtworkResponse> test() {

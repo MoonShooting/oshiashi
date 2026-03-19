@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Artwork -> Tag 데모</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f6f7fb;
+      margin: 0;
+      padding: 24px;
+      color: #222;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+    }
+
+    h1, h2 {
+      margin-top: 0;
+    }
+
+    .row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    input {
+      flex: 1;
+      min-width: 240px;
+      padding: 10px 12px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    button {
+      padding: 10px 14px;
+      border: none;
+      border-radius: 8px;
+      background: #2563eb;
+      color: white;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    button.secondary {
+      background: #64748b;
+    }
+
+    button.green {
+      background: #16a34a;
+    }
+
+    button:disabled {
+      background: #94a3b8;
+      cursor: not-allowed;
+    }
+
+    .list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .item {
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 12px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      background: #fafafa;
+    }
+
+    .item img {
+      width: 90px;
+      height: 120px;
+      object-fit: cover;
+      border-radius: 8px;
+      background: #e5e7eb;
+    }
+
+    .item-content {
+      flex: 1;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      background: #e0e7ff;
+      color: #3730a3;
+      margin-bottom: 6px;
+    }
+
+    .selected-box {
+      padding: 12px;
+      border-radius: 10px;
+      background: #ecfeff;
+      border: 1px solid #a5f3fc;
+    }
+
+    .status {
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: #eff6ff;
+      margin-top: 12px;
+      white-space: pre-wrap;
+      font-size: 14px;
+    }
+
+    .muted {
+      color: #666;
+      font-size: 14px;
+    }
+
+    .danger {
+      color: #b91c1c;
+    }
+
+    .success {
+      color: #166534;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>작품 검색 / 선택 / 태그 생성 데모</h1>
+
+  <div class="card">
+    <h2>1. 작품명 입력</h2>
+    <div class="row">
+      <input id="artworkKeyword" placeholder="작품명을 입력하세요. 예: 너의 이름은" />
+      <button id="searchInternalBtn">내부 작품 검색</button>
+      <button id="searchExternalBtn" class="secondary">TMDB 외부 검색</button>
+    </div>
+    <div class="muted">
+      내부 작품이 있으면 바로 선택하고, 없으면 TMDB 검색 결과 중 하나를 선택해서 Artwork로 저장합니다.
+    </div>
+    <div id="searchStatus" class="status">대기 중</div>
+  </div>
+
+  <div class="card">
+    <h2>2. 내부 검색 결과</h2>
+    <div id="internalResults" class="list"></div>
+  </div>
+
+  <div class="card">
+    <h2>3. 외부 검색 결과(TMDB)</h2>
+    <div id="externalResults" class="list"></div>
+  </div>
+
+  <div class="card">
+    <h2>4. 선택된 작품</h2>
+    <div id="selectedArtwork" class="selected-box">
+      아직 선택된 작품이 없습니다.
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>5. 태그 생성</h2>
+    <div class="row">
+      <input id="tagName" placeholder="태그명을 입력하세요. 예: 감성, 도쿄, 청춘" />
+      <button id="createTagBtn" class="green" disabled>태그 생성</button>
+    </div>
+    <div id="tagStatus" class="status">작품 선택 후 태그를 생성할 수 있습니다.</div>
+  </div>
+</div>
+
+<script>
+  const artworkKeywordInput = document.getElementById('artworkKeyword');
+  const tagNameInput = document.getElementById('tagName');
+
+  const searchInternalBtn = document.getElementById('searchInternalBtn');
+  const searchExternalBtn = document.getElementById('searchExternalBtn');
+  const createTagBtn = document.getElementById('createTagBtn');
+
+  const internalResultsEl = document.getElementById('internalResults');
+  const externalResultsEl = document.getElementById('externalResults');
+  const selectedArtworkEl = document.getElementById('selectedArtwork');
+  const searchStatusEl = document.getElementById('searchStatus');
+  const tagStatusEl = document.getElementById('tagStatus');
+
+  let selectedArtwork = null;
+
+  function setSearchStatus(message) {
+    searchStatusEl.textContent = message;
+  }
+
+  function setTagStatus(message) {
+    tagStatusEl.textContent = message;
+  }
+
+  function renderSelectedArtwork() {
+    if (!selectedArtwork) {
+      selectedArtworkEl.textContent = '아직 선택된 작품이 없습니다.';
+      createTagBtn.disabled = true;
+      return;
+    }
+
+    selectedArtworkEl.innerHTML = `
+      <div><strong>artworkId:</strong> ${selectedArtwork.artworkId}</div>
+      <div><strong>제목:</strong> ${selectedArtwork.title}</div>
+      <div><strong>타입:</strong> ${selectedArtwork.artworkTypeName ?? '-'}</div>
+      <div><strong>설명:</strong> ${selectedArtwork.description ?? '-'}</div>
+    `;
+
+    createTagBtn.disabled = false;
+  }
+
+  function createResultItem({ title, posterUrl, description, badgeText, buttonText, onClick }) {
+    const item = document.createElement('div');
+    item.className = 'item';
+
+    item.innerHTML = `
+      <img src="${posterUrl || ''}" alt="${title || 'poster'}" />
+      <div class="item-content">
+        <div class="badge">${badgeText}</div>
+        <h3>${title || '제목 없음'}</h3>
+        <p>${description || '설명 없음'}</p>
+      </div>
+    `;
+
+    const button = document.createElement('button');
+    button.textContent = buttonText;
+    button.addEventListener('click', onClick);
+    item.appendChild(button);
+
+    return item;
+  }
+
+  async function fetchJson(url, options = {}) {
+    const response = await fetch(url, {
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      ...options
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || `HTTP ${response.status}`);
+    }
+
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      return response.json();
+    }
+    return response.text();
+  }
+
+  async function searchInternal() {
+    const keyword = artworkKeywordInput.value.trim();
+    internalResultsEl.innerHTML = '';
+    externalResultsEl.innerHTML = '';
+
+    if (!keyword) {
+      setSearchStatus('작품명을 입력해주세요.');
+      return;
+    }
+
+    setSearchStatus('내부 Artwork 검색 중...');
+
+    try {
+      const results = await fetchJson(`/api/v1/main/artwork/search?keyword=${encodeURIComponent(keyword)}`);
+
+      if (!Array.isArray(results) || results.length === 0) {
+        setSearchStatus('내부 Artwork에 일치하는 작품이 없습니다.');
+        return;
+      }
+
+      setSearchStatus(`내부 검색 결과 ${results.length}건`);
+
+      results.forEach((artwork) => {
+        const item = createResultItem({
+          title: artwork.title,
+          posterUrl: artwork.posterUrl,
+          description: artwork.description,
+          badgeText: `내부 작품 / ${artwork.artworkTypeName || '-'}`,
+          buttonText: '이 작품 선택',
+          onClick: () => {
+            selectedArtwork = artwork;
+            renderSelectedArtwork();
+            setSearchStatus(`내부 작품 선택 완료: ${artwork.title}`);
+          }
+        });
+
+        internalResultsEl.appendChild(item);
+      });
+    } catch (error) {
+      setSearchStatus(`내부 검색 실패: ${error.message}`);
+    }
+  }
+
+  async function searchExternal() {
+    const keyword = artworkKeywordInput.value.trim();
+    externalResultsEl.innerHTML = '';
+
+    if (!keyword) {
+      setSearchStatus('작품명을 입력해주세요.');
+      return;
+    }
+
+    setSearchStatus('TMDB 외부 검색 중...');
+
+    try {
+      const results = await fetchJson(`/api/v1/artworks/search/external?query=${encodeURIComponent(keyword)}`);
+
+      if (!Array.isArray(results) || results.length === 0) {
+        setSearchStatus('외부 검색 결과가 없습니다.');
+        return;
+      }
+
+      setSearchStatus(`외부 검색 결과 ${results.length}건`);
+
+      results.forEach((candidate) => {
+        const item = createResultItem({
+          title: candidate.title,
+          posterUrl: candidate.posterUrl,
+          description: candidate.overview,
+          badgeText: `TMDB / ${candidate.mediaType || '-'}`,
+          buttonText: '선택 후 Artwork 저장',
+          onClick: async () => {
+            try {
+              setSearchStatus(`선택한 작품 저장 중: ${candidate.title}`);
+
+              const savedArtwork = await fetchJson('/api/v1/artworks/import', {
+                method: 'POST',
+                body: JSON.stringify({
+                  title: candidate.title,
+                  overview: candidate.overview,
+                  posterPath: candidate.posterPath,
+                  mediaType: candidate.mediaType,
+                  genreIds: candidate.genreIds
+                })
+              });
+
+              selectedArtwork = savedArtwork;
+              renderSelectedArtwork();
+              setSearchStatus(`Artwork 저장 완료: ${savedArtwork.title} (ID: ${savedArtwork.artworkId})`);
+            } catch (error) {
+              setSearchStatus(`Artwork 저장 실패: ${error.message}`);
+            }
+          }
+        });
+
+        externalResultsEl.appendChild(item);
+      });
+    } catch (error) {
+      setSearchStatus(`외부 검색 실패: ${error.message}`);
+    }
+  }
+
+  async function createTag() {
+    const tagName = tagNameInput.value.trim();
+
+    if (!selectedArtwork) {
+      setTagStatus('먼저 작품을 선택해주세요.');
+      return;
+    }
+
+    if (!tagName) {
+      setTagStatus('태그명을 입력해주세요.');
+      return;
+    }
+
+    try {
+      setTagStatus('태그 생성 중...');
+
+      const result = await fetchJson('/api/v1/tags', {
+        method: 'POST',
+        body: JSON.stringify({
+          artworkId: selectedArtwork.artworkId,
+          tagName
+        })
+      });
+
+      setTagStatus(`태그 생성 완료: ${result.tagName || tagName}`);
+    } catch (error) {
+      setTagStatus(`태그 생성 실패: ${error.message}`);
+    }
+  }
+
+  searchInternalBtn.addEventListener('click', searchInternal);
+  searchExternalBtn.addEventListener('click', searchExternal);
+  createTagBtn.addEventListener('click', createTag);
+
+  renderSelectedArtwork();
+</script>
+</body>
+</html>

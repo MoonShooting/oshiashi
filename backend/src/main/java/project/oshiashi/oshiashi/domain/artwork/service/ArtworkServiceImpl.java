@@ -139,4 +139,17 @@ public class ArtworkServiceImpl implements ArtworkService {
                 .map(SpotResponse::fromEntity)
                 .toList();
     }
+
+    // 태그 생성 전에 artworkId를 확보할 수 있도록, 작품명을 기준으로 내부 작품을 먼저 검색합니다.
+    @Override
+    public List<ArtworkResponse> searchArtworks(String keyword) {
+        if (keyword == null || keyword.isBlank()) {
+            // 빈 검색어는 불필요한 전체 조회로 이어질 수 있어서 바로 빈 목록을 반환합니다.
+            return List.of();
+        }
+
+        return artworkRepository.findByTitleContainingIgnoreCase(keyword.trim()).stream()
+                .map(ArtworkResponse::fromEntity)
+                .toList();
+    }
 }
