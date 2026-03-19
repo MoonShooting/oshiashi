@@ -170,10 +170,18 @@ public class AuthController {
 
 	// 아이디 찾기: /api/v1/auth/findId
 	@GetMapping("/findId")
-	public ResponseEntity<String> findId(@RequestParam("email") String email) {
-		log.info("[API] 아이디 찾기 요청: {}", email);
-		// 서비스에서 마스킹된 아이디를 반환함 (예: test****)
-		return ResponseEntity.ok(authService.findUserId(email));
+	public ResponseEntity<Map<String, String>> findId(
+			@RequestParam("name") String name, // 이름 파라미터 추가
+			@RequestParam("email") String email) {
+
+		log.info("[API] 아이디 찾기 요청 - 이름: {}, 이메일: {}", name, email);
+
+		// 서비스에서 마스킹된 아이디를 가져옴
+		String maskedId = authService.findUserId(email);
+		log.info("[API] 찾은 아이디 제공: {}", maskedId);
+
+		// JSON 객체 형태로 반환 (프론트에서 response.userId로 접근 가능)
+		return ResponseEntity.ok(Map.of("userId", maskedId));
 	}
 
 	// 내 정보 조회(로그인 유지용): /api/v1/auth/me

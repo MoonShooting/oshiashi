@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import InputGroup from '@/components/input/InputGroup.jsx';
 import ActionInputGroup from '@/components/input/ActionInputGroup.jsx';
 import SubmitGuide from '@/components/input/SubmitGuide.jsx';
-import Button from '@/components/common/Button.jsx';
+import Button from '@/components/modal/Button.jsx';
 import { TERMS_DATA } from '@/data/termsData.js';
 import TermsModal from '@/components/auth/TermsModal.jsx';
 import { sendEmailAPI, verifyEmailAPI, registerAPI, checkEmailAPI, checkIdAPI, checkNicknameAPI } from '@/api/Auth.js';

@@ -1,0 +1,79 @@
+/* ConfirmModal.css */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4); /* 배경 흐림 정도 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  backdrop-filter: blur(2px); /* 배경 살짝 흐리게 처리 (선택) */
+}
+
+.modal-content {
+  background: var(--white, #ffffff);
+  padding: 30px;
+  border-radius: 16px; /* 둥근 모서리 */
+  width: 90%;
+  max-width: 380px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  animation: modal-appear 0.2s ease-out;
+}
+
+/* 나타나는 애니메이션 */
+@keyframes modal-appear {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 15px;
+  color: var(--text-main, #333);
+}
+
+.modal-message {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--text-sub, #666);
+  margin-bottom: 30px;
+  word-break: keep-all; /* 한글 단어 끊김 방지 */
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+}
+
+/* 확인 버튼 (테마색 적용) */
+.modal-actions button.primary {
+  background-color: var(--main-color); /* index.css의 메인 컬러 */
+  color: white;
+  flex: 1;
+}
+
+/* 취소 버튼 */
+.modal-actions button.outline {
+  background-color: transparent;
+  border: 1px solid var(--gray-300, #ccc);
+  color: var(--text-sub);
+  flex: 1;
+}
+
+/* 위험 버튼 (회원탈퇴 등) */
+.modal-actions button.danger {
+  background-color: var(--error-color, #ff4d4f);
+  color: white;
+  flex: 1;
+}

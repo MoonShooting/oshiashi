@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { LockKeyhole, UserRound } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import InputGroup from '@/components/input/InputGroup.jsx';
-import Button from '@/components/common/Button.jsx';
+import Button from '@/components/modal/Button.jsx';
 import { loginAPI } from '@/api/auth.js';
 import { useAuthStore } from '@/stores/useAuthStore.js';
 import '@/components/auth/LoginForm.css';

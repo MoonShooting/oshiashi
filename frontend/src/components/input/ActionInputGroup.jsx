@@ -1,5 +1,5 @@
 import './FormControls.css';
-import Button from '@/components/common/Button.jsx';
+import Button from '@/components/modal/Button.jsx';
 
 // 입력창 오른쪽에 즉시 실행 버튼이 붙는 폼 패턴입니다.
 // 아이디 중복 확인, 이메일 인증 요청, 인증번호 확인처럼 "입력 + 액션"이 한 세트인 화면에서 사용합니다.
