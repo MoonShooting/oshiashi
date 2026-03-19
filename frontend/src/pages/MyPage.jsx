@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Bookmark, FileText, MapPinned, Pencil, Settings, Trophy, UserRound } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import Button from '@/components/common/Button';
 import MainLayout from '@/components/layout/MainLayout';
 import { useAuthStore } from '@/stores/useAuthStore';
 import styles from '@/styles/MyPage.module.css';
@@ -198,6 +199,12 @@ const MyPage = () => {
             </div>
           )}
         </section>
+
+        <div className={styles.footerActionRow}>
+          <Button type="button" variant="textMuted" size="xsText" onClick={() => navigate('/mypage/withdraw')}>
+            회원탈퇴
+          </Button>
+        </div>
       </div>
     </MainLayout>
   );

@@ -159,9 +159,12 @@ public class AuthController {
 
 	// 회원 탈퇴: /api/v1/auth/withdraw
 	@DeleteMapping("/withdraw")
-	public ResponseEntity<String> withdraw(@RequestBody Map<String, String> request) {
+	public ResponseEntity<String> withdraw(
+			@RequestHeader(value = "Authorization", required = false) String authHeader,
+			@RequestBody Map<String, String> request
+	) {
 		log.info("[API] 회원 탈퇴 요청 수신");
-		authService.withdraw(request.get("password"));
+		authService.withdraw(request.get("password"), authHeader);
 		return ResponseEntity.ok("회원 탈퇴가 완료되었습니다.");
 	}
 

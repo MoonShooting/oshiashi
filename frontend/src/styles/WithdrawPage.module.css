@@ -1,0 +1,64 @@
+.withdrawForm {
+  display: grid;
+  gap: 20px;
+}
+
+.checkboxRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  color: #ddddee;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.checkboxRow input {
+  margin-top: 3px;
+  width: 16px;
+  height: 16px;
+  accent-color: #ff7d5c;
+}
+
+.errorMessage {
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 18px;
+  color: #ffd8d0;
+  background: rgba(214, 69, 56, 0.16);
+  border: 1px solid rgba(255, 125, 92, 0.3);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.actionRow {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.loaderIcon {
+  width: 18px;
+  height: 18px;
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 720px) {
+  .actionRow {
+    flex-direction: column-reverse;
+  }
+
+  .actionRow :global(button) {
+    width: 100%;
+  }
+}

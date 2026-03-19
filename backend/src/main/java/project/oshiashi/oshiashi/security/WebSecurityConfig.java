@@ -44,6 +44,14 @@ public class WebSecurityConfig {
 								"/swagger-ui/**",      // Swagger UI 관련 자원
 								"/swagger-ui.html"     // Swagger UI 접속 페이지
 						).permitAll()
+						.requestMatchers(
+								"/api/v1/auth/logout",
+								"/api/v1/auth/checkPw",
+								"/api/v1/auth/password",
+								"/api/v1/auth/update",
+								"/api/v1/auth/withdraw",
+								"/api/v1/auth/me"
+						).authenticated()
 						// 1. 테스트 페이지 및 메인 경로 허용 (추가된 부분)
 						.requestMatchers("/", "/home", "/home.html", "/api/v1/auth/**").permitAll()
 						// 2. 인증 없이 접근 가능한 API 경로

@@ -248,6 +248,11 @@
   gap: 26px;
 }
 
+.footerActionRow {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .contentHeaderRow {
   display: flex;
   align-items: flex-start;
@@ -317,6 +322,45 @@
   font-size: 24px;
   line-height: 1.4;
   font-weight: 800;
+}
+
+@media (max-width: 960px) {
+  .heroCard {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .page {
+    gap: 28px;
+  }
+
+  .heroCard,
+  .contentCard {
+    padding: 24px;
+  }
+
+  .profileSection {
+    grid-template-columns: 1fr;
+  }
+
+  .avatarWrap {
+    justify-content: flex-start;
+  }
+
+  .profileActions {
+    flex-direction: column;
+  }
+
+  .summaryGrid,
+  .tabList {
+    grid-template-columns: 1fr;
+  }
+
+  .contentHeaderRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 
 .achievementPreviewText p {

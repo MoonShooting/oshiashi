@@ -62,12 +62,17 @@
 }
 
 /* 에러/성공 메시지는 모든 폼에서 같은 위치와 폰트 규칙을 따릅니다. */
+.helper-msg,
 .error-msg,
 .success-msg {
   display: block;
   margin-top: 10px;
   font-size: 12px;
   line-height: 1.5;
+}
+
+.helper-msg {
+  color: #999ab0;
 }
 
 .error-msg {
