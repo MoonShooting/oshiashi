@@ -197,7 +197,7 @@ public class AuthService {
 
 		return userRepository.findByEmail(email)
 				.map(user -> {
-					log.debug("[AuthService] 아이디 검색 성공 - 마스킹 처리 진행");
+					log.debug("[AuthService] 아이디 검색 성공 - 마스킹 처리 진행: {}", user.getUserId());
 					return maskUserId(user.getUserId());
 				})
 				.orElseThrow(() -> new IllegalArgumentException("가입 정보가 없는 이메일입니다!"));
@@ -208,12 +208,16 @@ public class AuthService {
 	 * - 규칙: 아이디가 짧으면(3자 이하) 앞자리만, 길면 앞 5자만 보여주고 나머지는 별표(*) 처리.
 	 */
 	private String maskUserId(String userId) {
-		if (userId.length() <= 3) {
-			return userId.substring(0, 1) + "**";
+		int len = userId.length();
+		// 아이디가 3자 이하인 경우 (예: abc -> a**)
+		if (len <= 3) {
+			return userId.substring(0, 1) + "*".repeat(len - 1);
 		}
-		int visibleLength = Math.min(userId.length(), 5);
+		// 아이디가 4자 이상인 경우, 길이를 2로 나눈 만큼만 보여줌
+		int visibleLength = len / 2;
 		String visiblePart = userId.substring(0, visibleLength);
-		int maskCount = userId.length() - visibleLength;
+		int maskCount = len - visibleLength;
+
 		return visiblePart + "*".repeat(maskCount);
 	}
 

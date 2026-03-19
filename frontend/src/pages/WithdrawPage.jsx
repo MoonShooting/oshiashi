@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { AlertTriangle, LoaderCircle, ShieldAlert } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import Button from '@/components/common/Button';
+import Button from '@/components/modal/Button';
 import AccountActionLayout from '@/components/account/AccountActionLayout';
 import InputGroup from '@/components/input/InputGroup';
 import SubmitGuide from '@/components/input/SubmitGuide';
@@ -39,14 +39,13 @@ const WithdrawPage = () => {
   const isConfirmationMatched = confirmationText.trim() === WITHDRAW_CONFIRMATION_TEXT;
   const isSubmitDisabled = isSubmitting || !password.trim() || !agreedToWarning || !isConfirmationMatched;
   // 버튼 비활성화 이유를 페이지 하단에서 바로 설명해, 왜 제출이 안 되는지 사용자가 추측하지 않게 합니다.
-  const submitGuide =
-    !password.trim()
-      ? '현재 비밀번호를 입력해주세요.'
-      : !isConfirmationMatched
-        ? `확인 문구를 '${WITHDRAW_CONFIRMATION_TEXT}'로 정확히 입력해주세요.`
-        : !agreedToWarning
-          ? '안내 사항 확인 및 동의가 필요합니다.'
-          : null;
+  const submitGuide = !password.trim()
+    ? '현재 비밀번호를 입력해주세요.'
+    : !isConfirmationMatched
+      ? `확인 문구를 '${WITHDRAW_CONFIRMATION_TEXT}'로 정확히 입력해주세요.`
+      : !agreedToWarning
+        ? '안내 사항 확인 및 동의가 필요합니다.'
+        : null;
 
   const handleSubmit = async (event) => {
     event.preventDefault();
