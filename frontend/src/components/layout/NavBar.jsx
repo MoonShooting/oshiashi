@@ -5,15 +5,29 @@ import { SidebarTrigger } from '@/components/layout/SidebarContext';
 import { useAuthStore } from '@/stores/useAuthStore';
 import styles from '@/styles/Navbar.module.css';
 
+const formatTokenRemaining = (remainingMs) => {
+  const safeSeconds = Math.max(0, Math.ceil(Number(remainingMs ?? 0) / 1000));
+  const hours = Math.floor(safeSeconds / 3600);
+  const minutes = Math.floor((safeSeconds % 3600) / 60);
+  const seconds = safeSeconds % 60;
+
+  if (hours > 0) {
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  }
+
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+};
+
 const NavBar = () => {
   const navigate = useNavigate();
   const profileMenuRef = useRef(null);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
-  const { isLoggedIn, logout } = useAuthStore();
+  const { isLoggedIn, logout, tokenRemainingMs } = useAuthStore();
   // /auth/me 초기화 타이밍과 무관하게, 토큰 기준 로그인 상태면 메뉴를 안정적으로 노출합니다.
   const showProfileMenu = isLoggedIn;
   const isGuestAction = !isLoggedIn;
   const ActionIcon = isGuestAction ? LogIn : Upload;
+  const showTokenCountdown = isLoggedIn && tokenRemainingMs > 0;
 
   const handlePrimaryAction = () => {
     navigate(isGuestAction ? '/login' : '/posts/create');
@@ -65,6 +79,13 @@ const NavBar = () => {
       </div>
 
       <div className={styles.navRight}>
+        {showTokenCountdown ? (
+          <div className={styles.tokenTimer} aria-label="남은 토큰 유효시간">
+            <span className={styles.tokenTimerLabel}>남은 시간</span>
+            <strong>{formatTokenRemaining(tokenRemainingMs)}</strong>
+          </div>
+        ) : null}
+
         <button type="button" className={styles.uploadBtn} onClick={handlePrimaryAction}>
           <ActionIcon className={styles.uploadIcon} strokeWidth={2.1} />
           <span>{isGuestAction ? '로그인하기' : '게시물 작성'}</span>
