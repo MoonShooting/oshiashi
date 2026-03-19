@@ -1,5 +1,6 @@
 package project.oshiashi.oshiashi.domain.post.service;
 
+import project.oshiashi.oshiashi.domain.post.dto.PostRequest;
 import project.oshiashi.oshiashi.domain.post.dto.PostResponse;
 
 import java.util.List;
@@ -9,14 +10,15 @@ public interface PostService {
 	PostResponse getPostById(Long postId);
 	
 	//  게시글 작성
-	PostResponse createPost(PostResponse request);
-	
+	PostResponse createPost(PostRequest request);
+
 	//삭제
 	void deletePost(Long postId);
 	
 	//수정
-	PostResponse updatePost(Long postId, PostResponse request);
-	
+
+	PostResponse updatePost(Long postId, PostRequest request);
+
 	//좋아요
 	PostResponse likePost(Long postId);
 }

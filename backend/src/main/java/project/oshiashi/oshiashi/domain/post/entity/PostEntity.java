@@ -104,4 +104,21 @@ public class PostEntity {
 			return PostStatus.valueOf(dbData.toUpperCase()); // DB(public) -> 자바(PUBLIC)
 		}
 	}
+	
+
+	/**
+	 * @Builder.Default
+	 * - Lombok의 @Builder를 사용할 때, 초기화된 기본값(new ArrayList<>())이 무시되지 않도록 보장
+	 * - 이게 없으면 빌더로 객체를 만들 때 postTags는 null이 되어버려 NullPointerException의 원인
+	 * 	ascade = CascadeType.ALL (영속성 전이)
+	 * 	- Post가 저장(persist)되거나 삭제(remove)될 때, PostTag도 같이 수정
+	 * 	- 즉, postTagRepository.save()를 일일이 안 해도 postRepository.save(post)만 하면 태그도 같이 저장됩니다.
+	 */
+	@Builder.Default
+	@OneToMany(
+			mappedBy = "post",
+			cascade = CascadeType.ALL,
+			orphanRemoval = true // 고아객체 제거 tag또는 post가 사라지면 db에서 지워지게 함
+	)
+	private List<PostTagEntity> postTags = new ArrayList<>();
 }
