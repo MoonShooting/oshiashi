@@ -25,10 +25,13 @@ public class MapController {
     }
 
     // 사용자가 검색창에 입력한 키워드로 장소를 검색합니다.
-    // spot 이름뿐 아니라 연결된 artwork 제목 기준으로도 함께 검색할 수 있도록 설계합니다.
+    // 장소명 또는 작품명으로 검색하고, 필요하면 작품 타입(mediaType)으로 필터링합니다.
     @GetMapping("/search")
-    public List<MapPlaceResponse> searchPlaces(@RequestParam String keyword) {
-        return mapService.searchPlaces(keyword);
+    public List<MapPlaceResponse> searchPlaces(
+            @RequestParam String keyword,
+            @RequestParam(required = false) String mediaType
+    ) {
+        return mapService.searchPlaces(keyword, mediaType);
     }
 
     // 현재 지도 화면에 보이는 범위 안의 장소만 조회합니다.
@@ -44,8 +47,24 @@ public class MapController {
     }
 
     // 사용자가 특정 마커를 클릭했을 때 보여줄 장소 상세 정보를 조회합니다.
+    // 반경(radiusKm) 안에 있는 장소 목록을 조회합니다.
     @GetMapping("/{placeId}")
     public MapPlaceResponse getPlaceDetail(@PathVariable Long placeId) {
         return mapService.getPlaceDetail(placeId);
+    }
+
+    // 현제 위치 또는 지도 중심 좌표 기준으로 반경 내 장소를 조회
+    @GetMapping("/nearby")
+    public List<MapPlaceResponse> getNearbyPlaces(
+            @RequestParam Double lat,
+            @RequestParam Double lng,
+            @RequestParam(defaultValue = "3.0") Double radiusKm
+    ) {
+        return mapService.getNearbyPlaces(lat, lng, radiusKm);
+    }
+    // 검색창 자동완성용 추천어를 조회합니다.
+    @GetMapping("/autocomplete")
+    public List<String> autocompletePlaces(@RequestParam String keyword) {
+        return mapService.autocompletePlaces(keyword);
     }
 }
