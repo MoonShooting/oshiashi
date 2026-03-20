@@ -1,8 +1,9 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { ChevronDown, Hash, RotateCcw, Search, SearchX, X } from 'lucide-react';
+import { ChevronDown, Hash, Search, SearchX } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import MainLayout from '@/components/layout/MainLayout';
 import PostCard from '@/components/post/PostCard';
+import SearchInputPanel from '@/components/search/SearchInputPanel';
 import { fetchRoutePosts, routePostsUpdatedEvent } from '@/api/routePostApi';
 import usePostListLoader from '@/pages/post/hooks/usePostListLoader';
 import styles from '@/styles/PostSearchPage.module.css';
@@ -10,6 +11,11 @@ import styles from '@/styles/PostSearchPage.module.css';
 // 사용자가 "#도쿄", "도쿄", " 도쿄 "처럼 입력해도
 // 내부 비교는 항상 같은 기준으로 처리되도록 정규화합니다.
 const normalizeKeyword = (value) => value.replace(/^#/, '').trim();
+const parseTagInput = (value) =>
+  value
+    .split(',')
+    .map((item) => normalizeKeyword(item))
+    .filter(Boolean);
 
 /*
 [PostSearchPage]
@@ -56,8 +62,8 @@ const PostSearchPage = () => {
   });
 
   const updateTags = (tags) => {
-    // 검색 결과 페이지는 tags query를 기준으로 상태를 유지합니다.
-    // 이후 링크 공유/새로고침에도 같은 조건을 복원하기 위함입니다.
+    // 조회 페이지는 TMDB를 직접 조회하지 않고 tags query만 상태의 기준으로 삼습니다.
+    // 이렇게 두면 작품 탐색 페이지에서 넘어온 검색 조건을 URL만으로 복원할 수 있습니다.
     const next = new URLSearchParams(searchParams);
 
     if (tags.length > 0) {
@@ -70,10 +76,12 @@ const PostSearchPage = () => {
   };
 
   const handleAddTag = () => {
-    const nextTag = normalizeKeyword(inputValue);
-    if (!nextTag || selectedTags.includes(nextTag)) return;
+    const nextTags = parseTagInput(inputValue);
+    if (nextTags.length === 0) return;
 
-    updateTags([...selectedTags, nextTag]);
+    // 입력창은 쉼표 단위 다중 입력을 허용하지만,
+    // 실제 검색 상태는 중복 없는 태그 집합처럼 유지합니다.
+    updateTags(Array.from(new Set([...selectedTags, ...nextTags])));
     setInputValue('');
   };
 
@@ -100,45 +108,20 @@ const PostSearchPage = () => {
 
           <div className={styles.controlRow}>
             <div className={styles.controlLeft}>
-              <div className={styles.tagSearchWrap}>
-                <div className={styles.tagSearchInputWrap}>
-                  <Hash className={styles.tagSearchIcon} strokeWidth={2} />
-                  <input
-                    value={inputValue}
-                    onChange={(event) => setInputValue(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') {
-                        event.preventDefault();
-                        handleAddTag();
-                      }
-                    }}
-                    className={styles.tagSearchInput}
-                    placeholder="#도쿄, #토라도라, #아카바네"
-                  />
-                  <button type="button" className={styles.tagAddButton} onClick={handleAddTag}>
-                    <Search className={styles.tagAddIcon} strokeWidth={2} />
-                    <span>태그 추가</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className={styles.filterBar}>
-                <div className={styles.filterChipGroup}>
-                  {selectedTags.map((tag) => (
-                    <button key={tag} type="button" className={styles.filterChip} onClick={() => handleRemoveTag(tag)}>
-                      <span>#{tag}</span>
-                      <X className={styles.filterChipIcon} strokeWidth={2} />
-                    </button>
-                  ))}
-
-                  {selectedTags.length > 0 ? (
-                    <button type="button" className={styles.filterResetButton} onClick={handleReset}>
-                      <RotateCcw className={styles.filterResetIcon} strokeWidth={2} />
-                      <span>필터 초기화</span>
-                    </button>
-                  ) : null}
-                </div>
-              </div>
+              <SearchInputPanel
+                inputId="post-search-tag-input"
+                value={inputValue}
+                onChange={setInputValue}
+                onSubmit={handleAddTag}
+                placeholder="#도쿄, #토라도라, #아키하바라"
+                helperText="태그를 직접 추가해 게시글 목록을 다시 조회합니다."
+                submitLabel="태그 추가"
+                selectedItems={selectedTags}
+                onRemoveItem={handleRemoveTag}
+                onReset={selectedTags.length > 0 ? handleReset : undefined}
+                leadingIcon={Hash}
+                submitIcon={Search}
+              />
             </div>
 
             <div className={styles.sortWrap}>

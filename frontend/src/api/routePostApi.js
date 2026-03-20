@@ -90,6 +90,15 @@ const normalizeTagList = (value) => {
   return [];
 };
 
+const normalizeTagNames = (value) =>
+  Array.from(
+    new Set(
+      normalizeTagList(value)
+        .map((item) => item.replace(/^#/, '').trim())
+        .filter(Boolean),
+    ),
+  );
+
 // 백엔드 응답 래퍼(data/result) 유무와 무관하게 실제 payload 객체를 꺼냅니다.
 const unwrapObjectPayload = (response) => {
   if (!response || typeof response !== 'object') return response;
@@ -380,9 +389,9 @@ const dedupeRoutes = (routes) =>
   Array.from(new Map(routes.filter(Boolean).map((route) => [String(route.id), route])).values());
 
 // JSON 생성 payload 빌더:
-// - 백엔드 계약(PostCreateRequest)에 맞춰 images[]만 전송
+// - 백엔드 계약(PostCreateRequest)에 맞춰 routeId/title/content/status/images[]/tagNames를 전송
 // - 이미지 파일 자체는 보내지 않고 imageUrl 문자열만 보냅니다.
-const buildRouteCreatePayload = ({ selectedRoute, title, entries }) => {
+const buildRouteCreatePayload = ({ selectedRoute, title, selectedTags = [], entries }) => {
   const payloadImages = entries
     .map((entry, index) => {
       const representativePhoto = entry.experiencePhotos?.[0] ?? null;
@@ -426,6 +435,9 @@ const buildRouteCreatePayload = ({ selectedRoute, title, entries }) => {
     title: title.trim(),
     content: content || title.trim(),
     status: 'PUBLIC',
+    // 선택 작품 객체 대신 태그 이름 배열만 전송합니다.
+    // 이번 범위의 목적이 "작성 페이지에서 태그 삽입 UI 준비"이기 때문입니다.
+    tagNames: normalizeTagNames(selectedTags),
     images: payloadImages,
   };
 
@@ -585,11 +597,12 @@ export const loadPostCreateRoutes = async (userId) => {
 
 /*
 [게시글 생성 - JSON]
-- /api/v1/posts에 routeId/title/content/status/images[]를 JSON으로 전송
+- /api/v1/posts에 routeId/title/content/status/tagNames/images[]를 JSON으로 전송
 - 생성 후 가능하면 상세 재조회로 화면 데이터 완성도 보장
 */
-export const createRoutePost = async ({ selectedRoute, title, entries }) => {
-  const post = buildRouteCreatePayload({ selectedRoute, title, entries });
+export const createRoutePost = async ({ selectedRoute, title, selectedTags = [], entries }) => {
+  // 페이지 계층에서 수집한 selectedTags를 최종 전송 규격 tagNames로 변환하는 지점입니다.
+  const post = buildRouteCreatePayload({ selectedRoute, title, selectedTags, entries });
 
   const response = await FetchJson('/api/v1/posts', {
     method: 'POST',

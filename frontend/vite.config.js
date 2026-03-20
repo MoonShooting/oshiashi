@@ -9,6 +9,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   plugins: [react()],
+  // 기존 .env에 이미 REACT_APP_* 형식 변수가 있어도
+  // 프론트 런타임(import.meta.env)에서 읽을 수 있도록 함께 노출합니다.
+  envPrefix: ['VITE_', 'REACT_APP_'],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
