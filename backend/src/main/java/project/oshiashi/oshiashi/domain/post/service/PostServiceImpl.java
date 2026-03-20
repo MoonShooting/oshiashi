@@ -29,7 +29,7 @@ public class PostServiceImpl implements PostService {
 	private final UserRepository userRepository;
 	private final RouteRepository routeRepository;
 	private final TagRepository tagRepository;
-	private final PostRequest postRequest;
+	// private final PostRequest postRequest;
 
 	/**
 	 * 1. 게시글 전체 조회
@@ -204,19 +204,33 @@ public class PostServiceImpl implements PostService {
 	}
 
 	/**
-	 * [내부 메서드] 게시글과 태그 이름을 매핑하여 저장하는 공통 로직
-	 * @param post 대상 게시글 엔티티
-	 * @param tagNames 추가할 태그 이름 리스트
+	 * [내부 메서드] 게시글과 기존 태그를 매핑하는 공통 로직
+	 * - 유저가 태그를 직접 생성하지 않고,
+	 *   DB에 미리 존재하는 태그만 선택해서 연결하는 정책을 따름에 따른 수정
 	 */
 	private void addTagsToPost(PostEntity post, List<String> tagNames) {
-		tagNames.forEach(name -> {
-			// 태그 본체(TagEntity)를 조회하거나 없으면 새로 생성하여 저장
-			TagEntity tag = tagRepository.findByTagName(name)
-					.orElseGet(() -> tagRepository.save(new TagEntity(name)));
+		tagNames.forEach(rawName -> {
+			String name = rawName == null ? null : rawName.trim();
 
-			// 매핑 엔티티(PostTagEntity) 생성 및 양방향 연관관계 설정
-			PostTagEntity postTag = PostTagEntity.create(post, tag);
-			post.getPostTags().add(postTag);
+			if (name == null || name.isBlank()) {
+				return;
+			}
+
+			// DB에 이미 저장된 태그만 선택해서 연결합니다.
+			// 존재하지 않는 태그는 새로 만들지 않고 예외를 발생시킵니다.
+			TagEntity tag = tagRepository.findByTagName(name)
+					.orElseThrow(() -> new IllegalArgumentException("존재하지 않는 태그입니다: " + name));
+
+			// 같은 게시글에 동일한 태그가 중복으로 연결되지 않도록 한 번 더 확인합니다.
+			boolean alreadyMapped = post.getPostTags().stream()
+					.anyMatch(postTag -> postTag.getTag().getTagId().equals(tag.getTagId()));
+
+			if (!alreadyMapped) {
+				// 게시글과 태그의 연결 정보만 생성합니다.
+				// 태그 본체(TagEntity)는 여기서 새로 만들지 않습니다.
+				PostTagEntity postTag = PostTagEntity.create(post, tag);
+				post.getPostTags().add(postTag);
+			}
 		});
 	}
 }
