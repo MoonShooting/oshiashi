@@ -10,13 +10,10 @@
 
 /*  레이아웃 및 사이드 패널 */
 .sidePanel {
-  width: 320px; /* GNB 사이드바와 폭을 동일하게 설정 (추천) */
+  width: 100%;
   height: 100%;
-  background: var(--bg-dark); /* 메인 배경색 */
-  border-right: 1px solid rgba(157, 80, 187, 0.15);
   display: flex;
   flex-direction: column;
-  z-index: 10; /* GNB 사이드바(보통 1000+)보다 낮게 설정 */
 }
 
 /* 리스트 헤더 */

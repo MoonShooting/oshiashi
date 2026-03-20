@@ -1,5 +1,9 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
+/**
+ * 누구든, 어디서든, 어떤 기기에서든
+ * 사이드바를 쉽게 조작하고, 그 상태를 기억하게 해주는 완벽한 사이드바 관리 도구
+ */
 const SIDEBAR_COOKIE_NAME = 'sidebar_state';
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
 const SIDEBAR_KEYBOARD_SHORTCUT = 'b';
@@ -8,18 +12,14 @@ const SidebarContext = createContext(null);
 
 const readSidebarCookie = () => {
   if (typeof document === 'undefined') return null;
-  const cookie = document.cookie
-    .split('; ')
-    .find((item) => item.startsWith(`${SIDEBAR_COOKIE_NAME}=`));
+  const cookie = document.cookie.split('; ').find((item) => item.startsWith(`${SIDEBAR_COOKIE_NAME}=`));
   if (!cookie) return null;
   const value = cookie.split('=')[1];
   return value === 'true';
 };
 
 const useIsMobile = () => {
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== 'undefined' ? window.matchMedia('(max-width: 768px)').matches : false,
-  );
+  const [isMobile, setIsMobile] = useState(() => (typeof window !== 'undefined' ? window.matchMedia('(max-width: 768px)').matches : false));
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
@@ -109,8 +109,7 @@ export const SidebarTrigger = ({ className = '', onClick, children, ...props }) 
         onClick?.(event);
         toggleSidebar();
       }}
-      {...props}
-    >
+      {...props}>
       {children}
     </button>
   );

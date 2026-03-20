@@ -14,7 +14,7 @@ export const DEFAULT_CENTER = {
 
 export const DEFAULT_ZOOM = parseInt(import.meta.env.VITE_DEFAULT_ZOOM) || 11;
 
-export const MAP_ID = import.meta.env.VITE_GOOGLE_MAP_ID || '';
+export const MAP_ID = import.meta.env.VITE_GOOGLE_MAP_ID;
 
 // 미디어 타입 정의
 // TODO: 백엔드 API 명세 확정 후 enum 값 맞추기

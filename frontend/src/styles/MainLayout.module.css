@@ -3,7 +3,7 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: #080810;
+  background-color: #080810; /* 기존 다크 테마 유지 */
 }
 
 .layoutWrapperLocked {
@@ -28,40 +28,14 @@
 
 .generalMain {
   flex: 1;
-  padding: 104px 24px 32px;
+  padding: 104px 24px 32px; /* 상단 네비바 공간 확보 유지 */
 }
 
-/* 지도 전용 레이아웃 */
-.mapLayout {
-  display: flex;
+/* 추가했던 contentInner (컨텐츠 중앙 정렬 및 가독성용 - 필요시 사용) */
+.contentInner {
   width: 100%;
-  height: 100%;
-  position: relative;
-}
-
-.mapLayer {
-  flex: 1;
-  height: 100%; /* 부모 .mapLayout의 높이 상속 */
-  position: relative;
-  min-height: 0; /* Flexbox 높이 계산 오류 방지 */
-}
-
-.mapMain {
-  width: 100%;
-  height: 100%; /* 지도가 렌더링될 영역 확보 */
-}
-
-/* 필터 패널 등이 위치할 사이드바 */
-.leftSidebar {
-  position: absolute;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  width: min(340px, 32vw);
-  z-index: 10;
-  /* 사이드바 필터 구역 배경색, 라인 */
-  /* background: rgba(17, 17, 34, 0.94);
-  border-right: 1px solid rgba(45, 45, 68, 0.9); */
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 @media (max-width: 1100px) {
@@ -72,15 +46,5 @@
 
   .generalMain {
     padding: 86px 12px 24px;
-  }
-}
-
-@media (max-width: 900px) {
-  .mapLayout {
-    border-radius: 16px;
-  }
-
-  .leftSidebar {
-    width: min(280px, 74vw);
   }
 }
