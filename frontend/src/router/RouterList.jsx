@@ -34,7 +34,11 @@ const mapList = [
   },
   {
     path: '/spot',
-    element: <SpotPage />,
+    element: (
+      <ProtectedRoute>
+        <SpotPage />
+      </ProtectedRoute>
+    ),
   },
 ];
 
