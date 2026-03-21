@@ -43,7 +43,7 @@ public class PostRequest {
 	 * 태그 이름 리스트
 	 * - 예: ["맛집", "여행", "부산"]
 	 */
-	private List<String> tags;
+	private List<String> tagNames;
 	
 	/**
 	 * 이미지 링크

@@ -37,7 +37,7 @@ public class PostResponse {
 	 * 태그 이름 리스트
 	 * - PostTagEntity 리스트에서 태그 이름(String)만 추출하여 담습니다.
 	 */
-	private List<String> tags;
+	private List<String> tagNames;
 
 	/**
 	 * 엔티티를 DTO로 변환하는 정적 팩토리 메서드
@@ -57,7 +57,7 @@ public class PostResponse {
 				.createdAt(entity.getCreatedAt())
 				.updateAt(entity.getUpdateAt())
 				// [핵심] PostTagEntity 리스트를 순회하며 태그 이름만 String 리스트로 수집
-				.tags(entity.getPostTags().stream()
+				.tagNames(entity.getPostTags().stream()
 						.map(postTag -> postTag.getTag().getTagName())
 						.collect(Collectors.toList()))
 				// 추가: 이미지 리스트 변환 (엔티티 -> DTO)

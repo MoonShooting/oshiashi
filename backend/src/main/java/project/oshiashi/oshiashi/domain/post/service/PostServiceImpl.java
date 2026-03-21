@@ -158,9 +158,9 @@ public class PostServiceImpl implements PostService {
 		
 		// 2. 태그 처리: 요청 DTO에 태그 이름 리스트가 포함되어 있다면 매핑 진행
 		// addTagsToPost 내부에서 TagEntity 조회/생성 및 PostTagEntity 연결이 일어납니다.
-		if (request.getTags() != null && !request.getTags().isEmpty()) {
-			log.debug("[Service] 태그 매핑 처리 시작: {}개", request.getTags().size());
-			addTagsToPost(postEntity, request.getTags());
+		if (request.getTagNames() != null && !request.getTagNames().isEmpty()) {
+			log.debug("[Service] 태그 매핑 처리 시작: {}개", request.getTagNames().size());
+			addTagsToPost(postEntity, request.getTagNames());
 		}
 		// 3. 게시글 저장
 		// PostEntity에 설정된 cascade = CascadeType.ALL에 의해 postTags 리스트 안의 PostTagEntity들도 함께 저장됩니다.
@@ -239,12 +239,12 @@ public class PostServiceImpl implements PostService {
 		log.debug("[Service] 기존 태그 초기화 및 신규 태그 매핑 시작");
 		postEntity.getPostTags().clear();
 
-		if (request.getTags() != null && !request.getTags().isEmpty()) {
-			addTagsToPost(postEntity, request.getTags());
+		if (request.getTagNames() != null && !request.getTagNames().isEmpty()) {
+			addTagsToPost(postEntity, request.getTagNames());
 		}
 
 		log.debug("[Service] 게시글 정보 및 {}개의 태그 수정 완료",
-				request.getTags() != null ? request.getTags().size() : 0);
+				request.getTagNames() != null ? request.getTagNames().size() : 0);
 		
 		// 수정된 엔티티를 다시 DTO로 변환해서 반환
 		PostResponse postResponse = PostResponse.fromEntity(postEntity);
