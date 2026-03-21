@@ -1,16 +1,9 @@
 /**
  * @file SpotSidePanel.jsx
- * @description 루트(SpotPage) 좌측 패널
- *
- * 탭 1 - 북마크: 저장된 루트 폴더 목록 + 폴더 내 스팟 목록 ("+추가" 버튼)
- * 탭 2 - 지도 검색: Google Places 검색 → 결과에서 "+추가"
- *
- * @param {Array}    savedRoutes      - SpotPage에서 관리하는 저장 루트 폴더 목록 (저장 시 증가)
- * @param {Function} onAddToRoute(spot) - 루트에 장소 추가 콜백
- * @param {Function} onPreview(loc)     - 지도 카메라 이동 콜백
- * @param {{ lat, lng }} center         - 현재 지도 중심 (Places 검색 기준점)
+ * @description 루트 페이지 좌측 패널
+ * 탭 1 - 북마크: 저장된 루트 폴더 목록 + 스팟 목록 (+추가 버튼)
+ * 탭 2 - 지도 검색: Google Places 검색 → 결과에서 +추가
  */
-
 import React, { useState, useCallback, useRef } from 'react';
 import { useMapsLibrary } from '@vis.gl/react-google-maps';
 import styles from '@/styles/SpotSidePanel.module.css';
@@ -20,7 +13,6 @@ export default function SpotSidePanel({ savedRoutes = [], onAddToRoute, onPrevie
   const [activeTab, setActiveTab] = useState('bookmark');
   const [activeFolderId, setActiveFolderId] = useState(null);
 
-  // 지도 검색 탭 상태
   const [keyword, setKeyword] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -28,28 +20,12 @@ export default function SpotSidePanel({ savedRoutes = [], onAddToRoute, onPrevie
   const placesLib = useMapsLibrary('places');
   const inputRef = useRef(null);
 
-  // 선택 폴더 기준으로 스팟 필터링 (없으면 전체)
+  // 선택 폴더 기준으로 스팟 필터링 (폴더 미선택 시 전체)
   const visibleSpots = activeFolderId ? DUMMY_BOOKMARKED_SPOTS.filter((s) => s.folderId === activeFolderId) : DUMMY_BOOKMARKED_SPOTS;
 
-  /*
-   * TODO: 백엔드 연동 시 아래 주석 해제 (북마크 폴더 목록 로드)
-   * useEffect(() => {
-   *   fetch('/api/v1/routes/my', {
-   *     headers: { Authorization: `Bearer ${token}` },
-   *   })
-   *     .then((r) => r.json())
-   *     .then((data) =>
-   *       setFolders(data.map((r) => ({ id: String(r.routeId), name: r.title, count: r.spots?.length ?? 0 })))
-   *     );
-   * }, []);
-   *
-   * TODO: 폴더 클릭 시 스팟 목록 로드
-   * fetch(`/api/v1/routes/${folderId}`)
-   *   .then((r) => r.json())
-   *   .then((data) => setVisibleSpots(data.spots.map(normalizeSpot)));
-   */
+  // TODO: 폴더 목록 → GET /api/v1/routes/my
+  // TODO: 폴더 클릭 시 스팟 목록 → GET /api/v1/routes/{folderId}
 
-  // 지도 검색 실행
   const handleSearch = useCallback(() => {
     if (!placesLib || !keyword.trim()) return;
     setIsSearching(true);
@@ -59,30 +35,21 @@ export default function SpotSidePanel({ savedRoutes = [], onAddToRoute, onPrevie
 
     svc.textSearch({ query: keyword, location: loc, radius: '10000' }, (res, status) => {
       setIsSearching(false);
-      if (status === 'OK' && res?.length > 0) {
-        setSearchResults(res.slice(0, 8));
-      } else {
-        setSearchResults([]);
-      }
+      setSearchResults(status === 'OK' && res?.length > 0 ? res.slice(0, 8) : []);
     });
 
-    // TODO: Google Places 대신 자체 DB + TMDB 검색으로 교체
-    // GET /api/v1/spots/search?keyword=&mediaType=
+    // TODO: 자체 DB 검색으로 교체 → GET /api/v1/spots/search?keyword=&mediaType=
   }, [placesLib, keyword, center]);
 
-  // 검색 결과 → 루트에 추가 + 지도 이동
   const handleSelectSearchResult = useCallback(
     (item) => {
-      const loc = {
-        lat: item.geometry.location.lat(),
-        lng: item.geometry.location.lng(),
-      };
+      const loc = { lat: item.geometry.location.lat(), lng: item.geometry.location.lng() };
       onPreview?.(loc);
       onAddToRoute?.({
         id: `place-${item.place_id}`,
         title: item.name,
         workName: item.formatted_address?.substring(0, 28) ?? '',
-        color: '#374151', // 검색 결과는 기본 placeholder 색
+        color: '#374151',
         position: loc,
         placeId: item.place_id,
       });
@@ -92,7 +59,6 @@ export default function SpotSidePanel({ savedRoutes = [], onAddToRoute, onPrevie
 
   return (
     <div className={styles.panel}>
-      {/* 탭 헤더 */}
       <div className={styles.tabs}>
         <button className={`${styles.tab} ${activeTab === 'bookmark' ? styles.tabActive : ''}`} onClick={() => setActiveTab('bookmark')}>
           북마크
@@ -102,10 +68,8 @@ export default function SpotSidePanel({ savedRoutes = [], onAddToRoute, onPrevie
         </button>
       </div>
 
-      {/* 북마크 탭 */}
       {activeTab === 'bookmark' && (
         <div className={styles.bookmarkContent}>
-          {/* 폴더(루트) 목록 */}
           <div className={styles.folderList}>
             {savedRoutes.map((folder) => (
               <button
@@ -123,14 +87,13 @@ export default function SpotSidePanel({ savedRoutes = [], onAddToRoute, onPrevie
             ))}
           </div>
 
-          {/* 스팟 목록 */}
           <div className={styles.spotList}>
             {visibleSpots.map((spot) => (
               <div key={spot.id} className={styles.spotItem} onMouseEnter={() => onPreview?.(spot.position)}>
-                {/* 썸네일 — 이미지 없는 동안 placeholder 색상 박스 */}
                 <div className={styles.thumb} style={{ background: spot.color }} />
                 <div className={styles.spotInfo}>
-                  <span className={styles.spotTitle}>{spot.title}</span>
+                  {/* DUMMY_BOOKMARKED_SPOTS는 name 필드 사용, API 응답은 title 필드 가능 */}
+                  <span className={styles.spotTitle}>{spot.name || spot.title}</span>
                   <span className={styles.spotWork}>{spot.workName}</span>
                 </div>
                 <button className={styles.addBtn} onClick={() => onAddToRoute?.(spot)}>
@@ -142,7 +105,6 @@ export default function SpotSidePanel({ savedRoutes = [], onAddToRoute, onPrevie
         </div>
       )}
 
-      {/* 지도 검색 탭 */}
       {activeTab === 'search' && (
         <div className={styles.searchContent}>
           <div className={styles.searchRow}>

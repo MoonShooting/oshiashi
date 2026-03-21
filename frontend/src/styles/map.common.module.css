@@ -24,71 +24,9 @@
   --search-border: rgba(157, 80, 187, 0.3);
 }
 
-/* 전체화면 지도 컨테이너 */
-.mapFullContainer {
-  position: relative;
-  width: 100%;
-  height: 100vh;
-  background: var(--bg-dark, #0f0f15);
-  overflow: hidden;
-}
-
 /* Google Maps 기본 컨트롤 숨김 */
 .mapFullContainer :global(.gm-bundled-control),
 .mapFullContainer :global(.gm-svpc),
 .mapFullContainer :global(.gmnoprint) {
   display: none !important;
-}
-
-.pinPopup {
-  position: absolute;
-  bottom: 40px; /* 핀 위로 띄움 */
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--map-card-bg);
-  border: 1px solid var(--map-border);
-  padding: 10px 14px;
-  border-radius: 12px;
-  box-shadow: var(--map-shadow);
-  z-index: 100;
-  min-width: 140px;
-  pointer-events: none; /* 클릭 방해 금지 */
-}
-
-.pinPopupTitle {
-  font-size: 14px;
-  font-weight: 700;
-  color: #fff;
-  margin-bottom: 2px;
-}
-
-.pinPopupSub {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
-}
-
-/* 로딩 오버레이 */
-.spinnerWrap {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(12, 12, 20, 0.55);
-  z-index: 50;
-}
-
-.spinner {
-  width: 36px;
-  height: 36px;
-  border: 3px solid rgba(157, 80, 187, 0.18);
-  border-top-color: #9d50bb;
-  border-radius: 50%;
-  animation: spin 0.75s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
 }

@@ -1,5 +1,7 @@
 import React from 'react';
 import Home from '@/pages/Home';
+import MapLayout from '@/components/layout/MapLayout';
+import MapCore from '@/components/map/MapCore';
 import MapPage from '@/pages/map/MapPage';
 import SpotPage from '@/pages/spot/SpotPage';
 import LoginPage from '@/pages/Login/LoginPage';
@@ -17,6 +19,8 @@ import PostSearchResultPage from '@/pages/post/PostSearchResultPage';
 import PostCommunityCreatePage from '@/pages/post/PostCommunityCreatePage';
 import ProtectedRoute from '@/router/ProtectedRoute';
 
+const withMapLayout = (Component) => <MapLayout>{Component}</MapLayout>;
+
 const authList = [
   { path: '/login', element: <LoginPage /> },
   { path: '/find-auth', element: <FindAuthPage /> },
@@ -24,8 +28,14 @@ const authList = [
 ];
 
 const mapList = [
-  { path: '/map', element: <MapPage /> },
-  { path: '/spot', element: <SpotPage /> },
+  {
+    path: '/map',
+    element: <MapPage />,
+  },
+  {
+    path: '/spot',
+    element: <SpotPage />,
+  },
 ];
 
 const postList = [
