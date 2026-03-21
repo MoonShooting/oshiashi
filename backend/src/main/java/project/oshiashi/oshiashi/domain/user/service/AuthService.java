@@ -15,6 +15,7 @@ import project.oshiashi.oshiashi.domain.user.repository.UserRepository;
 import project.oshiashi.oshiashi.global.constant.RedisKeys;
 import project.oshiashi.oshiashi.security.AuthenticatedUser;
 import project.oshiashi.oshiashi.security.JwtProvider;
+import project.oshiashi.oshiashi.security.stmp.EmailAuthType;
 import project.oshiashi.oshiashi.security.stmp.EmailVerificationEntity;
 import project.oshiashi.oshiashi.security.stmp.EmailVerificationRepository;
 import project.oshiashi.oshiashi.security.stmp.MailService;
@@ -57,9 +58,9 @@ public class AuthService {
 	@Transactional(readOnly = true)
 	public boolean isUserIdDuplicated(String userId) {
 		log.info("[AuthService] ID 중복 조회 시도: {}", userId);
-		// [수정] 공통 검증 메서드 호출
+		// 공통 검증 메서드 호출
 		validateIdFormat(userId);
-		// [수정 포인트] 결과를 변수에 담아 로그로 출력
+		// 결과를 변수에 담아 로그로 출력
 		boolean exists = userRepository.existsById(userId);
 		if (exists) {
 			log.warn("[AuthService] 중복 체크 결과: '{}'는 이미 존재함 (중복)", userId);
@@ -77,7 +78,7 @@ public class AuthService {
 	public boolean isNicknameDuplicated(String nickname) {
 		log.info("[AuthService] 닉네임 중복 조회 시도: {}", nickname);
 
-		// [수정] 공통 검증 메서드 호출
+		// 공통 검증 메서드 호출
 		validateNicknameFormat(nickname);
 
 		boolean exists = userRepository.existsByNickname(nickname);
@@ -97,7 +98,7 @@ public class AuthService {
 	public boolean isEmailDuplicated(String email) {
 		log.info("[AuthService] 이메일 중복 조회 시도: {}", email);
 
-		// [수정] 공통 검증 메서드 호출
+		// 공통 검증 메서드 호출
 		validateEmailFormat(email);
 
 		boolean exists = userRepository.existsByEmail(email);
@@ -125,7 +126,8 @@ public class AuthService {
 	public void signUp(UserSignUpRequest request) {
 		log.info("[AuthService] 회원가입 프로세스 시작 - UserID: {}", request.getUserId());
 		validateRequestFormat(request);
-		validateEmailVerification(request.getEmail());
+		// [수정] "회원가입(SIGNUP)" 목적의 증표인지 명확히 확인
+		validateEmailVerification(request.getEmail(), EmailAuthType.SIGNUP);
 		validateDuplicateData(request);
 		UserEntity newUser = UserEntity.builder()
 				.userId(request.getUserId())
@@ -146,7 +148,7 @@ public class AuthService {
 	 * - 클라이언트 검증 우회 공격을 막기 위한 2차 방어선 역할을 수행함.
 	 */
 	private void validateRequestFormat(UserSignUpRequest request) {
-		// [수정] 개별 검증 메서드 호출로 간소화
+		// 개별 검증 메서드 호출로 간소화
 		validateIdFormat(request.getUserId());
 		validatePasswordFormat(request.getPassword());
 		validateNicknameFormat(request.getNickname());
@@ -193,7 +195,8 @@ public class AuthService {
 	@Transactional(readOnly = true)
 	public String findUserId(String email) {
 		log.debug("[AuthService] 아이디 찾기 요청 - 이메일: {}", email);
-		validateEmailVerification(email);
+		// [수정] "아이디 찾기(FIND_ID)" 목적의 증표인지 명확히 확인
+		validateEmailVerification(email, EmailAuthType.FIND_ID);
 
 		return userRepository.findByEmail(email)
 				.map(user -> {
@@ -229,51 +232,77 @@ public class AuthService {
 	 * 4. 이력 기록: DB에는 실제 번호 대신 마스킹 값을 넣어 데이터 오남용을 방지함.
 	 */
 	@Transactional
-	public void sendVerificationCode(String email) {
-		log.info("[Email Auth] 인증번호 발송 요청 - To: {}", email);
-		// 1. 발송 횟수 제한 확인
-		LocalDateTime startOfToday = LocalDateTime.now().with(LocalTime.MIN);
-		long requestCount = verificationRepository.countByEmailAndCreatedAtAfter(email, startOfToday);
-		if (requestCount >= 5) {
-			throw new IllegalArgumentException("일일 인증 횟수(5회)를 초과했습니다. 내일 다시 시도해주세요.");
+	public void sendVerificationCode(String email, EmailAuthType type) {
+		log.info("[Email Auth] 인증번호 발송 요청 - Type: {}, To: {}", type.name(), email);
+
+		// 1. [핵심] Redis로 목적별 일일 카운트 관리 (DB 조회 안 함!)
+		String dailyCountKey = RedisKeys.AUTH_CODE + "DAILY_COUNT:" + type.name() + ":" + email;
+		Long requestCount = redisTemplate.opsForValue().increment(dailyCountKey);
+
+		if (requestCount != null && requestCount == 1) {
+			LocalDateTime midnight = LocalDateTime.now().plusDays(1).with(LocalTime.MIN);
+			long secondsUntilMidnight = java.time.temporal.ChronoUnit.SECONDS.between(LocalDateTime.now(), midnight);
+			redisTemplate.expire(dailyCountKey, secondsUntilMidnight, TimeUnit.SECONDS);
 		}
-		// 2. 1분 재요청 방지
-		Long expireTime = redisTemplate.getExpire(RedisKeys.AUTH_CODE + email, TimeUnit.SECONDS);
+
+		if (requestCount != null && requestCount > 5) {
+			redisTemplate.opsForValue().decrement(dailyCountKey); // 초과 시 다시 원상복구
+			throw new IllegalArgumentException(type.getDescription() + " 일일 인증 횟수(5회)를 초과했습니다.");
+		}
+
+		// 2. Redis에 목적별로 인증번호 저장
+		String redisCodeKey = RedisKeys.AUTH_CODE + type.name() + ":" + email;
+		Long expireTime = redisTemplate.getExpire(redisCodeKey, TimeUnit.SECONDS);
 		if (expireTime != null && expireTime > 120) {
 			throw new IllegalArgumentException("이미 인증 메일을 발송했습니다. 1분 후 다시 시도해주세요.");
 		}
-		// 3. 6자리 난수 생성 및 Redis 기록 (3분 유효)
+
 		String authCode = String.format("%06d", ThreadLocalRandom.current().nextInt(1000000));
-		redisTemplate.opsForValue().set(RedisKeys.AUTH_CODE + email, authCode, Duration.ofMinutes(3));
-		// [수정 포인트] DB 저장 시 expiryDate 누락으로 인한 500 에러 해결
-		// EmailVerificationEntity에 @PrePersist를 적용했다면 아래대로만 써도 되고,
-		// 만약 확실하게 하고 싶다면 .expiryDate(LocalDateTime.now().plusMinutes(5))를 명시해도 좋습니다.
+		redisTemplate.opsForValue().set(redisCodeKey, authCode, Duration.ofMinutes(3));
+
+		// 3. [원상복구] DB 저장 시에는 Type을 넣지 않고 기존 엔티티 그대로 사용! (DB 스키마 변경 없음)
 		verificationRepository.save(EmailVerificationEntity.builder()
 				.email(email)
-				.authCode("******")
+				.authCode("******") // 보안상 마스킹
 				.createdAt(LocalDateTime.now())
-				.expiryDate(LocalDateTime.now().plusMinutes(5)) // [추가] 만료 시간 명시적 추가
+				.expiryDate(LocalDateTime.now().plusMinutes(5))
 				.build());
-		// 4. 비동기 메일 발송 서비스 호출
-		mailService.sendVerificationEmail(email, authCode);
+
+		// 4. 비동기 메일 발송 서비스 호출 (템플릿 동적 생성을 위해 Type은 넘김)
+		mailService.sendVerificationEmail(email, authCode, type);
 		log.info("[Email Auth] 메일 발송 완료");
 	}
 
 	/**
 	 * [인증번호 검증]
 	 * 1. 일치 확인: Redis에 저장된 번호와 유저가 입력한 번호를 대조함.
-	 * 2. 상태 전환: 번호가 일치하면 '인증번호'는 삭제하고, '인증 성공 증표(verified:email)'를 10분간 발행함.
+	 * 2. 상태 전환: 번호가 일치하면 '인증번호'는 삭제하고, '인증 성공 증표'를 10분간 발행함.
 	 * 3. 결과: 이 10분짜리 증표가 있어야 회원가입이나 비번 재설정이 가능함.
+	 * 4. 추가: 인증에 성공한 정상 유저이므로, 해당 목적의 일일 발송 횟수 제한을 초기화함.
 	 */
 	@Transactional
-	public void verifyCode(String email, String code) {
-		String savedCode = redisTemplate.opsForValue().get(RedisKeys.AUTH_CODE + email);
+	// 프론트엔드에서 넘어온 목적(Type) 파라미터를 추가로 받음
+	public void verifyCode(String email, String code, EmailAuthType type) {
+
+		// 목적(Type)이 포함된 각각의 Redis Key들을 세팅
+		String redisCodeKey = RedisKeys.AUTH_CODE + type.name() + ":" + email;
+		String redisVerifiedKey = RedisKeys.VERIFIED_EMAIL + type.name() + ":" + email;
+		String dailyCountKey = RedisKeys.AUTH_CODE + "DAILY_COUNT:" + type.name() + ":" + email; // 카운트 초기화용
+
+		// 목적에 맞는 키로 조회
+		String savedCode = redisTemplate.opsForValue().get(redisCodeKey);
 		if (savedCode == null) throw new IllegalArgumentException("인증 시간이 만료되었습니다.");
 		if (!savedCode.equals(code)) throw new IllegalArgumentException("인증번호가 일치하지 않습니다.");
+
 		// 검증 성공 처리
-		redisTemplate.delete(RedisKeys.AUTH_CODE + email);
-		redisTemplate.opsForValue().set(RedisKeys.VERIFIED_EMAIL + email, "true", Duration.ofMinutes(10));
-		log.info("[Email Auth] 검증 성공 - 10분 유효 증표 발행 완료: {}", email);
+		redisTemplate.delete(redisCodeKey); // 사용된 인증번호 파기
+
+		// 인증에 성공했으므로, 다시 편하게 이용할 수 있도록 오늘 카운트를 0으로 초기화
+		redisTemplate.delete(dailyCountKey);
+
+		// "어떤 목적"으로 인증되었는지 명시하여 10분짜리 증표를 발행
+		redisTemplate.opsForValue().set(redisVerifiedKey, "true", Duration.ofMinutes(10));
+		log.info("[Email Auth] 검증 성공 - Type: {}, 카운트 초기화 및 10분 유효 증표 발행 완료: {}", type.name(), email);
 	}
 
 	/**
@@ -285,9 +314,10 @@ public class AuthService {
 		log.info("[AuthService] 비밀번호 재설정(Reset) 시작 - 대상: {}", email);
 
 		// 1. Redis에서 이 사람이 이메일 인증을 통과했는지 최종 확인
-		validateEmailVerification(email);
+		// [수정] "비밀번호 찾기(FIND_PW)" 목적의 증표인지 명확히 확인
+		validateEmailVerification(email, EmailAuthType.FIND_PW);
 
-		// [수정] 공통 검증 메서드 호출
+		// 공통 검증 메서드 호출
 		validatePasswordFormat(newPassword);
 
 		// 2. DB에서 유저 조회 (이메일 기준)
@@ -298,8 +328,9 @@ public class AuthService {
 		user.changePassword(passwordEncoder.encode(newPassword));
 
 		// 4. 사용한 인증 증표 폐기 (재사용 방지)
-		// [추가 수정] RedisKeys.VERIFIED_EMAIL 상수를 사용하여 일관성을 유지합니다.
-		redisTemplate.delete(RedisKeys.VERIFIED_EMAIL + email);
+		// [수정] 삭제 시에도 type이 명시된 Key를 사용하여 정확히 지워줍니다.
+		String redisVerifiedKey = RedisKeys.VERIFIED_EMAIL + EmailAuthType.FIND_PW.name() + ":" + email;
+		redisTemplate.delete(redisVerifiedKey);
 
 		log.info("[AuthService] 비밀번호 재설정 완료 - UserID: {}", user.getUserId());
 	}
@@ -317,7 +348,8 @@ public class AuthService {
 			throw new IllegalArgumentException("해당 이메일로 가입된 정보가 없습니다. 다시 확인해주세요.");
 		}
 
-		this.sendVerificationCode(email);
+		// [수정] 비밀번호 재설정 목적(FIND_PW)을 명시하여 발송 로직 호출
+		this.sendVerificationCode(email, EmailAuthType.FIND_PW);
 		log.info("[Email Auth] 비밀번호 재설정용 메일 발송 완료: {}", email);
 	}
 
@@ -329,7 +361,7 @@ public class AuthService {
 	public void updatePassword(String oldPassword, String newPassword) {
 		String userId = getCurrentUserEntity().getUserId();
 
-		// [수정] 공통 검증 메서드 호출
+		// 공통 검증 메서드 호출
 		validatePasswordFormat(newPassword);
 
 		UserEntity managedUser = userRepository.findById(userId)
@@ -358,7 +390,7 @@ public class AuthService {
 			return;
 		}
 
-		// 3. [수정 포인트] 이미 아래에 만들어진 공통 검증 메서드 호출
+		// 3. 이미 아래에 만들어진 공통 검증 메서드 호출
 		validateNicknameFormat(newNickname);
 
 		// 4. 영속성 컨텍스트에 관리되는 실제 유저 엔티티 조회
@@ -394,10 +426,10 @@ public class AuthService {
 		if (rawPassword == null || rawPassword.trim().isEmpty()) {
 			throw new IllegalArgumentException("비밀번호를 입력해주세요.");
 		}
-		// 2. [해결 포인트] DB에서 최신 엔티티를 직접 조회 (삭제 보장을 위해)
+		// 2. DB에서 최신 엔티티를 직접 조회 (삭제 보장을 위해)
 		UserEntity user = userRepository.findById(userId)
 				.orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다."));
-		// 3. [추가] 비밀번호 재검증 로직
+		// 3. 비밀번호 재검증 로직
 		if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
 			log.warn("[AuthService] 탈퇴 실패: 비밀번호 불일치 - UserID: {}", userId);
 			throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
@@ -405,7 +437,7 @@ public class AuthService {
 		if (authHeader != null && authHeader.startsWith("Bearer ")) {
 			logout(authHeader);
 		}
-		// 4. [해결 포인트] 조회한 엔티티를 삭제 (이제 확실히 DELETE 쿼리가 나갑니다)
+		// 4. 조회한 엔티티를 삭제 (이제 확실히 DELETE 쿼리가 나갑니다)
 		userRepository.delete(user);
 		log.info("[AuthService] 회원 탈퇴 완료 - DB에서 영구 삭제됨: {}", userId);
 	}
@@ -424,7 +456,7 @@ public class AuthService {
 			throw new IllegalStateException("인증 정보가 없습니다.");
 		}
 		String userId = authUser.getUsername();
-		// 2. [핵심] DB에서 최신 엔티티를 직접 조회
+		// 2. DB에서 최신 엔티티를 직접 조회
 		UserEntity user = userRepository.findById(userId)
 				.orElseThrow(() -> new IllegalArgumentException("유저 정보를 찾을 수 없습니다."));
 		// 3. 비교 결과 반환
@@ -449,10 +481,12 @@ public class AuthService {
 	 * [이메일 인증 증표 존재 여부 확인]
 	 * - 회원가입, 비번 재설정 등 주요 로직 전단에서 호출하여 보안을 강화함.
 	 */
-	private void validateEmailVerification(String email) {
-		Boolean isVerified = redisTemplate.hasKey(RedisKeys.VERIFIED_EMAIL + email);
+	// [수정] EmailAuthType 파라미터 추가 및 Redis Key에 type 반영
+	private void validateEmailVerification(String email, EmailAuthType type) {
+		String redisVerifiedKey = RedisKeys.VERIFIED_EMAIL + type.name() + ":" + email;
+		Boolean isVerified = redisTemplate.hasKey(redisVerifiedKey);
 		if (isVerified == null || !isVerified) {
-			throw new IllegalArgumentException("이메일 인증이 완료되지 않았습니다.");
+			throw new IllegalArgumentException(type.getDescription() + " 이메일 인증이 완료되지 않았습니다.");
 		}
 	}
 

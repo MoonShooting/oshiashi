@@ -10,9 +10,11 @@ import project.oshiashi.oshiashi.domain.post.dto.PostResponse;
 import project.oshiashi.oshiashi.domain.post.entity.PostEntity;
 import project.oshiashi.oshiashi.domain.post.entity.PostTagEntity;
 import project.oshiashi.oshiashi.domain.post.repository.PostRepository;
+import project.oshiashi.oshiashi.domain.route.entity.RouteEntity;
 import project.oshiashi.oshiashi.domain.route.repository.RouteRepository;
 import project.oshiashi.oshiashi.domain.tag.entity.TagEntity;
 import project.oshiashi.oshiashi.domain.tag.repository.TagRepository;
+import project.oshiashi.oshiashi.domain.user.entity.UserEntity;
 import project.oshiashi.oshiashi.domain.user.repository.UserRepository;
 
 import java.time.LocalDateTime;
@@ -29,7 +31,6 @@ public class PostServiceImpl implements PostService {
 	private final UserRepository userRepository;
 	private final RouteRepository routeRepository;
 	private final TagRepository tagRepository;
-	// private final PostRequest postRequest;
 
 	/**
 	 * 1. 게시글 전체 조회
@@ -103,10 +104,19 @@ public class PostServiceImpl implements PostService {
 	@Override
 	public PostResponse createPost(PostRequest request) { // 파라미터를 PostRequest로 변경
 		log.debug("[Service] 게시글 등록 요청 시작 - 제목: {}", request.getTitle());
-
+		
+		UserEntity user = userRepository.findById(request.getUserId())
+				.orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+		
+		RouteEntity route = routeRepository.findById(request.getRouteId())
+				.orElseThrow(() -> new RuntimeException("루트를 찾을 수 없습니다."));
+		
+		
 		// 1. 엔티티 생성 (기본 정보 초기화)
 		// status, viewCount, likeCount 등은 생성 시점에 서버에서 강제로 초기값을 부여합니다.
 		PostEntity postEntity = PostEntity.builder()
+				.user(user)
+				.route(route)
 				.title(request.getTitle())
 				.content(request.getContent())
 				.status(PostEntity.PostStatus.PUBLIC) // 초기 상태는 PUBLIC으로 강제 설정
@@ -130,34 +140,34 @@ public class PostServiceImpl implements PostService {
 		// 4. 저장된 엔티티를 응답용 DTO로 변환하여 반환
 		return PostResponse.fromEntity(savedPost);
 	}
-
+	
 	/**
 	 * 4. 게시글 삭제
 	 * @param postId (필수) 삭제할 게시글 고유 ID
-	 * @return void
+	 * @return void (성공 시 리턴값 없음, 컨트롤러에서 성공 메시지 처리)
 	 * - 예외: ID가 존재하지 않을 경우 RuntimeException 발생
-	 * - 특징: Cascade 설정에 의해 관련 태그 매핑(PostTag)도 자동 삭제됨
 	 */
-	@Override
-	public void deletePost(Long postId) {
-		if (!postRepository.existsById(postId)) {
-			log.debug("!!! [Service] 삭제 실패: {}번 게시글이 없습니다.", postId);
-			throw new RuntimeException("삭제할 게시글을 찾을 수 없습니다.");
+	public void deletePost(Long postId, String userId) {
+		// 존재하는 게시물인가 확인
+		PostEntity postEntity = postRepository.findById(postId)
+				.orElseThrow(() -> {
+					log.debug("!!! [Service] 삭제 실패: {}번 게시글이 없습니다.", postId);
+					return new RuntimeException("삭제할 게시글을 찾을 수 없습니다.");
+				});
+		
+		// 2. 작성자 검증
+		// 실제 작성자와 현재 유저의 아이디 검수
+		if (!postEntity.getUser().getUserId().equals(userId)) {
+			log.debug("작성자가 아닙니다. 게시글 작성자 ID: {}, 로그인 유저 ID: {}",
+					postEntity.getUser().getUserId(), userId);
+			log.debug("본인꺼만 삭제 가능합니다");
+			throw new RuntimeException("본인이 작성한 글만 삭제할 수 있습니다.");
 		}
-
+		
 		postRepository.deleteById(postId);
-		log.debug("[Service] ID : {} 데이터가 삭제되었습니다.", postId);
+		log.debug("[Service] ID : {} 데이터가  삭제되었습니다.", postId);
 	}
-
-	/**
-	 * 5. 게시글 수정
-	 * @param postId (필수) 수정할 게시글 고유 ID
-	 * @param request (DTO)
-	 * - [필수 입력]: title, content, status, tagNames
-	 * @return PostResponse
-	 * - 필수 반환: 수정 및 태그 교체가 완료된 최신 데이터
-	 * - 예외: 수정 대상 게시글이 없을 경우 RuntimeException 발생
-	 */
+	
 	/**
 	 * 5. 게시글 수정
 	 * @param postId (필수) 수정할 게시글 고유 ID
@@ -169,16 +179,26 @@ public class PostServiceImpl implements PostService {
 	 * - 예외: 수정 대상 게시글이 없을 경우 RuntimeException 발생
 	 */
 	@Override
-	public PostResponse updatePost(Long postId, PostRequest request) { // 파라미터를 PostRequest로 변경
-		log.debug("[Service] 게시글 수정 시작 - ID: {}", postId);
-
-		// 1. 기존 게시글 조회 (DB에 데이터가 있는지 먼저 확인)
+	public PostResponse updatePost(Long postId, String userId , PostRequest request) {
+		// 1. 기존 게시글 조회 (없으면 예외 발생)
 		PostEntity postEntity = postRepository.findById(postId)
 				.orElseThrow(() -> {
-					log.debug("!!! [Service] 수정 실패: {}번 게시글이 존재하지 않음", postId);
+					log.debug("[Service] 수정 실패: {}번 게시글이 없습니다.", postId);
 					return new RuntimeException("수정할 게시글을 찾을 수 없습니다.");
 				});
-
+		
+		// 작성자 검증
+		if (!postEntity.getUser().getUserId().equals(userId)) {
+			log.debug("본인꺼만 수정 가능합니다");
+			throw new RuntimeException("본인이 작성한 글만 수정할 수 있습니다.");
+		}
+		// 2. 엔티티 데이터 업데이트
+		// 실제로는 route 객체도 새로 찾아와서 수정하는거 고려
+		postEntity.setTitle(request.getTitle());
+		postEntity.setContent(request.getContent());
+		postEntity.setStatus(request.getStatus());
+		postEntity.setUpdateAt(LocalDateTime.now());
+		
 		// 2. 기본 정보 업데이트 (JPA Dirty Checking 활용)
 		// 따로 save()를 호출하지 않아도 트랜잭션 종료 시점에 변경 사항이 DB에 반영됩니다.
 		postEntity.setTitle(request.getTitle());
@@ -197,9 +217,11 @@ public class PostServiceImpl implements PostService {
 
 		log.debug("[Service] 게시글 정보 및 {}개의 태그 수정 완료",
 				request.getTagNames() != null ? request.getTagNames().size() : 0);
-
-		// 4. 수정이 완료된 엔티티를 응답용 DTO로 변환하여 반환
-		return PostResponse.fromEntity(postEntity);
+		
+		// 수정된 엔티티를 다시 DTO로 변환해서 반환
+		PostResponse postResponse = PostResponse.fromEntity(postEntity);
+		log.debug("[Service] 최종 변환된 응답 DTO: {}", postResponse);
+		return postResponse;
 	}
 
 	/**
@@ -224,27 +246,26 @@ public class PostServiceImpl implements PostService {
 	}
 
 	/**
-	 * [내부 메서드] 게시글과 기존 태그를 매핑하는 공통 로직
-	 * - 유저가 태그를 직접 생성하지 않고,
-	 *   DB에 미리 존재하는 태그만 선택해서 연결하는 정책을 따름에 따른 수정
+	 * [내부 메서드] 게시글과 태그 이름을 매핑하여 저장하는 공통 로직
+	 * @param post 대상 게시글 엔티티
+	 * @param tagNames 추가할 태그 이름 리스트
 	 */
 	private void addTagsToPost(PostEntity post, List<String> tagNames) {
 		tagNames.forEach(rawName -> {
 			String name = rawName == null ? null : rawName.trim();
-
+			
 			if (name == null || name.isBlank()) {
 				return;
 			}
-
 			// DB에 이미 저장된 태그만 선택해서 연결합니다.
 			// 존재하지 않는 태그는 새로 만들지 않고 예외를 발생시킵니다.
 			TagEntity tag = tagRepository.findByTagName(name)
 					.orElseThrow(() -> new IllegalArgumentException("존재하지 않는 태그입니다: " + name));
-
+			
 			// 같은 게시글에 동일한 태그가 중복으로 연결되지 않도록 한 번 더 확인합니다.
 			boolean alreadyMapped = post.getPostTags().stream()
 					.anyMatch(postTag -> postTag.getTag().getTagId().equals(tag.getTagId()));
-
+			
 			if (!alreadyMapped) {
 				// 게시글과 태그의 연결 정보만 생성합니다.
 				// 태그 본체(TagEntity)는 여기서 새로 만들지 않습니다.
