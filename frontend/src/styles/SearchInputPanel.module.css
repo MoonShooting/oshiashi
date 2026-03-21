@@ -1,0 +1,144 @@
+.root {
+  display: grid;
+  gap: 10px;
+}
+
+.form {
+  margin: 0;
+}
+
+.inputShell {
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 14px 0 16px;
+  border: 1px solid #2d2d44;
+  border-radius: 18px;
+  background: rgba(20, 20, 38, 0.92);
+}
+
+.leadingIcon,
+.submitIcon,
+.chipIcon,
+.resetIcon {
+  width: 16px;
+  height: 16px;
+}
+
+.leadingIcon,
+.submitIcon {
+  color: #a78bfa;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #f5f7ff;
+  font-size: 15px;
+}
+
+.input::placeholder {
+  color: #8f90a6;
+}
+
+.input:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+.submitButton,
+.chip,
+.resetButton {
+  border: 0;
+  cursor: pointer;
+}
+
+.submitButton {
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(90deg, #6b46c1 0%, #ec4899 100%);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.submitButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.helperText,
+.errorText {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.helperText {
+  color: #a0a0b8;
+}
+
+.errorText {
+  color: #ff9db0;
+}
+
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.chip {
+  min-height: 36px;
+  padding: 0 13px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(107, 70, 193, 0.2);
+  color: #fff;
+  font-size: 14px;
+}
+
+.chipIcon {
+  color: #d8ccff;
+}
+
+.resetButton {
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  color: #a0a0b8;
+  border: 1px solid #2d2d44;
+  font-size: 14px;
+}
+
+.resetIcon {
+  color: #c5c7dd;
+}
+
+@media (max-width: 720px) {
+  .inputShell {
+    min-height: auto;
+    padding: 14px;
+    flex-wrap: wrap;
+  }
+
+  .submitButton {
+    width: 100%;
+    justify-content: center;
+  }
+}

@@ -1,50 +1,79 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import MainLayout from '@/components/layout/MainLayout';
+import SearchInputPanel from '@/components/search/SearchInputPanel';
 import ArtworkCard from '@/components/post/ArtworkCard';
-import { MOCK_ARTWORKS } from '@/data/post/mockArtworks';
+import { searchExternalArtworks } from '@/api/artworkApi';
 import styles from '@/styles/ArtworkSearchPage.module.css';
 
 const ArtworkSearchPage = () => {
-  // 작품 탐색 페이지는 검색 조건과 이동 흐름만 들고,
-  // 카드 렌더링과 목업 데이터는 각각 component/data 계층으로 분리해 둡니다.
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [inputValue, setInputValue] = useState('');
+  const [inputValue, setInputValue] = useState(searchParams.get('q') ?? '');
+  const [artworks, setArtworks] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState('');
 
-  /**
-   * 화면 흐름
-   * 1. 사용자는 사이드바 "작품 탐색" 메뉴를 통해 이 페이지에 진입합니다.
-   * 2. 이 페이지는 작품 대표 이미지/유형/설명을 먼저 보여주는 진입 화면입니다.
-   * 3. 사용자가 작품을 선택하면, 해당 작품과 연결된 검색 기준으로 검색 결과 페이지(/posts)로 이동합니다.
-   * 4. 현재는 화면 구조 검토 단계이므로, 작품 목록/유형/설명은 목업 데이터로만 표현합니다.
-   */
   const selectedType = searchParams.get('type') ?? '';
+  const submittedQuery = searchParams.get('q') ?? '';
 
+  // TMDB 검색은 "작품을 찾아 게시글 태그 검색으로 연결"하는 이 페이지에서만 유지합니다.
+  // 작성/조회 페이지는 이번 작업의 목적이 태그 UI 정리이므로 TMDB 직접 조회를 넣지 않습니다.
   const artworkTypes = useMemo(
     () => [
-      { artworkTypeId: 'animation', artworkTypeName: '애니메이션' },
       { artworkTypeId: 'movie', artworkTypeName: '영화' },
-      { artworkTypeId: 'music', artworkTypeName: '음악' },
+      { artworkTypeId: 'tv', artworkTypeName: '드라마' },
     ],
     [],
   );
 
-  const filteredArtworks = useMemo(() => {
-    const keyword = inputValue.trim().toLowerCase();
+  useEffect(() => {
+    setInputValue(submittedQuery);
+  }, [submittedQuery]);
 
-    return MOCK_ARTWORKS.filter((artwork) => {
-      const matchesType = !selectedType || artwork.artworkTypeId === selectedType;
-      const matchesKeyword =
-        !keyword ||
-        artwork.title.toLowerCase().includes(keyword) ||
-        artwork.description.toLowerCase().includes(keyword) ||
-        artwork.artworkTypeName.toLowerCase().includes(keyword);
+  useEffect(() => {
+    let alive = true;
 
-      return matchesType && matchesKeyword;
-    });
-  }, [inputValue, selectedType]);
+    const loadArtworks = async () => {
+      if (!submittedQuery.trim()) {
+        setArtworks([]);
+        setLoadError('');
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      setLoadError('');
+
+      try {
+        // 검색 결과는 TMDB 응답 원본을 그대로 쓰지 않고,
+        // 카드 렌더링에 필요한 형태로 정규화된 searchExternalArtworks 결과만 사용합니다.
+        const response = await searchExternalArtworks({
+          query: submittedQuery,
+          mediaType: selectedType || 'all',
+        });
+
+        if (!alive) return;
+        setArtworks(response);
+      } catch (error) {
+        if (!alive) return;
+
+        setArtworks([]);
+        setLoadError(error.message || '작품 검색 결과를 불러오지 못했습니다.');
+      } finally {
+        if (alive) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadArtworks();
+
+    return () => {
+      alive = false;
+    };
+  }, [selectedType, submittedQuery]);
 
   const handleSelectType = (typeId) => {
     const next = new URLSearchParams(searchParams);
@@ -58,10 +87,25 @@ const ArtworkSearchPage = () => {
     setSearchParams(next);
   };
 
-  const handleArtworkClick = () => {
-    // 현재 브랜치에서는 작품 카드 클릭 시 "검색 결과 페이지로 이어지는 진입 흐름"만 확인합니다.
-    // 아직 작품-태그 매핑 규칙이 확정되지 않았기 때문에, 상세 query 없이 /posts로만 이동합니다.
-    navigate('/posts');
+  const handleSearch = (query) => {
+    const next = new URLSearchParams(searchParams);
+    const normalizedQuery = query.trim();
+
+    if (normalizedQuery) {
+      next.set('q', normalizedQuery);
+    } else {
+      next.delete('q');
+    }
+
+    setSearchParams(next);
+  };
+
+  const handleArtworkClick = (title) => {
+    // 작품 선택의 목적은 import가 아니라 "작품명 태그로 게시글 탐색"이므로
+    // /posts?tags=작품명 형태로 이동시켜 조회 페이지와 자연스럽게 연결합니다.
+    const next = new URLSearchParams();
+    next.set('tags', title);
+    navigate(`/posts?${next.toString()}`);
   };
 
   return (
@@ -72,19 +116,23 @@ const ArtworkSearchPage = () => {
             <p className={styles.eyebrow}>작품 탐색</p>
             <h1>대표 컨텐츠로 게시글 찾기</h1>
             <p className={styles.description}>
-              작품 대표 이미지와 유형을 먼저 보여주고, 컨텐츠 선택 시 해당 작품과 연결된 태그로 검색 결과 페이지가 이어지도록 설계한 화면입니다.
+              TMDB 검색 결과를 바로 보여주고, 작품 카드를 누르면 해당 작품명으로 게시글 태그 검색
+              페이지로 이동합니다.
             </p>
           </div>
 
           <div className={styles.toolbar}>
-            <label className={styles.searchField}>
-              <Search className={styles.searchIcon} strokeWidth={2} />
-              <input
-                value={inputValue}
-                onChange={(event) => setInputValue(event.target.value)}
-                placeholder="작품명 또는 유형 검색"
-              />
-            </label>
+            <SearchInputPanel
+              inputId="artwork-search-input"
+              value={inputValue}
+              onChange={setInputValue}
+              onSubmit={handleSearch}
+              placeholder="TMDB에서 작품명을 검색하세요"
+              submitLabel="TMDB 검색"
+              helperText="검색 결과에서 작품을 선택하면 해당 제목으로 게시글 태그 검색을 진행합니다."
+              leadingIcon={Search}
+              submitIcon={Search}
+            />
 
             <div className={styles.filterBar}>
               <button
@@ -105,18 +153,30 @@ const ArtworkSearchPage = () => {
             </div>
           </div>
 
-          <div className={styles.grid}>
-            {filteredArtworks.map((artwork) => (
-              // 페이지는 "어떤 작품을 보여줄지"만 결정하고, 카드의 시각 구조는 ArtworkCard가 담당합니다.
-              <ArtworkCard
-                key={artwork.id}
-                title={artwork.title}
-                artworkTypeName={artwork.artworkTypeName}
-                description={artwork.description}
-                onClick={handleArtworkClick}
-              />
-            ))}
-          </div>
+          {!submittedQuery.trim() ? (
+            <div className={styles.stateBlock}>
+              작품명을 입력하고 TMDB 검색을 실행하면 영화/드라마 결과가 이 영역에 표시됩니다.
+            </div>
+          ) : loadError ? (
+            <div className={styles.stateBlock}>{loadError}</div>
+          ) : isLoading ? (
+            <div className={styles.stateBlock}>TMDB에서 작품 정보를 불러오는 중입니다.</div>
+          ) : artworks.length === 0 ? (
+            <div className={styles.stateBlock}>검색 조건에 맞는 작품이 없습니다.</div>
+          ) : (
+            <div className={styles.grid}>
+              {artworks.map((artwork) => (
+                <ArtworkCard
+                  key={artwork.id}
+                  title={artwork.title}
+                  artworkTypeName={artwork.artworkTypeName}
+                  description={artwork.description}
+                  imageUrl={artwork.imageUrl}
+                  onClick={() => handleArtworkClick(artwork.title)}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </MainLayout>

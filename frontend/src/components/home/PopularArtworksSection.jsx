@@ -1,47 +1,134 @@
-import React from 'react';
-import { Heart, MapPin } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { CalendarDays, Flame, Search } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { fetchPopularArtworks } from '@/api/artworkApi';
 import styles from '../../styles/Home.module.css';
 
-// 홈 화면에서 "인기 작품" 영역의 시안 검토를 위해 사용하는 목업 데이터입니다.
-// 현재 이 섹션은 작품명, 유형, 간단한 메타 정보만 보여주는 축약형 카드 역할을 가집니다.
-const artworks = [
-  { id: 1, title: '君の名は。', type: '애니 영화', spots: 24, posts: 1250 },
-  { id: 2, title: 'スラムダンク', type: '애니', spots: 12, posts: 890 },
-  { id: 3, title: '天気の子', type: '애니 영화', spots: 28, posts: 2100 },
-  { id: 4, title: 'ラブライブ!', type: '애니', spots: 32, posts: 2850 },
-];
-
 const PopularArtworksSection = () => {
+  const navigate = useNavigate();
+  const [artworks, setArtworks] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+
+  useEffect(() => {
+    let alive = true;
+
+    const loadPopularArtworks = async () => {
+      setIsLoading(true);
+      setLoadError('');
+
+      try {
+        // 홈은 실시간 인기 집계보다 서비스가 지금 전면에 보여주고 싶은
+        // 대표 애니메이션 5개를 고정 진열하고, 포스터/연도만 TMDB에서 가져옵니다.
+        const response = await fetchPopularArtworks({ limit: 5 });
+        if (!alive) return;
+
+        setArtworks(response);
+      } catch (error) {
+        if (!alive) return;
+
+        setArtworks([]);
+        setLoadError(error.message || '인기 작품을 불러오지 못했습니다.');
+      } finally {
+        if (alive) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadPopularArtworks();
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const handleOpenPosts = (title) => {
+    // 홈 카드도 작품 탐색 페이지와 같은 흐름을 따르도록
+    // 작품명을 tags query로 넘겨 게시글 검색으로 바로 이어집니다.
+    const next = new URLSearchParams();
+    next.set('tags', title);
+    navigate(`/posts?${next.toString()}`);
+  };
+
+  const renderCardBody = () => {
+    if (loadError) {
+      return <div className={styles.homeStateCard}>{loadError}</div>;
+    }
+
+    if (isLoading) {
+      return (
+        <div className={styles.artworkGrid}>
+          {Array.from({ length: 5 }).map((_, index) => (
+            <div key={`popular-loading-${index}`} className={styles.artworkCard}>
+              <div className={styles.artworkPosterShell}>
+                <div className={styles.artworkPosterFallback} />
+                <div className={styles.artworkGradient} />
+                <div className={styles.artworkRankBadge}>TOP {index + 1}</div>
+              </div>
+              <div className={styles.artworkInfoPanel}>
+                <h3>TMDB 인기 작품을 불러오는 중입니다.</h3>
+                <div className={styles.cardStats}>
+                  <span className={styles.statItem}>잠시만 기다려 주세요.</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    return (
+      <div className={styles.artworkGrid}>
+        {artworks.map((art, index) => (
+          <button
+            key={art.id}
+            type="button"
+            className={styles.artworkCard}
+            onClick={() => handleOpenPosts(art.title)}>
+            <div className={styles.artworkPosterShell}>
+              {art.imageUrl ? (
+                <img src={art.imageUrl} alt="" className={styles.artworkPoster} />
+              ) : (
+                <div className={styles.artworkPosterFallback} />
+              )}
+              <div className={styles.artworkGradient} />
+              <div className={styles.artworkRankBadge}>TOP {index + 1}</div>
+            </div>
+
+            <div className={styles.artworkInfoPanel}>
+              <h3>{art.title}</h3>
+              <div className={styles.cardStats}>
+                <span className={styles.statItem}>
+                  <CalendarDays className={`${styles.statIcon} ${styles.statIconView}`} strokeWidth={2} />
+                  {art.releaseDate ? art.releaseDate.slice(0, 4) : '연도 미정'}
+                </span>
+                <span className={styles.statItem}>
+                  <Flame className={`${styles.statIcon} ${styles.statIconLike}`} strokeWidth={2} />
+                  인기 {Math.round(art.popularity)}
+                </span>
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <section className={styles.section}>
       <div className={styles.sectionHeader}>
         <div>
           <h2>인기 작품</h2>
-          <p>많은 덕후들이 찾는 작품</p>
+          <p>지금 메인에서 보여줄 대표 애니메이션 5개만 먼저 소개하고, 더 많은 작품은 탐색 페이지로 이어집니다.</p>
         </div>
-        <span className={styles.viewAll}>전체 보기 〉</span>
+        <button type="button" className={styles.viewAll} onClick={() => navigate('/artworks')}>
+          <Search size={16} />
+          <span>전체 보기</span>
+        </button>
       </div>
 
-      <div className={styles.horizontalRow}>
-        {artworks.map((art) => (
-          // 홈 카드에서는 설명문 없이 작품명/유형/지표만 빠르게 훑을 수 있도록 최소 정보만 노출합니다.
-          <article key={art.id} className={styles.artworkCard}>
-            <div className={styles.artworkGradient} />
-            <div className={styles.cardType}>{art.type}</div>
-            <h3>{art.title}</h3>
-            <div className={styles.cardStats}>
-              <span className={styles.statItem}>
-                <MapPin className={`${styles.statIcon} ${styles.statIconLocation}`} strokeWidth={2} />
-                {art.spots}
-              </span>
-              <span className={styles.statItem}>
-                <Heart className={`${styles.statIcon} ${styles.statIconLike}`} strokeWidth={2} />
-                {art.posts}
-              </span>
-            </div>
-          </article>
-        ))}
-      </div>
+      {renderCardBody()}
     </section>
   );
 };
