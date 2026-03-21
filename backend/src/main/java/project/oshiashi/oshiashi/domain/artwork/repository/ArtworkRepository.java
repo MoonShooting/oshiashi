@@ -1,6 +1,7 @@
 package project.oshiashi.oshiashi.domain.artwork.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import project.oshiashi.oshiashi.domain.artwork.entity.ArtworkEntity;
 
@@ -69,4 +70,13 @@ public interface ArtworkRepository extends JpaRepository<ArtworkEntity, Long> {
      *   중복 판정용으로는 title 단독보다 title + artworkType 기준이 더 안전합니다.
      */
     Optional<ArtworkEntity> findByTitle(String title);
+
+    // 작품 제목 기준 자동완성 추천어 조회
+    @Query("""
+    select distinct a.title
+    from ArtworkEntity a
+    where lower(a.title) like lower(concat('%', :keyword, '%'))
+    order by a.title asc
+    """)
+    List<String> findTop5TitlesByKeyword(String keyword);
 }

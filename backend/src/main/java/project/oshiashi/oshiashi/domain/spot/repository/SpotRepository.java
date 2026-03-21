@@ -44,4 +44,28 @@ public interface SpotRepository extends JpaRepository<SpotEntity, Long> {
         where s.spotId = :placeId
     """)
 	Optional<SpotEntity> findDetailByPlaceId(Long placeId);
+
+	// 장소 이름 기준 자동완성 추천어 조회
+	@Query("""
+    select distinct s.name
+    from SpotEntity s
+    where lower(s.name) like lower(concat('%', :keyword, '%'))
+    order by s.name asc
+    """)
+	List<String> findTop5SpotNamesByKeyword(String keyword);
+
+	// 장소명 + 작품명 검색 결과 중에서 작품 타입(mediaType)까지 일치하는 장소만 조회
+	@Query("""
+    select s
+    from SpotEntity s
+    join fetch s.artwork a
+    join fetch a.artworkType t
+    where (
+        lower(s.name) like lower(concat('%', :keyword, '%'))
+        or lower(a.title) like lower(concat('%', :keyword, '%'))
+    )
+    and lower(t.artworkTypeName) = lower(:mediaType)
+    """)
+	List<SpotEntity> searchByKeywordAndMediaType(String keyword, String mediaType);
+
 }
