@@ -117,18 +117,6 @@ export default function MapFilterPanel({ onFilterChange }) {
               })}
             </div>
           </div>
-
-          {/* 정렬 */}
-          <div className={styles.section}>
-            <label className={styles.sectionLabel}>정렬</label>
-            <div className={styles.chipRow}>
-              {Object.values(SORT_TYPE).map((sort) => (
-                <button key={sort} className={`${styles.chip} ${sortType === sort ? styles.chipActive : ''}`} onClick={() => handleSortChange(sort)}>
-                  {SORT_TYPE_LABEL[sort]}
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
       )}
     </div>

@@ -1,0 +1,137 @@
+/* 1. 검색창 전체 래퍼 */
+.wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 340px; /* 검색창 너비 */
+  z-index: 100; /* 지도 위에 항상 뜨도록 설정 */
+}
+
+/* 2. 입력창 영역 (Input Row) */
+.inputRow {
+  display: flex;
+  align-items: center;
+  height: 48px;
+  padding: 0 16px;
+  background: rgba(23, 23, 42, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid #2d2d44;
+  border-radius: 24px; /* 알약 모양 */
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+/* 포커스 시 보라색 테두리 및 은은한 그림자 */
+.inputRow:focus-within {
+  border-color: #6b46c1;
+  box-shadow: 0 4px 20px rgba(107, 70, 193, 0.3);
+}
+
+.searchIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #a0a0b8;
+  margin-right: 12px;
+}
+
+.input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.input::placeholder {
+  color: #6b7280;
+}
+
+/* 검색어 지우기 (X) 버튼 */
+.clearBtn {
+  background: transparent;
+  border: none;
+  color: #a0a0b8;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease;
+}
+
+.clearBtn:hover {
+  color: #fff;
+}
+
+/* 3. 검색 결과 드롭다운 */
+.dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: rgba(23, 23, 42, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid #2d2d44;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  list-style: none;
+  padding: 8px;
+  margin: 0;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+/* 커스텀 스크롤바 (다크 테마) */
+.dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+.dropdown::-webkit-scrollbar-track {
+  background: transparent;
+}
+.dropdown::-webkit-scrollbar-thumb {
+  background: #2d2d44;
+  border-radius: 10px;
+}
+.dropdown::-webkit-scrollbar-thumb:hover {
+  background: #3f3f5a;
+}
+
+/* 드롭다운 개별 아이템 */
+.dropdownItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+/* 마우스 호버 및 키보드 탐색 시 하이라이트 */
+.dropdownItem:hover,
+.active {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.placeName {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.placeAddr {
+  font-size: 12px;
+  color: #8f90a6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

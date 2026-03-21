@@ -40,12 +40,14 @@ export default function MapCore({ pins, selectedPinId, center, children, innerCo
         mapId={MAP_ID}
         style={{ width: '100%', height: '100%' }}
         disableDefaultUI={true}
-        clickableIcons={true}
+        clickableIcons={!disableMapClick} // 랜드마크 클릭 제어: true면 클릭 막기
         options={{
           draggableCursor: 'default',
           draggingCursor: 'grabbing',
         }}
         onClick={(e) => {
+          // 배경 클릭 제어: disableMapClick이 true면 아무것도 안 함
+          if (disableMapClick) return;
           const lat = e.detail.latLng.lat;
           const lng = e.detail.latLng.lng;
           console.log('map click', lat, lng);

@@ -13,7 +13,7 @@ import MapLayout from '@/components/layout/MapLayout';
 import MapCore from '@/components/map/MapCore';
 import OrderPin from '@/components/map/OrderPin';
 import SpotDirections from '@/components/spot/SpotDirections';
-import MapSearchBar from '@/components/map/MapSearchBar';
+import SpotSearchBar from '@/components/spot/SpotSearchBar';
 import SpotSidePanel from '@/components/spot/SpotSidePanel';
 import RouteListSelector from '@/components/spot/RouteListSelector';
 import { useMapStore } from '@/stores/useMapStore';
@@ -164,7 +164,7 @@ export default function SpotPage() {
               onMapClick={handleMapClick}
               disableMapClick={false}
               searchBar={
-                <MapSearchBar
+                <SpotSearchBar
                   onSelectPlace={(loc) => {
                     setCenter({ lat: loc.lat, lng: loc.lng });
                     setClickedPos(null);
@@ -172,7 +172,6 @@ export default function SpotPage() {
                   onPreview={handlePreview}
                   placeholder="장소 검색..."
                   className={styles.spotSearchBar}
-                  center={center}
                 />
               }
               innerContent={
