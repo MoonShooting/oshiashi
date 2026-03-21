@@ -71,6 +71,7 @@ public class PostTagEntity {
 		return PostTagEntity.builder()
 				.post(post)
 				.tag(tag)
+				.createdAt(LocalDateTime.now())
 				.build();
 	}
 }

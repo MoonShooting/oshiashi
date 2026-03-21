@@ -58,8 +58,17 @@ public class PostEntity {
 	@OneToMany(mappedBy = "post")
 	private List<CommentEntity> comments = new ArrayList<>();
 
-	@OneToMany(mappedBy = "post")
+//	@OneToMany(mappedBy = "post")
+//	private List<PostImageEntity> images = new ArrayList<>();
+	@OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+	@Builder.Default
 	private List<PostImageEntity> images = new ArrayList<>();
+	
+	// 연관관계 편의 메소드 추가 (서비스 코드가 깔끔해집니다)
+	public void addPostImage(PostImageEntity image) {
+		this.images.add(image);
+		image.setPost(this); // 자식 엔티티에도 부모를 설정해줘야 외래키(post_id)가 제대로 들어갑니다.
+	}
 	
 	// --- 1. Enum 정의 ---
 	public enum PostStatus {

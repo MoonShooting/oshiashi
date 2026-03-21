@@ -1,5 +1,6 @@
 package project.oshiashi.oshiashi.domain.post.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -27,10 +28,27 @@ public class PostController {
 	// 0. 임시 리스트 (static 유지)
 	//private static List<PostResponse> postListTest = new ArrayList<>();
 	
-	// 1. 전체 조회 (DB에서 가져옴)
+	// 1. 전체 조회 (루트가 있는 게시판)
 	@GetMapping
-	public List<PostResponse> getAllPost() {
-		return postService.getAllPost();
+	public ResponseEntity<List<PostResponse>> getPosts(
+			
+			@RequestParam(required = false, defaultValue = "createdAt") String sort,
+			@RequestParam(required = false) String search,
+			@RequestParam(required = false) List<String> tags
+	) {
+		// 서비스 호출 시 필터 조건을 함께 전달
+		List<PostResponse> responses = postService.getAllPost(false, sort, search, tags);
+		return ResponseEntity.ok(responses);
+	}
+	// 1-1. 전체 조회 (루트가 없는 자유 게시판)
+	@GetMapping("/notroute")
+	public ResponseEntity<List<PostResponse>> getPostsNotRoute(
+			@RequestParam(required = false, defaultValue = "createdAt") String sort,
+			@RequestParam(required = false) String search,
+			@RequestParam(required = false) List<String> tags
+	) {
+		// 서비스 호출 시 routeIdIsNull을 true로 고정해서 넘겨줌
+		return ResponseEntity.ok(postService.getAllPost(true, sort, search, tags));
 	}
 	
 	
@@ -42,7 +60,7 @@ public class PostController {
 	
 	// 3. 게시글 작성 (DB에 영구 저장)
 	@PostMapping
-	public PostResponse createPost(@RequestBody PostRequest request) {
+	public PostResponse createPost(@Valid @RequestBody PostRequest request) {
 		PostResponse savedResponse = postService.createPost(request);
 		
 		log.debug(">>> [Controller] 작성 완료! 생성된 게시글 ID: {}", savedResponse.getPostId());
@@ -52,20 +70,20 @@ public class PostController {
 	
 	// 4. 게시글 삭제
 	@DeleteMapping("/{postId}")
-	public String deletePost(@PathVariable Long postId) {
-		postService.deletePost(postId);
+	public String deletePost(@PathVariable Long postId, @RequestParam String userId) {
+		postService.deletePost(postId, userId);
 		
-		log.debug(">>> [Controller] ID : {}, 게시글 삭제 완료", postId);
+		log.debug("[Controller] 유저 {}가 {}번 게시글 삭제 요청", userId, postId);
 		return postId + "번 게시글이 삭제되었습니다.";
 	}
 	
 	// 5. 게시글 수정
 	@PatchMapping("/{postId}")
-	public PostResponse updatePost(@PathVariable Long postId, @RequestBody PostRequest request) {
+	public PostResponse updatePost(@PathVariable Long postId, @RequestParam String userId ,@Valid @RequestBody PostRequest request) {
 		
-		log.debug(">>> [Controller] 게시글 수정 요청 발생! ID: {}", postId);
+		log.debug("[Controller] 유저 {}가 {}번 게시글 수정 요청", userId, postId);
 		
-		return postService.updatePost(postId, request);
+		return postService.updatePost(postId,userId, request);
 	}
 	
 	// 6. 게시글 좋아요 기능

@@ -43,13 +43,18 @@ public class PostRequest {
 	 * 태그 이름 리스트
 	 * - 예: ["맛집", "여행", "부산"]
 	 */
-	private List<String> tagNames;
+	private List<String> tags;
+	
+	/**
+	 * 이미지 링크
+	 */
+	private List<String> imageUrl;
 
 	/**
 	 * [현재 미구현/추후 확장]
 	 * - userId: 로그인 세션에서 가져올 경우 제외 가능
 	 * - routeId: 루트 정보 연결 시 필요
 	 */
-	private Long userId;
+	private String userId;
 	private Long routeId;
 }

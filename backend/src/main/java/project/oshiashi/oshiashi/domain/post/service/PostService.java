@@ -6,21 +6,23 @@ import project.oshiashi.oshiashi.domain.post.dto.PostResponse;
 import java.util.List;
 
 public interface PostService {
-	List<PostResponse> getAllPost();
+	//List<PostResponse> getAllPost();
 	PostResponse getPostById(Long postId);
 	
 	//  게시글 작성
 	PostResponse createPost(PostRequest request);
 
 	//삭제
-	void deletePost(Long postId);
+	void deletePost(Long postId,String userId );
 	
 	//수정
 
-	PostResponse updatePost(Long postId, PostRequest request);
+	PostResponse updatePost(Long postId,String userId , PostRequest request);
 
 	//좋아요
 	PostResponse likePost(Long postId);
+	
+	List<PostResponse> getAllPost(Boolean routeIdIsNull, String sort, String search, List<String> tags);
 }
 /*
   인터페이스를 이용함으로써 사용법(Interface)과 실제 기능(Impl) 을 분리
