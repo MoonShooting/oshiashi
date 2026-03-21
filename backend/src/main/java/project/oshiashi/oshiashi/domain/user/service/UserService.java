@@ -18,6 +18,7 @@ import project.oshiashi.oshiashi.domain.route.dto.RouteResponse;
 import project.oshiashi.oshiashi.domain.route.entity.RouteEntity;
 import project.oshiashi.oshiashi.domain.route.repository.RouteRepository;
 import project.oshiashi.oshiashi.domain.user.dto.UserAchievementResponse;
+import project.oshiashi.oshiashi.domain.user.dto.UserProfileResponse;
 import project.oshiashi.oshiashi.domain.user.dto.UserResponse;
 import project.oshiashi.oshiashi.domain.user.entity.UserAchievementEntity;
 import project.oshiashi.oshiashi.domain.user.entity.UserEntity;
@@ -59,13 +60,45 @@ public class UserService {
 	 * [회원 프로필 요약 조회]
 	 * - API: /api/v1/user/profile
 	 * - 용도: 닉네임, 대표 칭호 등 타인에게도 보여줄 수 있는 프로필 요약을 조회
-	 */
+	 *
+	 *  */
 	@Transactional(readOnly = true)
-	public Object getUserProfile() {
+	public UserProfileResponse getUserProfile() {
 		UserEntity me = getCurrentUserEntity();
 		log.info("[UserService] 프로필 요약 조회 함: {}", me.getUserId());
 		// TODO: 프로필 전용 DTO를 만들어 반환 (닉네임, 작성글 수 등 포함), 프론트랑 조금 더 논의 후 유저프로필 리스폰스 제작
-		return null;
+		int routeCount = routeRepository.findAllByUser(me).size();
+		int postCount = postRepository.findAllByUserOrderByCreatedAtDesc(me).size();
+		int bookmarkCount = bookmarkRepository.findAllByUser(me).size();
+		int achievementCount = userAchievementRepository.findAllByUser(me).size();
+
+		// 대표 칭호 조회
+		// 현재 프로젝트에 대표 칭호 필드/메서드가 다를 수 있으니 그에 맞게 조정 필요
+		/*
+		String mainAchievement = userAchievementRepository.findAllByUser(me).stream()
+				.filter(userAchievement -> Boolean.TRUE.equals(userAchievement.getIsMain()))
+				.map(userAchievement -> userAchievement.getAchievement().getName())
+				.findFirst()
+				.orElse("대표 칭호 없음");*/
+
+		return UserProfileResponse.builder()
+				.nickname(
+						me.getNickname() != null && !me.getNickname().isBlank()
+								? me.getNickname()
+								: "닉네임 없음"
+				)
+				.email(me.getEmail())
+				.joinedAt(
+						me.getCreatedAt() != null
+								? me.getCreatedAt().toLocalDate().toString()
+								: "-"
+				)
+				// .mainAchievement(mainAchievement)
+				.routeCount(routeCount)
+				.postCount(postCount)
+				.bookmarkCount(bookmarkCount)
+				.achievementCount(achievementCount)
+				.build();
 	}
 
 	/**
@@ -182,6 +215,8 @@ public class UserService {
 		UserEntity me = getCurrentUserEntity();
 		log.info("[UserService] 대표 칭호 변경 요청: {}", me.getUserId());
 		// me.changeMainAchievement(achievementId);
+		// TODO: 대표 칭호 저장 구조(main_achievement_id 또는 user_achievement.is_main)가 정해지면 보유 업적 검증 후 대표 칭호를 실제로 저장하도록 구현
+		throw new UnsupportedOperationException("대표 칭호 설정 기능은 아직 구현되지 않았습니다.");
 	}
 
 	/**
@@ -196,4 +231,41 @@ public class UserService {
 		return userRepository.findById(authenticatedUser.user().getUserId())
 				.orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 	}
+
+	/**
+	 * 특정 유저의 요약된 프로필을 userId기반 조회 합니다.
+	 * 보통은 친구 코드같은 형식으로 조회 하지만 지금은 ID밖에 없으니 이렇게 만들었어요
+	 */
+	@Transactional(readOnly = true)
+	public UserProfileResponse getUserProfileByUserId(String userId) {
+		UserEntity targetUser = userRepository.findById(userId)
+				.orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+		log.info("[UserService] 특정 유저 프로필 요약 조회 >> {}", targetUser.getUserId());
+
+		int routeCount = routeRepository.findAllByUser(targetUser).size();
+		int postCount = postRepository.findAllByUserOrderByCreatedAtDesc(targetUser).size();
+		int bookmarkCount = bookmarkRepository.findAllByUser(targetUser).size();
+		int achievementCount = userAchievementRepository.findAllByUser(targetUser).size();
+
+		return UserProfileResponse.builder()
+				.nickname(
+						targetUser.getNickname() != null && !targetUser.getNickname().isBlank()
+								? targetUser.getNickname()
+								: "닉네임 없음"
+				)
+				// 공개 프로필이면 email은 숨기는 게 안전
+				.email(null)
+				.joinedAt(
+						targetUser.getCreatedAt() != null
+								? targetUser.getCreatedAt().toLocalDate().toString()
+								: "-"
+				)
+				.routeCount(routeCount)
+				.postCount(postCount)
+				.bookmarkCount(bookmarkCount)
+				.achievementCount(achievementCount)
+				.build();
+	}
+
 }

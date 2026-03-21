@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import project.oshiashi.oshiashi.domain.user.dto.UserProfileResponse;
 import project.oshiashi.oshiashi.domain.user.dto.UserResponse;
 import project.oshiashi.oshiashi.domain.user.service.UserService;
 
@@ -32,7 +33,7 @@ public class UserController {
 
 	// 회원 프로필 요약 조회: /api/v1/user/profile
 	@GetMapping("/profile")
-	public ResponseEntity<?> getUserProfile() {
+	public ResponseEntity<UserProfileResponse> getUserProfile() {
 		log.info("[API] 프로필 요약 조회 호출");
 		return ResponseEntity.ok(userService.getUserProfile());
 	}
@@ -72,6 +73,7 @@ public class UserController {
 		return ResponseEntity.ok(userService.getMyAchievements());
 	}
 
+	// TODO: 현재는 대표 칭호 변경 API 자리만 있으며, 실제 저장 로직은 미구현 상태
 	// 대표 칭호 변경: /api/v1/user/mainAchievement
 	@PatchMapping("/mainAchievement")
 	public ResponseEntity<String> updateMainAchievement(@RequestBody Map<String, Long> request) {
@@ -80,4 +82,12 @@ public class UserController {
 		userService.updateMainAchievement(achievementId);
 		return ResponseEntity.ok("대표 칭호가 변경되었습니다.");
 	}
+
+	// 특정 유저 요약 프로필 조회
+	@GetMapping("/{userId}/profile")
+	public ResponseEntity<UserProfileResponse> getUserProfileByUserId(@PathVariable String userId) {
+		log.info("[API] 특정 유저 프로필 요약 조회 호출: {}", userId);
+		return ResponseEntity.ok(userService.getUserProfileByUserId(userId));
+	}
+
 }
