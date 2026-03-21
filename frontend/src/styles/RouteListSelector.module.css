@@ -284,3 +284,40 @@
   transform: none;
   box-shadow: none;
 }
+
+/* 이동수단 소요시간 섹션 — 목록과 저장 버튼 사이 */
+.durationSection {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 12px 0;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(217, 70, 239, 0.15);
+  border-radius: 10px;
+}
+
+.durationRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.durationIcon {
+  font-size: 14px;
+  flex-shrink: 0;
+  width: 18px;
+  text-align: center;
+}
+
+.durationLabel {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  flex: 1;
+}
+
+.durationValue {
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.85);
+}

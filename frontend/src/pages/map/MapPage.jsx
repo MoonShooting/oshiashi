@@ -1,86 +1,79 @@
-import React, { useState, useCallback } from 'react';
-import { APIProvider } from '@vis.gl/react-google-maps';
-import MapLayout from '@/components/layout/MapLayout';
-import MapCore from '@/components/map/MapCore';
-import MapFilterPanel from '@/components/map/MapFilterPanel';
-import MapLegend from '@/components/map/MapLegend';
-import MapSearchBar from '@/components/map/MapSearchBar';
+/**
+ * @file MapCore.jsx
+ * @description 공통 지도 베이스 컴포넌트
+ * - pins: CustomPin 렌더링 (mediaType별 색상 마커)
+ * - innerContent: <Map> 내부 슬롯 (OrderPin, SpotDirections 등 useMap 필요 요소)
+ * - onPinClick(pin|null): 핀 클릭 / 선택 해제
+ * - onMapClick({lat,lng}): 빈 지도 좌표 클릭
+ * - searchBar: <Map> 바깥 오버레이
+ */
+import React, { useEffect, useRef } from 'react';
+import { Map, useMap } from '@vis.gl/react-google-maps';
+import CustomPin from '@/components/map/CustomPin';
+import { DEFAULT_CENTER, DEFAULT_ZOOM, MAP_ID } from '@/constants/mapConstants';
 import styles from '@/styles/MapLayout.module.css';
-import { DUMMY_PILGRIMAGE_SITES, DEFAULT_LOCATION } from '@/data/dummyData';
 
-export default function MapPage() {
-  // 이미 만들어둔 더미 데이터로 초기화
-  const [pins] = useState(DUMMY_PILGRIMAGE_SITES);
-  const [selectedPinId, setSelectedPinId] = useState(null);
-  const [center, setCenter] = useState(DEFAULT_LOCATION);
+function MapPanController({ center }) {
+  const map = useMap();
+  const prevCenter = useRef(null);
+  useEffect(() => {
+    if (!map || !center) return;
+    const prev = prevCenter.current;
+    if (prev && prev.lat === center.lat && prev.lng === center.lng) return;
+    prevCenter.current = center;
+    map.panTo({ lat: center.lat, lng: center.lng });
+  }, [map, center]);
+  return null;
+}
 
-  // 리스트 hover 시 지도 중심 이동
-  const handlePreview = useCallback((loc) => {
-    if (!loc || typeof loc.lat === 'undefined') return;
-    setCenter({
-      lat: Number(loc.lat),
-      lng: Number(loc.lng),
-    });
-  }, []);
-
-  // 핀 클릭 핸들러 (disableMapClick=true이므로 배경 클릭은 여기 도달하지 않음)
-  const handlePinClick = useCallback((pin) => {
-    if (!pin) {
-      setSelectedPinId(null);
-      return;
+export default function MapCore({
+  pins,
+  selectedPinId,
+  center,
+  children,
+  innerContent,
+  onPinClick,
+  onMapClick,
+  disableMapClick = false,
+  searchBar = null,
+}) {
+  const handleClick = (e) => {
+    if (disableMapClick) return;
+    const lat = e.detail?.latLng?.lat;
+    const lng = e.detail?.latLng?.lng;
+    if (lat != null && lng != null) {
+      onMapClick?.({ lat, lng });
+    } else {
+      onPinClick?.(null);
     }
-    setSelectedPinId(pin.id);
-    setCenter({ lat: Number(pin.position.lat), lng: Number(pin.position.lng) });
-  }, []);
-
-  // 검색창에서 장소 선택 시 지도 중심 이동
-  const handleSelectPlace = useCallback((loc) => {
-    if (!loc) return;
-    setCenter({ lat: Number(loc.lat), lng: Number(loc.lng) });
-  }, []);
+  };
 
   return (
-    // APIProvider 필수! 없으면 지도 안 뜸
-    <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}>
-      <MapLayout
-        isMapPage={true} // 높이 100% CSS를 위한 필수 옵션
-        lockScroll={true}
-        activeMenuKey="map"
-        // 사이드바 영역
-        leftSidebar={
-          <MapFilterPanel
-            onFilterChange={(f) => {
-              //임시로 콘솔로그 찍어둠.
-              // TODO: 작품명·태그 검색은 Google Places API 대신 자체 DB + TMDB 연동으로 구현 필요
-              // → GET /api/v1/spots/search?keyword=&mediaType= 연결 후 MapCore pins 교체
-              console.log('필터링 작동:', f);
-            }}
-            onLocationHover={handlePreview}
+    <div className={styles.mapCoreWrapper}>
+      <Map
+        defaultCenter={DEFAULT_CENTER}
+        defaultZoom={DEFAULT_ZOOM}
+        mapId={MAP_ID}
+        style={{ width: '100%', height: '100%' }}
+        disableDefaultUI={true}
+        clickableIcons={false}
+        options={{ draggableCursor: 'default', draggingCursor: 'grabbing' }}
+        onClick={disableMapClick ? undefined : handleClick}>
+        <MapPanController center={center} />
+        {pins?.map((pin) => (
+          <CustomPin
+            key={pin.id}
+            place={pin}
+            isSelected={selectedPinId === pin.id}
+            onClick={() => onPinClick?.(pin)}
+            onCloseOverlay={() => onPinClick?.(null)}
           />
-        }
-        // 지도 메인 영역
-        mapComponent={
-          <div className={styles.mapPageContainer}>
-            <MapCore
-              pins={pins}
-              selectedPinId={selectedPinId}
-              center={center}
-              onPinClick={handlePinClick}
-              disableMapClick={true}
-              searchBar={
-                <MapSearchBar
-                  onSelectPlace={handleSelectPlace}
-                  onPreview={handlePreview}
-                  placeholder="작품명 검색..."
-                  className={styles.searchOverlay}
-                  center={center}
-                />
-              }
-            />
-            <MapLegend pinCount={pins?.length || 0} />
-          </div>
-        }
-      />
-    </APIProvider>
+        ))}
+        {innerContent}
+      </Map>
+      {/* searchBar는 <Map> 바깥 — 내부에 두면 mousedown 차단으로 드래그 pan 불가 */}
+      {searchBar}
+      {children}
+    </div>
   );
 }
