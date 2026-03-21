@@ -87,10 +87,30 @@ public class BookmarkEntity {
      * 엔티티 저장(Persist) 직전에 실행
      * createdAt 값이 없을 경우 현재 시간으로 자동 설정
      */
-    @PrePersist
-    private void prePersist() {
-        if (createdAt == null) {
-            createdAt = LocalDateTime.now();
-        }
-    }
+	@PrePersist
+	private void prePersist() {
+		if (createdAt == null) {
+			createdAt = LocalDateTime.now();
+		}
+		// [고도화] 저장 시 이름이 비어있다면 자동 생성 (기존 필드 활용)
+		if (this.bookmarkName == null || this.bookmarkName.trim().isEmpty()) {
+			// 예: "2026-03-21 북마크" 형식으로 자동 명명
+			this.bookmarkName = java.time.LocalDate.now() + " 북마크";
+		}
+	}
+
+	/**
+	 * [비즈니스 로직: 북마크 이름 변경]
+	 * 사용자가 직접 이름을 수정할 때 호출합니다.
+	 */
+	public void changeCustomName(String newName) {
+		if (newName == null || newName.trim().isEmpty()) {
+			throw new IllegalArgumentException("북마크 이름은 공백일 수 없습니다.");
+		}
+		// 최대 길이를 넘지 않도록 방어 로직 추가 (DB length=100 기준)
+		if (newName.length() > 100) {
+			throw new IllegalArgumentException("북마크 이름은 100자를 초과할 수 없습니다.");
+		}
+		this.bookmarkName = newName;
+	}
 }
