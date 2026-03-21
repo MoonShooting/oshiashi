@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import project.oshiashi.oshiashi.domain.post.dto.PostRequest;
 import project.oshiashi.oshiashi.domain.post.dto.PostResponse;
 import project.oshiashi.oshiashi.domain.post.entity.PostEntity;
+import project.oshiashi.oshiashi.domain.post.entity.PostImageEntity;
 import project.oshiashi.oshiashi.domain.post.entity.PostTagEntity;
 import project.oshiashi.oshiashi.domain.post.repository.PostRepository;
 import project.oshiashi.oshiashi.domain.route.entity.RouteEntity;
@@ -33,19 +34,45 @@ public class PostServiceImpl implements PostService {
 	private final TagRepository tagRepository;
 
 	/**
-	 * 1. 게시글 전체 조회
+	 * 1. 게시글 전체 조회 ( 루트가 있는 게시물)
 	 * @return List<PostResponse>
 	 * - 필수 반환: 모든 필드 (postId, title, content, status, viewCount, likeCount, tagNames, createdAt, updateAt)
 	 * - 특징: 데이터가 없으면 빈 리스트 [] 반환
 	 */
 	@Override
 	@Transactional(readOnly = true)
-	public List<PostResponse> getAllPost() {
-		log.debug("[Service] 게시글 전체 조회 요청 발생");
-		List<PostEntity> posts = postRepository.findAll();
+	public List<PostResponse> getAllPost(Boolean routeIdIsNull, String sort, String search, List<String> tags) {
+		log.debug("[Service] 루트가 포함된 게시글 전체 조회 요청 발생");
+		// 1. 게시판 분류 (계약 불일치 해결 핵심)
+		List<PostEntity> posts;
+		if (routeIdIsNull != null) {
+			if (routeIdIsNull) {
+				// 자유게시판: route_id가 없는 것만 조회
+				posts = postRepository.findAllByRouteIsNull();
+			} else {
+				// 루트게시판: route_id가 있는 것만 조회
+				posts = postRepository.findAllByRouteIsNotNull();
+			}
+		} else {
+			// 없으면 전체 조회 (기존 방식 유지)
+			posts = postRepository.findAll();
+		}
+		
 		log.debug("[Service] 조회된 게시글 총 개수: {}개", posts.size());
-
+		
+		// 2. 검색, 태그 필터링 및 최신순 정렬 (Stream 활용)
 		return posts.stream()
+				// 검색어 필터: 제목이나 내용에 키워드 포함 여부
+				.filter(post -> (search == null || search.isBlank()) ||
+						post.getTitle().contains(search) || post.getContent().contains(search))
+				
+				// 태그 필터: 선택한 태그를 하나라도 가지고 있는지 확인
+				.filter(post -> (tags == null || tags.isEmpty()) ||
+						post.getPostTags().stream().anyMatch(pt -> tags.contains(pt.getTag().getTagName())))
+				
+				// 정렬 로직: 무조건 최신순 (내림차순)
+				.sorted((p1, p2) -> p2.getCreatedAt().compareTo(p1.getCreatedAt()))
+				
 				.map(PostResponse::fromEntity)
 				.collect(Collectors.toUnmodifiableList());
 	}
@@ -88,8 +115,11 @@ public class PostServiceImpl implements PostService {
 		UserEntity user = userRepository.findById(request.getUserId())
 				.orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 		
-		RouteEntity route = routeRepository.findById(request.getRouteId())
-				.orElseThrow(() -> new RuntimeException("루트를 찾을 수 없습니다."));
+		RouteEntity route = null;
+		if (request.getRouteId() != null) {
+			route = routeRepository.findById(request.getRouteId())
+					.orElseThrow(() -> new RuntimeException("지정한 루트를 찾을 수 없습니다."));
+		}
 		
 		
 		// 1. 엔티티 생성 (기본 정보 초기화)
@@ -105,6 +135,27 @@ public class PostServiceImpl implements PostService {
 				.createdAt(LocalDateTime.now())
 				.updateAt(LocalDateTime.now())
 				.build();
+		
+		// 1-1 이미지 넣기
+		if (request.getImageUrl() != null && !request.getImageUrl().isEmpty()) {
+			log.debug("[Service] 이미지 매핑 처리 시작: {}개", request.getImageUrl().size());
+			
+			for (int i = 0; i < request.getImageUrl().size(); i++) {
+				String url = request.getImageUrl().get(i);
+				
+				PostImageEntity imageEntity = PostImageEntity.builder()
+						.post(postEntity) // 게시글 연결
+						.imageUrl(url)
+						.sortOrder(i)    // 리스트에 들어온 순서대로 0, 1, 2... 부여
+						.createdAt(LocalDateTime.now())
+						.build();
+				
+				// PostEntity의 이미지 리스트에 추가 (Cascade 설정)
+				// postEntity에 이미지를 추가함과 동시에 연관관계 설정
+				postEntity.addPostImage(imageEntity);
+			}
+		}
+		
 		// 2. 태그 처리: 요청 DTO에 태그 이름 리스트가 포함되어 있다면 매핑 진행
 		// addTagsToPost 내부에서 TagEntity 조회/생성 및 PostTagEntity 연결이 일어납니다.
 		if (request.getTagNames() != null && !request.getTagNames().isEmpty()) {
@@ -183,7 +234,10 @@ public class PostServiceImpl implements PostService {
 		// 따로 save()를 호출하지 않아도 트랜잭션 종료 시점에 변경 사항이 DB에 반영됩니다.
 		postEntity.setTitle(request.getTitle());
 		postEntity.setContent(request.getContent());
-		postEntity.setStatus(request.getStatus());
+		// 피드백 반영: status가 null이면 기존 값을 유지하도록 조건문 추가
+		if (request.getStatus() != null) {
+			postEntity.setStatus(request.getStatus());
+		}
 		postEntity.setUpdateAt(LocalDateTime.now()); // 수정 시간 갱신
 
 		// 3. 태그 수정 (기존 매핑 전체 제거 후 신규 등록)

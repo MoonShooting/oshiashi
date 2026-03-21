@@ -6,6 +6,9 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+@Builder
+@AllArgsConstructor
+@Setter
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity

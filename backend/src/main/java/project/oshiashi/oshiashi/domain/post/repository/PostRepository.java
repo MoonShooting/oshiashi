@@ -23,4 +23,9 @@ public interface PostRepository extends JpaRepository<PostEntity, Long> {
         where rs.spot.spotId = :spotId
     """)
 	Long countDistinctBySpotId(Long spotId);
+	
+	// route 필드가 null이 아닌 엔티티만 조회
+	List<PostEntity> findAllByRouteIsNotNull();
+	// 루트가 없는 게시글(커뮤니티)만 조회
+	List<PostEntity> findAllByRouteIsNull();
 }
