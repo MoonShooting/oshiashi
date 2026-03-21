@@ -13,12 +13,11 @@ public interface PostService {
 	PostResponse createPost(PostRequest request);
 
 	//삭제
-	void deletePost(Long postId);
+	void deletePost(Long postId, String userId);
 	
 	//수정
-
-	PostResponse updatePost(Long postId, PostRequest request);
-
+	PostResponse updatePost(Long postId, String userId ,PostRequest request);
+	
 	//좋아요
 	PostResponse likePost(Long postId);
 }
