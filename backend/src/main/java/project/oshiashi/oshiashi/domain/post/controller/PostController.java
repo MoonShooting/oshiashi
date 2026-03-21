@@ -29,8 +29,11 @@ public class PostController {
 	
 	// 1. 전체 조회 (DB에서 가져옴)
 	@GetMapping
-	public List<PostResponse> getAllPost() {
-		return postService.getAllPost();
+	public List<PostResponse> getAllPost(
+			@RequestParam(defaultValue = "latest") String sort
+	) {
+		log.debug("[Controller] 게시글 목록 조회 요청 - sort : {}", sort);
+		return postService.getAllPost(sort);
 	}
 	
 	

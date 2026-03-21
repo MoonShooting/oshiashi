@@ -39,14 +39,34 @@ public class PostServiceImpl implements PostService {
 	 */
 	@Override
 	@Transactional(readOnly = true)
-	public List<PostResponse> getAllPost() {
-		log.debug("[Service] 게시글 전체 조회 요청 발생");
-		List<PostEntity> posts = postRepository.findAll();
+	public List<PostResponse> getAllPost(String sort) {
+		log.debug("[Service] 게시글 전체 조회 요청 발생 - sort: {}", sort);
+
+		String normalizedSort = (sort == null || sort.isBlank()) ? "latest" : sort.trim().toLowerCase();
+
+		List<PostEntity> posts;
+
+		switch (normalizedSort) {
+			case "view" -> {
+				posts = postRepository.findAllByOrderByViewCountDescCreatedAtDesc();
+				log.debug("[Service] 조회수순 정렬 적용");
+			}
+			case "like" -> {
+				posts = postRepository.findAllByOrderByLikeCountDescCreatedAtDesc();
+				log.debug("[Service] 좋아요순 정렬 적용");
+			}
+			case "latest" -> {
+				posts = postRepository.findAllByOrderByCreatedAtDesc();
+				log.debug("[Service] 최신순 정렬 적용");
+			}
+			default -> throw new IllegalArgumentException("지원하지 않는 정렬 방식입니다: " + sort);
+		}
+
 		log.debug("[Service] 조회된 게시글 총 개수: {}개", posts.size());
 
 		return posts.stream()
 				.map(PostResponse::fromEntity)
-				.collect(Collectors.toUnmodifiableList());
+				.toList();
 	}
 
 	/**

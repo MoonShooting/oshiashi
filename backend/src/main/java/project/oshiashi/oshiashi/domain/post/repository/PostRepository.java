@@ -13,6 +13,14 @@ public interface PostRepository extends JpaRepository<PostEntity, Long> {
 	// 특정 유저가 쓴 글을 최신순으로 조회
 	List<PostEntity> findAllByUserOrderByCreatedAtDesc(UserEntity user);
 
+	// 게시글 전체를 최신순으로 조회
+	List<PostEntity> findAllByOrderByCreatedAtDesc();
+
+	// 게시글 전체를 조회수순으로 조회 (조회수가 같으면 최신 글 우선)
+	List<PostEntity> findAllByOrderByViewCountDescCreatedAtDesc();
+
+	// 게시글 전체를 좋아요순으로 조회 (좋아요 수가 같으면 최신 글 우선)
+	List<PostEntity> findAllByOrderByLikeCountDescCreatedAtDesc();
 
 	// 특정 장소(spot)가 포함된 route를 참조하는 게시글 수
 	@Query("""

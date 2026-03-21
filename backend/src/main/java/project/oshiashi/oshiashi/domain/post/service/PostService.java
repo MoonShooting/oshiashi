@@ -6,7 +6,7 @@ import project.oshiashi.oshiashi.domain.post.dto.PostResponse;
 import java.util.List;
 
 public interface PostService {
-	List<PostResponse> getAllPost();
+	List<PostResponse> getAllPost(String sort);
 	PostResponse getPostById(Long postId);
 	
 	//  게시글 작성
