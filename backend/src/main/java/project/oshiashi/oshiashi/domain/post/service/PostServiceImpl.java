@@ -223,6 +223,12 @@ public class PostServiceImpl implements PostService {
 			log.debug("본인꺼만 수정 가능합니다");
 			throw new RuntimeException("본인이 작성한 글만 수정할 수 있습니다.");
 		}
+		// 2. 엔티티 데이터 업데이트
+		// 실제로는 route 객체도 새로 찾아와서 수정하는거 고려
+		postEntity.setTitle(request.getTitle());
+		postEntity.setContent(request.getContent());
+		postEntity.setStatus(request.getStatus());
+		postEntity.setUpdateAt(LocalDateTime.now());
 		
 		// 2. 기본 정보 업데이트 (JPA Dirty Checking 활용)
 		// 따로 save()를 호출하지 않아도 트랜잭션 종료 시점에 변경 사항이 DB에 반영됩니다.

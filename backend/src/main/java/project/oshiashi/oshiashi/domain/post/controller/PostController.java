@@ -78,6 +78,7 @@ public class PostController {
 	}
 	
 	// 5. 게시글 수정
+	// 수정할 대상이 누구인지 주소(Path)에 명시, Param : 이 요청을 보내는 사람이 누구인가?
 	@PatchMapping("/{postId}")
 	public PostResponse updatePost(@PathVariable Long postId, @RequestParam String userId ,@Valid @RequestBody PostRequest request) {
 		
