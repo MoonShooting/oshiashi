@@ -1,355 +1,149 @@
 /**
  * @file SpotPage.module.css
- * @description 경로 생성 페이지 반응형 스타일
- *
- * 브레이크포인트:
- *   < 768px  : 모바일 — 지도 풀스크린 + 하단 슬라이드업 패널
- *   768~1199px: 태블릿 — 지도 + 우측 220px, 교통수단은 지도 우하단 pill
- *   ≥ 1200px  : 데스크탑 — 지도 + 우측 300px, 교통수단은 사이드 패널 하단 가로 탭
+ * @description 경로 생성 페이지 (Spot) 전용 스타일
  */
 
-/*  레이아웃 및 사이드 패널 */
-.sidePanel {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
+/* 1. 지도 위 커스텀 요소 (AdvancedMarker 내부용) */
 
-/* 리스트 헤더 */
-.listHeader {
-  padding: 24px 20px 16px;
-}
-
-.listHeader h3 {
-  font-size: 18px;
-  font-weight: 700;
+/* 핀 바로 위에 뜨는 장소명 툴팁 (이미 루트에 포함된 핀용) */
+.pinLabel {
+  position: absolute;
+  bottom: 45px; /* 핀 머리 위 위치 */
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(10, 10, 20, 0.92);
+  border: 1px solid rgba(217, 70, 239, 0.45);
   color: #fff;
-  margin-bottom: 4px;
-}
-
-.count {
-  font-size: 13px;
-  color: var(--primary-purple);
+  font-size: 11px;
   font-weight: 500;
-}
-
-/*  장소 리스트 (Scroll 영역) */
-.placeList {
-  flex: 1;
-  overflow-y: auto;
-  padding: 0 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-/* 개별 아이템 스타일 */
-.spotItem {
-  display: flex;
-  align-items: center;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  padding: 12px;
-  transition: all 0.2s ease;
-  cursor: grab;
-}
-
-.spotItem:active {
-  cursor: grabbing;
-}
-
-.spotItemOver {
-  border-color: var(--primary-purple);
-  background: rgba(157, 80, 187, 0.08);
-  transform: translateY(-2px);
-}
-
-.spotNum {
-  width: 22px;
-  height: 22px;
-  background: var(--primary-purple);
-  color: #fff;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  font-weight: 700;
-  margin-right: 10px;
-}
-
-.dragHandle {
-  color: rgba(255, 255, 255, 0.2);
-  margin-right: 10px;
-}
-
-.spotInfo {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.spotTitle {
-  font-size: 14px;
-  font-weight: 600;
-  color: #fff;
+  padding: 4px 10px;
+  border-radius: 6px;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  z-index: 100;
 }
 
-.spotWork {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.4);
-  margin-top: 2px;
+.pinLabel::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: rgba(217, 70, 239, 0.45);
 }
 
-.spotLeg {
-  font-size: 11px;
-  color: #00e676; /* 형광 그린 (경로 정보 강조) */
-  margin-top: 4px;
-}
-
-/* 하단 CTA 버튼 (고정 영역) */
-.panelFooter {
-  padding: 20px;
-  background: linear-gradient(to top, var(--bg-dark) 80%, transparent);
+/* 지도 클릭 시 나타나는 정보 팝업 (역지오코딩 결과창) */
+.clickPopup {
+  position: absolute;
+  bottom: 50px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 220px;
+  background: rgba(12, 12, 22, 0.98);
+  border: 1px solid rgba(157, 80, 187, 0.4);
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(12px);
   display: flex;
   flex-direction: column;
   gap: 10px;
+  z-index: 1000;
 }
 
-/* 경로 탐색 버튼 (기본 보라) */
-.exploreBtn {
-  width: 100%;
-  padding: 14px;
-  background: var(--primary-purple);
-  border: none;
-  border-radius: 10px;
-  color: #fff;
-  font-weight: 700;
-  cursor: pointer;
-  transition: transform 0.1s;
-}
-
-/* 경로 저장 버튼 (그라데이션 강조) */
-.saveBtn {
-  width: 100%;
-  padding: 14px;
-  background: linear-gradient(135deg, #9d50bb 0%, #e91e8c 100%);
-  border: none;
-  border-radius: 10px;
-  color: #fff;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: 0 4px 15px rgba(233, 30, 140, 0.3);
-  animation: pulse 2s infinite; /* 시선 집중 효과 */
-}
-
-.clearBtn {
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.5);
-  padding: 8px;
-  border-radius: 8px;
+.clickPopupAddr {
   font-size: 12px;
-  cursor: pointer;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.6;
+  margin: 0;
+  word-break: keep-all; /* 주소가 어색하게 끊기지 않게 */
 }
 
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(233, 30, 140, 0.4);
-  }
-  70% {
-    box-shadow: 0 0 0 10px rgba(233, 30, 140, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(233, 30, 140, 0);
-  }
-}
-
-/* 기타 요소 */
-.empty {
-  text-align: center;
-  padding: 40px 0;
-  color: rgba(255, 255, 255, 0.2);
-  font-size: 13px;
-}
-
-.removeBtn {
-  background: transparent;
-  border: none;
-  color: rgba(255, 255, 255, 0.3);
-  font-size: 20px;
-  cursor: pointer;
-  margin-left: 8px;
-}
-
-.removeBtn:hover {
-  color: #ff5252;
-}
-
-.svBtn {
-  background: rgba(255, 255, 255, 0.05);
-  border: none;
-  border-radius: 6px;
-  padding: 4px 8px;
-  cursor: pointer;
-}
-
-/*
-  SpotPage 추가 스타일 — NavBar 버튼 / 저장 토스트
- */
-
-/* NavBar에 주입되는 "루트 공유" 버튼 */
-.shareNavBtn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  height: 38px;
-  padding: 0 16px;
+.clickPopupAdd {
+  width: 100%;
+  padding: 8px;
   background: linear-gradient(135deg, #9d50bb 0%, #e91e8c 100%);
   border: none;
-  border-radius: 999px;
+  border-radius: 8px;
   color: #fff;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(233, 30, 140, 0.3);
-  transition: all 0.2s;
-  white-space: nowrap;
+  transition:
+    transform 0.1s,
+    opacity 0.2s;
 }
 
-.shareNavBtn:hover {
-  box-shadow: 0 6px 20px rgba(233, 30, 140, 0.45);
+.clickPopupAdd:hover {
+  opacity: 0.9;
   transform: translateY(-1px);
 }
 
-/* 저장 완료 토스트 */
-.toast {
-  position: fixed;
-  bottom: 32px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(20, 20, 36, 0.97);
-  border: 1px solid rgba(157, 80, 187, 0.4);
-  color: #fff;
-  font-size: 13px;
-  font-weight: 500;
-  padding: 12px 24px;
-  border-radius: 999px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-  z-index: 9999;
-  white-space: nowrap;
-  animation: toastIn 0.25s ease;
+.clickPopupClose {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0;
 }
 
-@keyframes toastIn {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
-}
+/* 2. 공통 UI 요소 (모달, 토스트 등) */
 
-/* 저장 확인 미니 모달 */
 .saveModal {
   position: fixed;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 2000;
 }
 
 .saveModalBackdrop {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(0, 0, 0, 0.6);
 }
 
 .saveModalBox {
   position: relative;
-  background: rgba(18, 18, 30, 0.98);
+  background: #12121e;
   border: 1px solid rgba(157, 80, 187, 0.3);
   border-radius: 16px;
-  padding: 28px 28px 24px;
-  width: 340px;
-  max-width: 90vw;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+  padding: 24px;
+  width: 320px;
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.saveModalTitle {
-  font-size: 16px;
-  font-weight: 700;
+.toast {
+  position: fixed;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(20, 20, 36, 0.95);
+  border: 1px solid #9d50bb;
   color: #fff;
+  padding: 12px 24px;
+  border-radius: 50px;
+  z-index: 9999;
+  animation: toastIn 0.3s ease-out;
 }
 
-.saveModalInput {
-  width: 100%;
-  padding: 11px 14px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 10px;
-  color: #fff;
-  font-size: 14px;
-  outline: none;
-  transition: border-color 0.2s;
-  box-sizing: border-box;
-}
-
-.saveModalInput:focus {
-  border-color: rgba(157, 80, 187, 0.6);
-}
-
-.saveModalInput::placeholder {
-  color: rgba(255, 255, 255, 0.3);
-}
-
-.saveModalActions {
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-}
-
-.saveModalCancel {
-  padding: 9px 18px;
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.saveModalCancel:hover {
-  border-color: rgba(255, 255, 255, 0.25);
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.saveModalConfirm {
-  padding: 9px 22px;
-  background: linear-gradient(135deg, #9d50bb 0%, #e91e8c 100%);
-  border: none;
-  border-radius: 8px;
-  color: #fff;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: 0 4px 14px rgba(233, 30, 140, 0.25);
-  transition: all 0.15s;
-}
-
-.saveModalConfirm:hover {
-  box-shadow: 0 6px 20px rgba(233, 30, 140, 0.4);
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 20px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
 }

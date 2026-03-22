@@ -1,17 +1,23 @@
 /**
+ * @file RouteListSelector.jsx
  * @description 루트에 담긴 장소 플로팅 패널 (지도 우측 하단 고정)
- *
  * - 접기/펼치기 토글
- * - 드래그앤드롭으로 순서 변경
- * - 초기화: selectedPlaces 전체 해제
- * - 저장: onSave 콜백 (SpotPage에서 모달+리스트업데이트 처리)
+ * - 드래그앤드롭 순서 변경
+ * - durations: 이동수단별 소요시간 (저장 버튼 위에 표시)
  */
-
 import React, { useState, useRef, useCallback } from 'react';
 import { useMapStore } from '@/stores/useMapStore';
 import styles from '@/styles/RouteListSelector.module.css';
 
-export default function RoutePanel({ onSave }) {
+const TRAVEL_MODES = [
+  { key: 'WALKING', icon: '🚶', label: '도보' },
+  { key: 'DRIVING', icon: '🚗', label: '자동차' },
+  { key: 'TRANSIT', icon: '🚌', label: '대중교통' },
+];
+
+const toMin = (sec) => (sec != null ? `${Math.round(sec / 60)}분` : '-');
+
+export default function RouteListSelector({ onSave, durations }) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [overIdx, setOverIdx] = useState(null);
   const dragIdx = useRef(null);
@@ -54,7 +60,6 @@ export default function RoutePanel({ onSave }) {
 
   return (
     <div className={styles.panel}>
-      {/* 헤더 (클릭으로 접기/펼치기) */}
       <div className={styles.header} onClick={() => setIsExpanded((v) => !v)}>
         <span className={styles.title}>루트에 담긴 장소</span>
         <span className={styles.badge}>{selectedPlaces.length}</span>
@@ -65,36 +70,30 @@ export default function RoutePanel({ onSave }) {
         </span>
       </div>
 
-      {/* 본문 (펼쳤을 때만) */}
       {isExpanded && (
         <div className={styles.body}>
           {selectedPlaces.length === 0 ? (
-            /* 빈 상태 */
             <div className={styles.empty}>
               <div className={styles.emptyIcon}>🗺️</div>
               <p className={styles.emptyText}>장소를 추가해주세요</p>
               <p className={styles.emptyDesc}>
-                북마크 또는 지도 검색 결과에서
+                북마크, 지도 검색, 또는
                 <br />
-                루트에 담을 수 있어요.
+                지도를 직접 클릭해 추가하세요.
               </p>
             </div>
           ) : (
-            /* 드래그앤드롭 목록 */
             <ul className={styles.list}>
               {selectedPlaces.map((place, idx) => (
                 <li
                   key={place.id}
                   className={styles.item}
                   data-over={overIdx === idx ? 'true' : undefined}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, idx)}
                   onDragOver={(e) => handleDragOver(e, idx)}
                   onDragLeave={handleDragLeave}
                   onDrop={(e) => handleDrop(e, idx)}
                   onDragEnd={handleDragEnd}>
-                  {/* 드래그 핸들 */}
-                  <span className={styles.dragHandle}>
+                  <span className={styles.dragHandle} draggable onDragStart={(e) => handleDragStart(e, idx)} onDragEnd={handleDragEnd}>
                     <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor">
                       <circle cx="2.5" cy="2.5" r="1.5" />
                       <circle cx="7.5" cy="2.5" r="1.5" />
@@ -104,20 +103,12 @@ export default function RoutePanel({ onSave }) {
                       <circle cx="7.5" cy="11.5" r="1.5" />
                     </svg>
                   </span>
-
-                  {/* 순서 번호 */}
                   <div className={styles.numBadge}>{idx + 1}</div>
-
-                  {/* 썸네일 placeholder */}
                   <div className={styles.thumb} style={{ background: place.color || '#374151' }} />
-
-                  {/* 장소 정보 */}
                   <div className={styles.info}>
-                    <span className={styles.itemTitle}>{place.title}</span>
+                    <span className={styles.itemTitle}>{place.title || place.name}</span>
                     {place.workName && <span className={styles.itemWork}>{place.workName}</span>}
                   </div>
-
-                  {/* 삭제 버튼 */}
                   <button className={styles.removeBtn} title="루트에서 제거" onClick={() => removePlace(place.id)}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <polyline points="3 6 5 6 21 6" />
@@ -130,7 +121,19 @@ export default function RoutePanel({ onSave }) {
             </ul>
           )}
 
-          {/* 푸터: 초기화 / 저장 */}
+          {/* 이동수단별 소요시간 — 장소 2개 이상일 때만 표시 */}
+          {durations && selectedPlaces.length >= 2 && (
+            <div className={styles.durationSection}>
+              {TRAVEL_MODES.map(({ key, icon, label }) => (
+                <div key={key} className={styles.durationRow}>
+                  <span className={styles.durationIcon}>{icon}</span>
+                  <span className={styles.durationLabel}>{label}</span>
+                  <span className={styles.durationValue}>{toMin(durations[key])}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className={styles.footer}>
             <button className={styles.resetBtn} onClick={clearMap}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

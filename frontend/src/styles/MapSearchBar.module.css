@@ -6,7 +6,7 @@
   position: relative;
   width: 400px;
   max-width: calc(100vw - 320px);
-  z-index: 15;
+  z-index: 40;
 }
 
 /* 검색 입력 행 */
@@ -85,7 +85,7 @@
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  z-index: 100;
+  z-index: 45;
 }
 
 .dropdown::-webkit-scrollbar {
