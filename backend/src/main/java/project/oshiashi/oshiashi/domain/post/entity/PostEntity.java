@@ -27,8 +27,8 @@ public class PostEntity {
 	@JoinColumn(name = "user_id", nullable = false)
 	private UserEntity user;
 
-	@ManyToOne(fetch = FetchType.LAZY, optional = false)
-	@JoinColumn(name = "route_id", nullable = false)
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "route_id") // 자유게시판 작성을 위한 조건 수정
 	private RouteEntity route;
 
 	@Column(name = "title", nullable = false)
@@ -86,6 +86,18 @@ public class PostEntity {
 		@com.fasterxml.jackson.annotation.JsonValue
 		public String getValue() {
 			return value;
+		}
+		
+		// 요청 시 대소문자 변환 (추가) : JSON 요청 시 "PUBLIC"이 들어와도 "public"으로 변환해줌 (에러 해결 핵심)
+		@com.fasterxml.jackson.annotation.JsonCreator
+		public static PostStatus from(String value) {
+			for (PostStatus status : PostStatus.values()) {
+				// 대소문자 무시하고 비교 (PUBLIC == public)
+				if (status.name().equalsIgnoreCase(value) || status.value.equalsIgnoreCase(value)) {
+					return status;
+				}
+			}
+			return null; // 혹은 기본값 설정
 		}
 	}
 
