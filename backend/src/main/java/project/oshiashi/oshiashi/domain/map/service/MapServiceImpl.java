@@ -8,6 +8,8 @@ import project.oshiashi.oshiashi.domain.map.dto.MapPlaceResponse;
 import project.oshiashi.oshiashi.domain.post.repository.PostRepository;
 import project.oshiashi.oshiashi.domain.spot.entity.SpotEntity;
 import project.oshiashi.oshiashi.domain.spot.repository.SpotRepository;
+import project.oshiashi.oshiashi.global.exception.BusinessException;
+import project.oshiashi.oshiashi.global.exception.ErrorCode;
 
 import java.util.List;
 
@@ -46,7 +48,7 @@ public class MapServiceImpl implements MapService {
     @Override
     public MapPlaceResponse getPlaceDetail(Long placeId) {
         SpotEntity spot = spotRepository.findById(placeId)
-                .orElseThrow(() -> new IllegalArgumentException("장소를 찾을 수 없습니다."));
+                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "장소를 찾을 수 없습니다."));
 
         // 장소와 관련된 게시글이 몇 개인지 세는 코드
         Long relatedPostCount = postRepository.countDistinctBySpotId(placeId);

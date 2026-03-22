@@ -24,6 +24,8 @@ import project.oshiashi.oshiashi.domain.user.entity.UserAchievementEntity;
 import project.oshiashi.oshiashi.domain.user.entity.UserEntity;
 import project.oshiashi.oshiashi.domain.user.repository.UserAchievementRepository;
 import project.oshiashi.oshiashi.domain.user.repository.UserRepository;
+import project.oshiashi.oshiashi.global.exception.BusinessException;
+import project.oshiashi.oshiashi.global.exception.ErrorCode;
 import project.oshiashi.oshiashi.security.AuthenticatedUser;
 import java.util.List;
 
@@ -226,10 +228,10 @@ public class UserService {
 	private UserEntity getCurrentUserEntity() {
 		Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 		if (!(principal instanceof AuthenticatedUser authenticatedUser)) {
-			throw new IllegalStateException("인증된 사용자 정보를 찾을 수 없습니다.");
+			throw new BusinessException(ErrorCode.UNAUTHORIZED, "인증된 사용자 정보를 찾을 수 없습니다.");
 		}
 		return userRepository.findById(authenticatedUser.user().getUserId())
-				.orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+				.orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "사용자를 찾을 수 없습니다."));
 	}
 
 	/**
@@ -239,7 +241,7 @@ public class UserService {
 	@Transactional(readOnly = true)
 	public UserProfileResponse getUserProfileByUserId(String userId) {
 		UserEntity targetUser = userRepository.findById(userId)
-				.orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+				.orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "사용자를 찾을 수 없습니다."));
 
 		log.info("[UserService] 특정 유저 프로필 요약 조회 >> {}", targetUser.getUserId());
 

@@ -18,6 +18,8 @@ import project.oshiashi.oshiashi.domain.tag.entity.TagEntity;
 import project.oshiashi.oshiashi.domain.tag.repository.TagRepository;
 import project.oshiashi.oshiashi.domain.user.entity.UserEntity;
 import project.oshiashi.oshiashi.domain.user.repository.UserRepository;
+import project.oshiashi.oshiashi.global.exception.BusinessException;
+import project.oshiashi.oshiashi.global.exception.ErrorCode;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -97,7 +99,7 @@ public class PostServiceImpl implements PostService {
 				})
 				.orElseThrow(() -> {
 					log.debug("[Service] 조회 실패: {}번 게시글이 존재하지 않음", postId);
-					return new RuntimeException("게시글을 찾을 수 없습니다.");
+					return new BusinessException(ErrorCode.POST_NOT_FOUND);
 				});
 	}
 
@@ -120,18 +122,18 @@ public class PostServiceImpl implements PostService {
 		String currentUserId = SecurityContextHolder.getContext().getAuthentication().getName();
 		
 		if (currentUserId == null || currentUserId.equals("anonymousUser")) {
-			throw new RuntimeException("인증 정보가 없습니다. 로그인이 필요합니다.");
+			throw new BusinessException(ErrorCode.UNAUTHORIZED, "인증 정보가 없습니다. 로그인이 필요합니다.");
 		}
 		
 		log.debug("[Service] 게시글 등록 요청 시작 - 제목: {}", request.getTitle());
 		
 		UserEntity user = userRepository.findById(request.getUserId())
-				.orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+				.orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "사용자를 찾을 수 없습니다."));
 		
 		RouteEntity route = null;
 		if (request.getRouteId() != null) {
 			route = routeRepository.findById(request.getRouteId())
-					.orElseThrow(() -> new RuntimeException("지정한 루트를 찾을 수 없습니다."));
+					.orElseThrow(() -> new BusinessException(ErrorCode.ROUTE_NOT_FOUND));
 		}
 		
 		
@@ -197,7 +199,7 @@ public class PostServiceImpl implements PostService {
 		PostEntity postEntity = postRepository.findById(postId)
 				.orElseThrow(() -> {
 					log.debug("!!! [Service] 삭제 실패: {}번 게시글이 없습니다.", postId);
-					return new RuntimeException("삭제할 게시글을 찾을 수 없습니다.");
+					return new BusinessException(ErrorCode.POST_NOT_FOUND, "삭제할 게시글을 찾을 수 없습니다.");
 				});
 		
 		// 2. 작성자 검증
@@ -206,7 +208,7 @@ public class PostServiceImpl implements PostService {
 			log.debug("작성자가 아닙니다. 게시글 작성자 ID: {}, 로그인 유저 ID: {}",
 					postEntity.getUser().getUserId(), userId);
 			log.debug("본인꺼만 삭제 가능합니다");
-			throw new RuntimeException("본인이 작성한 글만 삭제할 수 있습니다.");
+			throw new BusinessException(ErrorCode.ACCESS_DENIED, "본인이 작성한 글만 삭제할 수 있습니다.");
 		}
 		
 		postRepository.deleteById(postId);
@@ -229,13 +231,13 @@ public class PostServiceImpl implements PostService {
 		PostEntity postEntity = postRepository.findById(postId)
 				.orElseThrow(() -> {
 					log.debug("[Service] 수정 실패: {}번 게시글이 없습니다.", postId);
-					return new RuntimeException("수정할 게시글을 찾을 수 없습니다.");
+					return new BusinessException(ErrorCode.POST_NOT_FOUND, "수정할 게시글을 찾을 수 없습니다.");
 				});
 		
 		// 작성자 검증
 		if (!postEntity.getUser().getUserId().equals(userId)) {
 			log.debug("본인꺼만 수정 가능합니다");
-			throw new RuntimeException("본인이 작성한 글만 수정할 수 있습니다.");
+			throw new BusinessException(ErrorCode.ACCESS_DENIED, "본인이 작성한 글만 수정할 수 있습니다.");
 		}
 		// 2. 엔티티 데이터 업데이트
 		// 실제로는 route 객체도 새로 찾아와서 수정하는거 고려
@@ -308,7 +310,7 @@ public class PostServiceImpl implements PostService {
 			// DB에 이미 저장된 태그만 선택해서 연결합니다.
 			// 존재하지 않는 태그는 새로 만들지 않고 예외를 발생시킵니다.
 			TagEntity tag = tagRepository.findByTagName(name)
-					.orElseThrow(() -> new IllegalArgumentException("존재하지 않는 태그입니다: " + name));
+					.orElseThrow(() -> new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "존재하지 않는 태그입니다: " + name));
 			
 			// 같은 게시글에 동일한 태그가 중복으로 연결되지 않도록 한 번 더 확인합니다.
 			boolean alreadyMapped = post.getPostTags().stream()

@@ -42,7 +42,7 @@ public class BookmarkServiceImpl implements BookmarkService {
         // 게시글, 이미지, 루트 중 참조 대상이 하나도 없으면 에러 발생
         if (request.getPostId() == null && request.getPostImageId() == null && request.getRouteId() == null) {
             log.debug("북마크할 대상이 없습니다");
-            throw new IllegalArgumentException("북마크할 대상이 지정되지 않았습니다.");
+            throw new BusinessException(ErrorCode.BOOKMARK_TARGET_INVALID);
         }
         
         // 2. 중복 체크: 동일 유저가 이미 동일한 콘텐츠를 북마크했는지 확인
@@ -56,6 +56,10 @@ public class BookmarkServiceImpl implements BookmarkService {
             // 2. "삽입을 중단하여" -> 새로 save()를 호출하지 않고 여기서 함수를 끝낸다(return).
             // 3. "데이터 중복 방지" -> 결과적으로 똑같은 북마크가 2개 생기지 않는다.
             log.debug("이미 존재하는 북마크입니다. 중단합니다.");
+            throw new BusinessException(
+                    ErrorCode.DUPLICATE_RESOURCE,
+                    "이미 존재하는 북마크입니다."
+            );
         }
         
         // 3. 저장

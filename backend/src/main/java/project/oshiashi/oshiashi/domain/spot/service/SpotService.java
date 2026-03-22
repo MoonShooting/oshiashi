@@ -11,6 +11,8 @@ import project.oshiashi.oshiashi.domain.spot.dto.SpotCreateRequest;
 import project.oshiashi.oshiashi.domain.spot.dto.SpotResponse;
 import project.oshiashi.oshiashi.domain.spot.entity.SpotEntity;
 import project.oshiashi.oshiashi.domain.spot.repository.SpotRepository;
+import project.oshiashi.oshiashi.global.exception.BusinessException;
+import project.oshiashi.oshiashi.global.exception.ErrorCode;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -74,7 +76,7 @@ public class SpotService {
 	private void validateSpotLocation(BigDecimal lat, BigDecimal lng, String address) {
 		// 1. 주소와 좌표가 모두 없는지부터 체크 (명세서 트리거 조건)
 		if ((lat == null || lng == null) && (address == null || address.isBlank())) {
-			throw new IllegalArgumentException("주소와 좌표 정보가 모두 누락되었습니다.");
+			throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "주소와 좌표 정보가 모두 누락되었습니다.");
 		}
 		
 		// 2. 좌표가 있다면, 그 좌표가 유효한 범위인지 체크
@@ -83,7 +85,7 @@ public class SpotService {
 			boolean isLngValid = lng.compareTo(new BigDecimal("-180")) >= 0 && lng.compareTo(new BigDecimal("180")) <= 0;
 			
 			if (!isLatValid || !isLngValid) {
-				throw new IllegalArgumentException("위도 또는 경도가 유효 범위를 벗어났습니다.");
+				throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "위도 또는 경도가 유효 범위를 벗어났습니다.");
 			}
 		}
 	}
