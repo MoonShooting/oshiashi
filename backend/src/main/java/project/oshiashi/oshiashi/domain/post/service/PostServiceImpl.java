@@ -3,6 +3,7 @@ package project.oshiashi.oshiashi.domain.post.service;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import project.oshiashi.oshiashi.domain.post.dto.PostRequest;
@@ -110,6 +111,18 @@ public class PostServiceImpl implements PostService {
 	 */
 	@Override
 	public PostResponse createPost(PostRequest request) { // 파라미터를 PostRequest로 변경
+		
+		// 0. SecurityContext에서 직접 로그인 아이디 추출
+		// [로그인 여부 2중 확인]
+//		 - null: 인증 정보 자체가 아예 생성되지 않은 경우
+//		 - "anonymousUser": 로그인은 안 했지만 접속은 유지 중인 '익명 사용자'인 경우
+//		 위 두 경우에는 글을 쓸 수 없으므로 에러를 발생시켜 차단합니다.
+		String currentUserId = SecurityContextHolder.getContext().getAuthentication().getName();
+		
+		if (currentUserId == null || currentUserId.equals("anonymousUser")) {
+			throw new RuntimeException("인증 정보가 없습니다. 로그인이 필요합니다.");
+		}
+		
 		log.debug("[Service] 게시글 등록 요청 시작 - 제목: {}", request.getTitle());
 		
 		UserEntity user = userRepository.findById(request.getUserId())
@@ -135,6 +148,9 @@ public class PostServiceImpl implements PostService {
 				.createdAt(LocalDateTime.now())
 				.updateAt(LocalDateTime.now())
 				.build();
+		
+		//먼저 저장하여 postId 받기
+		postEntity = postRepository.save(postEntity);
 		
 		// 1-1 이미지 넣기
 		if (request.getImageUrl() != null && !request.getImageUrl().isEmpty()) {
@@ -162,14 +178,12 @@ public class PostServiceImpl implements PostService {
 			log.debug("[Service] 태그 매핑 처리 시작: {}개", request.getTagNames().size());
 			addTagsToPost(postEntity, request.getTagNames());
 		}
-		// 3. 게시글 저장
-		// PostEntity에 설정된 cascade = CascadeType.ALL에 의해 postTags 리스트 안의 PostTagEntity들도 함께 저장됩니다.
-		PostEntity savedPost = postRepository.save(postEntity);
 
-		log.debug("[Service] 게시글 및 태그 저장 완료 - 생성된 ID: {}", savedPost.getPostId());
+		log.debug("[Service] 게시글 및 태그 저장 완료 - 생성된 ID: {}", postEntity.getPostId());
 
-		// 4. 저장된 엔티티를 응답용 DTO로 변환하여 반환
-		return PostResponse.fromEntity(savedPost);
+		// 3. 저장된 엔티티를 응답용 DTO로 변환하여 반환
+		// @Transactional 덕분에 메서드가 끝날 때 변경사항(이미지, 태그)이 자동으로 DB에 반영됨
+		return PostResponse.fromEntity(postEntity);
 	}
 	
 	/**

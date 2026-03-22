@@ -4,6 +4,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import project.oshiashi.oshiashi.domain.comment.dto.CommentResponse;
 import project.oshiashi.oshiashi.domain.comment.service.CommentService;
@@ -60,10 +62,17 @@ public class PostController {
 	
 	// 3. 게시글 작성 (DB에 영구 저장)
 	@PostMapping
-	public PostResponse createPost(@Valid @RequestBody PostRequest request) {
+	public PostResponse createPost(@Valid @RequestBody PostRequest request,
+								   @AuthenticationPrincipal UserDetails userDetails) {
+		
+		// 인증된 유저,  따라서 서버(시큐리티)가 이미 인증한 유저의 ID(username)를 꺼내서
+		request.setUserId(userDetails.getUsername());
+		
+		log.debug("[Controller] 유저 {}의 게시글 작성 시도", userDetails.getUsername());
+		
 		PostResponse savedResponse = postService.createPost(request);
 		
-		log.debug(">>> [Controller] 작성 완료! 생성된 게시글 ID: {}", savedResponse.getPostId());
+		log.debug("[Controller] 작성 완료! 생성된 게시글 ID: {}", savedResponse.getPostId());
 		return savedResponse;
 		
 	}
