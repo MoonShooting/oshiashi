@@ -13,4 +13,6 @@ public interface CommentService {
     void deleteComment(Long commentId);
     
     CommentResponse createReply(Long parentId, CommentCreateRequest request);
+    
+    List<CommentResponse> getReplies(Long parentId);
 }

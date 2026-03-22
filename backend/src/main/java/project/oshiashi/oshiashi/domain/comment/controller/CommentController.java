@@ -78,4 +78,10 @@ public class CommentController {
         // 부모 댓글의 ID를 받아 서비스에서 처리
         return ResponseEntity.status(201).body(commentService.createReply(parentId, request));
     }
+    // 6. 대댓글 조회
+    @GetMapping("/comments/{parentId}/replies")
+    public ResponseEntity<List<CommentResponse>> getReplies(@PathVariable Long parentId) {
+        log.debug("대댓글 조회 - Parent: {}", parentId);
+        return ResponseEntity.ok(commentService.getReplies(parentId));
+    }
 }
