@@ -10,7 +10,9 @@ import project.oshiashi.oshiashi.domain.post.dto.PostRequest;
 import project.oshiashi.oshiashi.domain.post.dto.PostResponse;
 import project.oshiashi.oshiashi.domain.post.entity.PostEntity;
 import project.oshiashi.oshiashi.domain.post.entity.PostImageEntity;
+import project.oshiashi.oshiashi.domain.post.entity.PostLikeEntity;
 import project.oshiashi.oshiashi.domain.post.entity.PostTagEntity;
+import project.oshiashi.oshiashi.domain.post.repository.PostLikeRepository;
 import project.oshiashi.oshiashi.domain.post.repository.PostRepository;
 import project.oshiashi.oshiashi.domain.route.entity.RouteEntity;
 import project.oshiashi.oshiashi.domain.route.repository.RouteRepository;
@@ -23,6 +25,7 @@ import project.oshiashi.oshiashi.global.exception.ErrorCode;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -35,6 +38,7 @@ public class PostServiceImpl implements PostService {
 	private final UserRepository userRepository;
 	private final RouteRepository routeRepository;
 	private final TagRepository tagRepository;
+	private final PostLikeRepository postLikeRepository;
 
 	/**
 	 * 1. 게시글 전체 조회 ( 루트가 있는 게시물)
@@ -53,16 +57,19 @@ public class PostServiceImpl implements PostService {
 
 		if (Boolean.TRUE.equals(routeIdIsNull)) {
 			posts = switch (normalizedSort) {
-				case "view" -> postRepository.findAllByRouteIsNullOrderByViewCountDescCreatedAtDesc();
-				case "like" -> postRepository.findAllByRouteIsNullOrderByLikeCountDescCreatedAtDesc();
-				case "latest", "createdat" -> postRepository.findAllByRouteIsNullOrderByCreatedAtDesc();
+				// 프론트에서 설정한 값에 맞춰서 case 변수명 맞추었습니다
+				// 프론트에서는 <option value="latest">최신순</option> <option value="popular">인기순</option>
+				// <option value="views">조회순</option> 으로 설정 되어있습니다
+				case "views" -> postRepository.findAllByRouteIsNullOrderByViewCountDescCreatedAtDesc();
+				case "popular"  -> postRepository.findAllByRouteIsNullOrderByLikeCountDescCreatedAtDesc();
+				case "latest"-> postRepository.findAllByRouteIsNullOrderByCreatedAtDesc();
 				default -> throw new IllegalArgumentException("지원하지 않는 정렬 방식입니다: " + sort);
 			};
 		} else {
 			posts = switch (normalizedSort) {
-				case "view" -> postRepository.findAllByRouteIsNotNullOrderByViewCountDescCreatedAtDesc();
-				case "like" -> postRepository.findAllByRouteIsNotNullOrderByLikeCountDescCreatedAtDesc();
-				case "latest", "createdat" -> postRepository.findAllByRouteIsNotNullOrderByCreatedAtDesc();
+				case "views" -> postRepository.findAllByRouteIsNotNullOrderByViewCountDescCreatedAtDesc();
+				case "popular"  -> postRepository.findAllByRouteIsNotNullOrderByLikeCountDescCreatedAtDesc();
+				case "latest"-> postRepository.findAllByRouteIsNotNullOrderByCreatedAtDesc();
 				default -> throw new IllegalArgumentException("지원하지 않는 정렬 방식입니다: " + sort);
 			};
 		}
@@ -88,12 +95,16 @@ public class PostServiceImpl implements PostService {
 	 * - 예외: ID가 존재하지 않을 경우 RuntimeException 발생
 	 */
 	@Override
-	@Transactional(readOnly = true)
+	@Transactional
 	public PostResponse getPostById(Long postId) {
 		log.debug("[Service] 게시글 단건 조회 시작 - ID: {}", postId);
 
 		return postRepository.findById(postId)
 				.map(entity -> {
+					
+					entity.incrementViewCount();
+					log.debug("[Service] 조회수 증가!, {}", entity.getViewCount() );
+					
 					log.debug("[Service] 게시글 조회 성공: {}", entity.getTitle());
 					return PostResponse.fromEntity(entity);
 				})
@@ -282,17 +293,31 @@ public class PostServiceImpl implements PostService {
 	 * - 예외: 게시글이 없을 경우 EntityNotFoundException 발생
 	 */
 	@Override
-	public PostResponse likePost(Long postId) {
+	public PostResponse likePost(Long postId, String userId) {
 		log.debug("[Service] 좋아요 요청 - ID: {}", postId);
 
-		PostEntity postEntity = postRepository.findById(postId)
+		PostEntity post = postRepository.findById(postId)
 				.orElseThrow(() -> new EntityNotFoundException("게시글 없음: " + postId));
-
-		int oldLikes = (postEntity.getLikeCount() == null) ? 0 : postEntity.getLikeCount();
-		postEntity.setLikeCount(oldLikes + 1);
-
-		log.debug("[Service] 좋아요 반영 완료 ({} -> {})", oldLikes, postEntity.getLikeCount());
-		return PostResponse.fromEntity(postEntity);
+		UserEntity user = userRepository.findById(userId)
+				.orElseThrow(() -> new EntityNotFoundException("유저 없음: " + userId));
+		
+		// 1. 이미 좋아요를 눌렀는지 확인
+		Optional<PostLikeEntity> postLike = postLikeRepository.findByPostAndUser(post, user);
+		
+		if (postLike.isPresent()) {
+			// 2. 이미 있다면? 좋아요 취소 (삭제)
+			postLikeRepository.delete(postLike.get());
+			post.setLikeCount(Math.max(0, post.getLikeCount() - 1));
+			log.debug("[Service] 좋아요 취소 완료");
+		} else {
+			// 3. 없다면? 좋아요 등록 (저장)
+			PostLikeEntity newLike = PostLikeEntity.create(post, user);
+			postLikeRepository.save(newLike);
+			post.setLikeCount((post.getLikeCount() == null ? 0 : post.getLikeCount()) + 1);
+			log.debug("[Service] 좋아요 등록 완료");
+		}
+		
+		return PostResponse.fromEntity(post);
 	}
 
 	/**
