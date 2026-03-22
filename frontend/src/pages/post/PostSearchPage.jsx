@@ -174,7 +174,7 @@ const PostSearchPage = () => {
                   title={post.title}
                   excerpt={post.content}
                   author={post.userId}
-                  tags={post.tags}
+                  tagNames={post.tagNames}
                   viewCount={post.viewCount}
                   likeCount={post.likeCount}
                   commentCount={post.commentCount}

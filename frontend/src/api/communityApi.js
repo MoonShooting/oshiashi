@@ -7,6 +7,7 @@ import {
   formatDateLabel,
   formatRelativeTimeLabel,
   formatTimeLabel,
+  normalizeTagNames,
   normalizeBookmark,
 } from '@/api/postApiShared';
 
@@ -51,18 +52,6 @@ const normalizeComment = (comment) => {
   };
 };
 
-const resolvePostTagNames = (post) => {
-  if (!post) return [];
-
-  const source = post.tagNames ?? post.tag_names ?? post.tags;
-  if (!Array.isArray(source)) return [];
-
-  return source
-    .filter(Boolean)
-    .map((tag) => String(tag).replace(/^#/, '').trim())
-    .filter(Boolean);
-};
-
 // 게시글 + 댓글 응답을 커뮤니티 상세 화면용 모델로 합칩니다.
 const toCommunityDetail = (post, comments = []) => {
   if (!post) return null;
@@ -87,7 +76,7 @@ const toCommunityDetail = (post, comments = []) => {
     createdAt,
     publishedDateLabel: formatDateLabel(createdAt),
     publishedTimeLabel: formatTimeLabel(createdAt),
-    tags: resolvePostTagNames(post),
+    tagNames: normalizeTagNames(post.tagNames),
     stats: {
       views: Number(post.viewCount ?? 0),
       likes: Number(post.likeCount ?? 0),
@@ -107,7 +96,7 @@ const toSummary = (detail) => ({
   viewCount: detail.stats?.views ?? 0,
   likeCount: detail.stats?.likes ?? 0,
   commentCount: detail.commentCount ?? detail.comments?.length ?? 0,
-  tags: detail.tags ?? [],
+  tagNames: detail.tagNames ?? [],
   imageUrl: '',
   publishedAt: detail.publishedDateLabel ?? '',
   boardType: 'FREE',

@@ -14,7 +14,7 @@ const recommendedPosts = mockPostSummaries.map((post) => ({
   id: String(post.id),
   category: categoryByPostId[String(post.id)] ?? '정보',
   title: post.title,
-  tags: Array.isArray(post.tags) ? post.tags.slice(0, 2) : [],
+  tagNames: Array.isArray(post.tagNames) ? post.tagNames.slice(0, 2) : [],
   author: post.userId,
   publishedAt: post.publishedAt,
   views: post.viewCount ?? 0,
@@ -64,7 +64,7 @@ const RecommendedRoutesSection = () => {
             </div>
             <h3>{post.title}</h3>
             <div className={styles.routeTags}>
-              {post.tags.map((tag) => (
+              {post.tagNames.map((tag) => (
                 <span key={tag}>#{tag}</span>
               ))}
             </div>

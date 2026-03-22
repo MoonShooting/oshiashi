@@ -44,7 +44,7 @@ export const mockPostDetails = [
     createdAt: '2026-02-06T15:30:00+09:00',
     publishedDateLabel: '2026.02.06',
     publishedTimeLabel: '15:30',
-    tags: ['도쿄', '너의이름은', '성지순례', '황혼'],
+    tagNames: ['도쿄', '너의이름은', '성지순례', '황혼'],
     routeTitle: '도쿄 황혼 교차로 루트',
     locationSummary: '신주쿠, 요츠야, 스가 신사',
     stats: {
@@ -168,7 +168,7 @@ export const mockPostDetails = [
     createdAt: '2026-01-28T10:12:00+09:00',
     publishedDateLabel: '2026.01.28',
     publishedTimeLabel: '10:12',
-    tags: ['카마쿠라', '슬램덩크', '해안'],
+    tagNames: ['카마쿠라', '슬램덩크', '해안'],
     routeTitle: '카마쿠라 슬램덩크 루트',
     locationSummary: '건널목, 코시고에, 해안 도로',
     stats: {
@@ -234,7 +234,7 @@ export const mockPostDetails = [
     createdAt: '2026-01-19T13:05:00+09:00',
     publishedDateLabel: '2026.01.19',
     publishedTimeLabel: '13:05',
-    tags: ['교토', '센과치히로', '분위기'],
+    tagNames: ['교토', '센과치히로', '분위기'],
     routeTitle: '교토 정적 산책 루트',
     locationSummary: '기온, 야사카, 마루야마',
     stats: {
@@ -304,7 +304,7 @@ const communityPostDetails = [
     createdAt: '2026-03-17T10:24:00+09:00',
     publishedDateLabel: '2026.03.17',
     publishedTimeLabel: '10:24',
-    tags: ['도쿄', '초행', '후기'],
+    tagNames: ['도쿄', '초행', '후기'],
     stats: {
       views: 482,
       likes: 29,
@@ -335,7 +335,7 @@ const communityPostDetails = [
     createdAt: '2026-03-16T08:10:00+09:00',
     publishedDateLabel: '2026.03.16',
     publishedTimeLabel: '08:10',
-    tags: ['카마쿠라', '촬영팁'],
+    tagNames: ['카마쿠라', '촬영팁'],
     stats: {
       views: 620,
       likes: 41,
@@ -366,7 +366,7 @@ const communityPostDetails = [
     createdAt: '2026-03-15T19:48:00+09:00',
     publishedDateLabel: '2026.03.15',
     publishedTimeLabel: '19:48',
-    tags: ['교토', '우천', '분위기'],
+    tagNames: ['교토', '우천', '분위기'],
     stats: {
       views: 358,
       likes: 26,
@@ -389,7 +389,7 @@ const communityPostDetails = [
     createdAt: '2026-03-14T14:05:00+09:00',
     publishedDateLabel: '2026.03.14',
     publishedTimeLabel: '14:05',
-    tags: ['준비물', '초행', '팁'],
+    tagNames: ['준비물', '초행', '팁'],
     stats: {
       views: 779,
       likes: 63,
@@ -429,7 +429,7 @@ const createSummary = (post) => ({
   viewCount: post.stats?.views ?? 0,
   likeCount: post.stats?.likes ?? 0,
   commentCount: post.comments?.length ?? 0,
-  tags: post.tags ?? [],
+  tagNames: post.tagNames ?? [],
   imageUrl: post.entries?.[0]?.userImageUrl ?? post.entries?.[0]?.referenceImageUrl ?? '',
   publishedAt: post.publishedDateLabel ?? '',
   boardType: post.boardType ?? BOARD_TYPES.FREE,
@@ -461,7 +461,7 @@ const filterBySearch = (summaries, search = '') => {
   return summaries.filter((post) => {
     const inTitle = post.title.toLowerCase().includes(query);
     const inContent = post.content.toLowerCase().includes(query);
-    const inTags = post.tags.some((tag) => String(tag).toLowerCase().includes(query));
+    const inTags = post.tagNames.some((tag) => String(tag).toLowerCase().includes(query));
     return inTitle || inContent || inTags;
   });
 };
@@ -478,7 +478,7 @@ export const getRoutePosts = ({ tags = [], sortBy = 'views', search = '' } = {})
 
   const withTagFilter =
     normalizedTags.length > 0
-      ? routeSummaries.filter((post) => normalizedTags.every((tag) => post.tags.includes(tag)))
+      ? routeSummaries.filter((post) => normalizedTags.every((tag) => post.tagNames.includes(tag)))
       : routeSummaries;
 
   return sortSummaries(filterBySearch(withTagFilter, search), sortBy);
@@ -559,7 +559,7 @@ export const createCommunityMockPost = ({ title, content, authorName = '나', au
     createdAt: now.toISOString(),
     publishedDateLabel: formatDateLabel(now),
     publishedTimeLabel: formatTimeLabel(now),
-    tags: [],
+    tagNames: [],
     stats: {
       views: 0,
       likes: 0,

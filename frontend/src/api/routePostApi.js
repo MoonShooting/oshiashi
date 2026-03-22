@@ -99,16 +99,8 @@ const normalizeTagNames = (value) =>
     ),
   );
 
-const resolvePostTagNames = (postResponse) => {
-  const payload = unwrapObjectPayload(postResponse);
-  if (!payload) return [];
-
-  return normalizeTagNames(
-    payload.tagNames ??
-      payload.tag_names ??
-      payload.tags,
-  );
-};
+const resolvePostTagNames = (postResponse) =>
+  normalizeTagNames(unwrapObjectPayload(postResponse)?.tagNames);
 
 // 백엔드 응답 래퍼(data/result) 유무와 무관하게 실제 payload 객체를 꺼냅니다.
 const unwrapObjectPayload = (response) => {
@@ -170,7 +162,7 @@ const normalizeEntry = (entry, index, fallback = {}) => {
     sceneNote: entry?.sceneNote ?? entry?.experience ?? entry?.note ?? fallback.sceneNote ?? '',
     soundtrack: entry?.soundtrack ?? fallback.soundtrack ?? '기록된 OST 없음',
     visitTimeLabel: entry?.visitTimeLabel ?? fallback.visitTimeLabel ?? '-',
-    moodTags: normalizeTagList(entry?.moodTags ?? entry?.tags ?? fallback.moodTags),
+    moodTags: normalizeTagList(entry?.moodTags ?? entry?.tagNames ?? fallback.moodTags),
   };
 };
 
@@ -200,7 +192,7 @@ const buildEntriesFromPost = (postResponse) => {
           experience: image.experience,
           latitude: image.exifLatitude,
           longitude: image.exifLongitude,
-          tags: postTagNames,
+          tagNames: postTagNames,
           title: `장소 ${index + 1}`,
           artworkTitle: postResponse?.artworkTitle,
           address: postResponse?.address,
@@ -217,7 +209,7 @@ const buildEntriesFromPost = (postResponse) => {
         id: 'entry-0',
         title: postResponse?.title,
         experience: postResponse?.content,
-        tags: postTagNames,
+        tagNames: postTagNames,
       },
       0,
       {
@@ -268,7 +260,7 @@ const toRoutePostDetail = (postResponse, comments = []) => {
     createdAt,
     publishedDateLabel: formatDateLabel(createdAt),
     publishedTimeLabel: formatTimeLabel(createdAt),
-    tags: postTagNames,
+    tagNames: postTagNames,
     routeTitle: payload.routeTitle ?? payload.route?.title ?? `루트 ${routeId ?? '-'}`,
     locationSummary: locationSummary || '위치 정보 없음',
     guideText:
@@ -295,7 +287,7 @@ const toSummary = (detail) => ({
   viewCount: detail.stats?.views ?? 0,
   likeCount: detail.stats?.likes ?? 0,
   commentCount: detail.commentCount ?? detail.comments?.length ?? 0,
-  tags: detail.tags ?? [],
+  tagNames: detail.tagNames ?? [],
   imageUrl: detail.entries?.[0]?.userImageUrl ?? detail.entries?.[0]?.referenceImageUrl ?? '',
   publishedAt: detail.publishedDateLabel ?? '',
   boardType: detail.boardType ?? 'FREE',
@@ -488,7 +480,7 @@ export const fetchRoutePosts = async ({ tags = [], search = '', sortBy = 'latest
     .map(toSummary)
     .filter((item) => {
       if (normalizedTags.length === 0) return true;
-      const lowerTags = (item.tags ?? []).map((tag) => String(tag).toLowerCase());
+      const lowerTags = (item.tagNames ?? []).map((tag) => String(tag).toLowerCase());
       return normalizedTags.every((tag) => lowerTags.includes(tag));
     });
 
