@@ -1,21 +1,22 @@
+/**
+ * @file MapCore.jsx
+ * @description 공통 지도 베이스 컴포넌트
+ * - pins: CustomPin(미디어 타입별 색상 마커) 렌더링
+ * - innerContent: <Map> 내부에 주입할 추가 요소 (OrderPin, DirectionsRenderer 등)
+ * - children: <Map> 바깥 오버레이 (searchBar 등)
+ */
 import React, { useEffect, useRef } from 'react';
 import { Map, useMap } from '@vis.gl/react-google-maps';
 import CustomPin from './CustomPin';
 import { DEFAULT_CENTER, DEFAULT_ZOOM, MAP_ID } from '@/constants/mapConstants';
 import styles from '@/styles/MapLayout.module.css';
 
-/**
- * <Map> 내부에만 렌더링되는 pan 컨트롤러 center prop을 <Map>에 직접 넘기면 controlled prop이 되어
- * 값이 바뀔 때마다 강제 재중심화 → 드래그 도중 끊김 현상 발생.
- * 이 컴포넌트는 center가 실제로 바뀔 때만 panTo()를 명시적으로 호출하여 사용자 드래그와 충돌하지 않습니다.
- */
 function MapPanController({ center }) {
   const map = useMap();
   const prevCenter = useRef(null);
 
   useEffect(() => {
     if (!map || !center) return;
-    // 이전 값과 동일하면 panTo 호출 안 함 (불필요한 이동 방지)
     const prev = prevCenter.current;
     if (prev && prev.lat === center.lat && prev.lng === center.lng) return;
     prevCenter.current = center;
@@ -26,11 +27,11 @@ function MapPanController({ center }) {
 }
 
 /**
- * @param {{ lat, lng }} center      - 지도 중심 이동 요청 좌표 (핀 클릭·검색 시) controlled prop이 아닌 panTo()로 처리되므로 사용자 드래그와 충돌하지 않습니다.
- * @param {boolean} disableMapClick  - true 시 지도 배경 클릭 이벤트 차단 (핀 클릭만 허용)
- * @param {ReactNode} searchBar      - 지도 위 absolute 오버레이 검색창 <Map> 바깥에 렌더링하여 mousedown 차단 방지.
+ * @param {boolean} disableMapClick - true 시 배경 클릭 이벤트 차단
+ * @param {ReactNode} innerContent  - <Map> 내부에 렌더링할 요소 (OrderPin, SpotDirections 등)
+ * @param {ReactNode} children      - <Map> 바깥 오버레이
  */
-export default function MapCore({ pins, selectedPinId, center, children, onPinClick, disableMapClick = false, searchBar = null }) {
+export default function MapCore({ pins, selectedPinId, center, children, innerContent, onPinClick, disableMapClick = false, searchBar = null }) {
   return (
     <div className={styles.mapCoreWrapper}>
       <Map
@@ -39,8 +40,18 @@ export default function MapCore({ pins, selectedPinId, center, children, onPinCl
         mapId={MAP_ID}
         style={{ width: '100%', height: '100%' }}
         disableDefaultUI={true}
-        clickableIcons={false}
-        onClick={disableMapClick ? undefined : () => onPinClick?.(null)}>
+        clickableIcons={!disableMapClick} // 랜드마크 클릭 제어: true면 클릭 막기
+        options={{
+          draggableCursor: 'default',
+          draggingCursor: 'grabbing',
+        }}
+        onClick={(e) => {
+          // 배경 클릭 제어: disableMapClick이 true면 아무것도 안 함
+          if (disableMapClick) return;
+          const lat = e.detail.latLng.lat;
+          const lng = e.detail.latLng.lng;
+          console.log('map click', lat, lng);
+        }}>
         <MapPanController center={center} />
         {pins?.map((pin) => (
           <CustomPin
@@ -51,11 +62,11 @@ export default function MapCore({ pins, selectedPinId, center, children, onPinCl
             onCloseOverlay={() => onPinClick?.(null)}
           />
         ))}
+        {/* <Map> 내부 주입 슬롯: OrderPin, SpotDirections 등 Map 컨텍스트가 필요한 요소 */}
+        {innerContent}
       </Map>
-      {/* searchBar는 <Map> 바깥 wrapper div에 absolute 오버레이로 렌더링
-          → <Map> 내부에 두면 라이브러리 오버레이가 mousedown을 가로막아 드래그 pan 불가 */}
+      {/* searchBar는 <Map> 바깥에 렌더링. 내부에 두면 mousedown 차단으로 드래그 pan 불가 */}
       {searchBar}
-
       {children}
     </div>
   );

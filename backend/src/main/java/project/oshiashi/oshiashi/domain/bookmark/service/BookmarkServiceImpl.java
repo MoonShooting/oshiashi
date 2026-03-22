@@ -35,7 +35,7 @@ public class BookmarkServiceImpl implements BookmarkService {
     private final PostRepository postRepository;
     private final PostImageRepository postImageRepository;
     private final RouteRepository routeRepository;
-    
+
     @Transactional
     public BookmarkResponse createBookmark(String userId, BookmarkCreateRequest request) {
         // 1. 유효성 체크: 최소 하나 이상의 대상(Post, Image, Route)이 있어야 함
@@ -44,12 +44,12 @@ public class BookmarkServiceImpl implements BookmarkService {
             log.debug("북마크할 대상이 없습니다");
             throw new BusinessException(ErrorCode.BOOKMARK_TARGET_INVALID);
         }
-        
+
         // 2. 중복 체크: 동일 유저가 이미 동일한 콘텐츠를 북마크했는지 확인
         boolean isDuplicate = bookmarkRepository.existsCustom(
                 request.getUserId(), request.getPostId(), request.getPostImageId(), request.getRouteId()
         );
-        
+
         if (isDuplicate) {
             // 명세서에 따라 기존 데이터 유지 및 삽입 중단
             // 1. "기존 데이터를 유지하고" -> 이미 DB에 있는 데이터는 건드리지 않는다.
@@ -61,7 +61,7 @@ public class BookmarkServiceImpl implements BookmarkService {
                     "이미 존재하는 북마크입니다."
             );
         }
-        
+
         // 3. 저장
         BookmarkEntity bookmark = BookmarkEntity.builder()
                 .bookmarkName(request.getBookmarkName())
@@ -70,16 +70,58 @@ public class BookmarkServiceImpl implements BookmarkService {
                 .postImage(postImageRepository.getReferenceById(request.getPostImageId()))
                 .route(routeRepository.getReferenceById(request.getRouteId()))
                 .build();
-        
+
         BookmarkEntity savedBookmark = bookmarkRepository.save(bookmark);
-        
+
         // 4. 리턴: 저장된 엔티티를 Response DTO로 변환하여 반환
         return BookmarkResponse.fromEntity(savedBookmark);
     }
-    
-    // TODO : 루트가 삭제될때도 북마크가 같이 삭제될것인가 에 대한 자세한 논의가 필요
-    public void deleteBookmark(String userId, Long bookmarkId) {
-        bookmarkRepository.deleteById(bookmarkId);
+
+    /**
+     * [북마크 이름 수정]
+     * - 사용자가 설정한 커스텀 이름으로 북마크명을 변경합니다.
+     */
+    @Override
+    @Transactional
+    public void updateBookmarkName(String userId, Long bookmarkId, String newName) {
+        BookmarkEntity bookmark = bookmarkRepository.findById(bookmarkId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 북마크를 찾을 수 없습니다."));
+
+        // 본인 확인: 남의 북마크 이름을 바꿀 수 없도록 방어
+        if (!bookmark.getUser().getUserId().equals(userId)) {
+            throw new IllegalStateException("본인의 북마크 이름만 수정할 수 있습니다.");
+        }
+
+        bookmark.changeCustomName(newName);
+        log.info("[Bookmark] 이름 수정 완료 - ID: {}, NewName: {}", bookmarkId, newName);
     }
-    
+
+
+    // TODO : 루트가 삭제될때도 북마크가 같이 삭제될것인가 에 대한 자세한 논의가 필요
+	@Override
+	@Transactional
+	public void deleteBookmark(String userId, Long bookmarkId) {
+		BookmarkEntity bookmark = bookmarkRepository.findById(bookmarkId)
+				.orElseThrow(() -> new IllegalArgumentException("삭제할 북마크를 찾을 수 없습니다."));
+
+		// 본인 확인: 남의 북마크를 삭제할 수 없도록 방어
+		if (!bookmark.getUser().getUserId().equals(userId)) {
+			throw new IllegalStateException("본인의 북마크만 삭제할 수 있습니다.");
+		}
+
+		bookmarkRepository.delete(bookmark);
+		log.info("[Bookmark] 삭제 완료 - ID: {}, User: {}", bookmarkId, userId);
+	}
+
+	/**
+	 * [북마크 전체 조회]
+	 */
+	@Override
+	@Transactional(readOnly = true)
+	public List<BookmarkResponse> getAllMyBookmarks(String userId) {
+		UserEntity user = userRepository.getReferenceById(userId);
+		return bookmarkRepository.findAllByUser(user).stream()
+				.map(BookmarkResponse::fromEntity)
+				.toList();
+	}
 }

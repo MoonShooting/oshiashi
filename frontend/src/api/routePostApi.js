@@ -99,6 +99,17 @@ const normalizeTagNames = (value) =>
     ),
   );
 
+const resolvePostTagNames = (postResponse) => {
+  const payload = unwrapObjectPayload(postResponse);
+  if (!payload) return [];
+
+  return normalizeTagNames(
+    payload.tagNames ??
+      payload.tag_names ??
+      payload.tags,
+  );
+};
+
 // 백엔드 응답 래퍼(data/result) 유무와 무관하게 실제 payload 객체를 꺼냅니다.
 const unwrapObjectPayload = (response) => {
   if (!response || typeof response !== 'object') return response;
@@ -169,6 +180,7 @@ const normalizeEntry = (entry, index, fallback = {}) => {
 const buildEntriesFromPost = (postResponse) => {
   const routeId = resolveRouteId(postResponse);
   const images = extractArrayPayload(postResponse?.images);
+  const postTagNames = resolvePostTagNames(postResponse);
 
   if (Array.isArray(postResponse?.entries) && postResponse.entries.length > 0) {
     return postResponse.entries.map((entry, index) =>
@@ -188,7 +200,7 @@ const buildEntriesFromPost = (postResponse) => {
           experience: image.experience,
           latitude: image.exifLatitude,
           longitude: image.exifLongitude,
-          tags: postResponse?.tags,
+          tags: postTagNames,
           title: `장소 ${index + 1}`,
           artworkTitle: postResponse?.artworkTitle,
           address: postResponse?.address,
@@ -205,7 +217,7 @@ const buildEntriesFromPost = (postResponse) => {
         id: 'entry-0',
         title: postResponse?.title,
         experience: postResponse?.content,
-        tags: postResponse?.tags,
+        tags: postTagNames,
       },
       0,
       {
@@ -231,6 +243,7 @@ const toRoutePostDetail = (postResponse, comments = []) => {
 
   const normalizedComments = comments.map(normalizeComment);
   const entries = buildEntriesFromPost(payload);
+  const postTagNames = resolvePostTagNames(payload);
 
   const locationSummary =
     payload.locationSummary ??
@@ -255,7 +268,7 @@ const toRoutePostDetail = (postResponse, comments = []) => {
     createdAt,
     publishedDateLabel: formatDateLabel(createdAt),
     publishedTimeLabel: formatTimeLabel(createdAt),
-    tags: normalizeTagList(payload.tags),
+    tags: postTagNames,
     routeTitle: payload.routeTitle ?? payload.route?.title ?? `루트 ${routeId ?? '-'}`,
     locationSummary: locationSummary || '위치 정보 없음',
     guideText:

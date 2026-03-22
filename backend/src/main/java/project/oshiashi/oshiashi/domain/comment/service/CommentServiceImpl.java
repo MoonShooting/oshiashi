@@ -31,16 +31,12 @@ public class CommentServiceImpl implements CommentService {
 
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
-
-    @Override
+    
     public CommentResponse createComment(Long postId, CommentCreateRequest request) {
         
-        log.debug("======= Comment 등록 테스트 =======");
         log.debug("입력된 내용: {}", request.getContent());
-        log.debug("================================");
         
         // 현재 로그인한 사용자 정보 가져오기
-        // TODO : 누군지 확인이 되면(보안통과) UserEntity 객체로 변환
         UserEntity userEntity = getCurrentUserEntity();
 
         // 게시글 존재 여부 확인
@@ -60,8 +56,7 @@ public class CommentServiceImpl implements CommentService {
         CommentEntity saved = commentRepository.save(comment);
         return CommentResponse.fromEntity(saved);
     }
-
-    @Override
+    
     @Transactional(readOnly = true)
     public List<CommentResponse> getCommentsByPost(Long postId) {
         
@@ -84,8 +79,7 @@ public class CommentServiceImpl implements CommentService {
                 .map(CommentResponse::fromEntity)
                 .toList();
     }
-
-    @Override
+    
     public CommentResponse updateComment(Long commentId, CommentUpdateRequest request) {
         validateContent(request.getContent());
         UserEntity userEntity = getCurrentUserEntity();
@@ -111,8 +105,7 @@ public class CommentServiceImpl implements CommentService {
         comment.updateContent(request.getContent());
         return CommentResponse.fromEntity(comment);
     }
-
-    @Override
+    
     public void deleteComment(Long commentId) {
         UserEntity userEntity = getCurrentUserEntity();
         
@@ -136,7 +129,6 @@ public class CommentServiceImpl implements CommentService {
         commentRepository.delete(comment);
     }
     
-    @Override
     public CommentResponse createReply(Long parentId, CommentCreateRequest request) {
         validateContent(request.getContent());
         UserEntity userEntity = getCurrentUserEntity();
@@ -162,9 +154,19 @@ public class CommentServiceImpl implements CommentService {
         return CommentResponse.fromEntity(saved);
     }
     
-    //TODO : 서큐리티 보안단 post 랑 연동해서 보안 통과한 사람만 게시물 작성 가능한 부분
+    public List<CommentResponse> getReplies(Long parentId) {
+        log.debug("대댓글 목록 조회 - 부모 댓글 ID: {}", parentId);
+        
+        return commentRepository.findByParent_CommentIdOrderByCreatedAtAsc(parentId)
+                .stream()
+                .map(CommentResponse::fromEntity)
+                .toList();
+    }
+    
+    
+    // 서큐리티 보안단 post 랑 연동해서 보안 통과한 사람만 게시물 작성 가능한 부분
     private UserEntity getCurrentUserEntity() {
-        // TODO : 실제 사용자 정보 확인
+        // 실제 사용자 정보 확인
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         log.debug("현재 로그인 상태 검사 : {}", principal);
         // 인증 안 된 상태면 principal이 String("anonymousUser")일 수 있음
@@ -177,7 +179,7 @@ public class CommentServiceImpl implements CommentService {
         log.debug("통과 여부 체크 : {}", principal);
         return authenticatedUser.user();
     }
-    // TODO: 보안 설정(SecurityConfig)이 완료되기 전까지는
+    // 보안 설정(SecurityConfig)이 완료되기 전까지는
     //  SecurityContextHolder에 아무 값도 들어있지 않아 NullPointerException(비었음)이 발생할 수 있음.
     //  또는 로그인하지 않은 상태면 principal이  ClassCastException 에러 (타입이 다른 : UserEntity 타입이 아님)발생.
 

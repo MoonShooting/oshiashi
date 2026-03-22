@@ -62,10 +62,7 @@ public class SpotService {
 				request.getAddress(),
 				request.getSceneImgUrl()
 		);
-		
-		// 3. 트리거 2: 해당 장소를 포함 및
-		// TODO : 모든 Route의 최종 업데이트 시간 갱신 route에 업데이트 시간 컬럼 논의 필요
-		//routeRepository.updateRouteTimestampBySpotId(spotId);
+
 		
 		return SpotResponse.fromEntity(spot);
 	}
@@ -73,16 +70,16 @@ public class SpotService {
 	/**
 	 * 명세서 트리거 1번: 위경도 유효범위 및 누락 체크 로직
 	 */
-	private void validateSpotLocation(BigDecimal lat, BigDecimal lng, String address) {
+	private void validateSpotLocation(BigDecimal latitude, BigDecimal longitude, String address) {
 		// 1. 주소와 좌표가 모두 없는지부터 체크 (명세서 트리거 조건)
-		if ((lat == null || lng == null) && (address == null || address.isBlank())) {
-			throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "주소와 좌표 정보가 모두 누락되었습니다.");
+		if ((latitude == null || longitude == null) && (address == null || address.isBlank())) {
+			throw new IllegalArgumentException("주소와 좌표 정보가 모두 누락되었습니다.");
 		}
 		
 		// 2. 좌표가 있다면, 그 좌표가 유효한 범위인지 체크
-		if (lat != null && lng != null) {
-			boolean isLatValid = lat.compareTo(new BigDecimal("-90")) >= 0 && lat.compareTo(new BigDecimal("90")) <= 0;
-			boolean isLngValid = lng.compareTo(new BigDecimal("-180")) >= 0 && lng.compareTo(new BigDecimal("180")) <= 0;
+		if (latitude != null && longitude != null) {
+			boolean isLatValid = latitude.compareTo(new BigDecimal("-90")) >= 0 && latitude.compareTo(new BigDecimal("90")) <= 0;
+			boolean isLngValid = longitude.compareTo(new BigDecimal("-180")) >= 0 && longitude.compareTo(new BigDecimal("180")) <= 0;
 			
 			if (!isLatValid || !isLngValid) {
 				throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "위도 또는 경도가 유효 범위를 벗어났습니다.");

@@ -1,0 +1,252 @@
+/* 1. 패널 기본 및 헤더 */
+.detailPanel {
+  position: fixed;
+  top: 80px;
+  right: 0;
+  width: 340px; /* 360px -> 340px 축소 */
+  height: calc(100vh - 80px);
+  background: rgba(23, 23, 42, 0.95);
+  backdrop-filter: blur(12px);
+  border-left: 1px solid #2d2d44;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.header {
+  padding: 16px 16px 10px; /* 패딩 축소 */
+}
+.headerTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.closeButton {
+  background: transparent;
+  border: none;
+  color: #a0a0b8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.title {
+  font-size: 18px; /* 22px -> 18px */
+  font-weight: 800;
+  margin: 0 0 4px;
+  color: #fff;
+}
+.address,
+.desc {
+  font-size: 12px; /* 13px -> 12px */
+  margin-bottom: 4px;
+}
+.address {
+  color: #8f90a6;
+}
+.desc {
+  line-height: 1.4;
+  color: #a0a0b8;
+  margin: 0;
+}
+
+/* 2. 본문 영역 (스크롤 금지) */
+.scrollContent {
+  flex: 1;
+  padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px; /* 16px -> 12px */
+  overflow: hidden;
+}
+
+.section {
+  margin-bottom: 0;
+}
+.sectionTitle {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 13px; /* 14px -> 13px */
+  font-weight: 600;
+  color: #fff;
+}
+.dim {
+  color: #8f90a6;
+}
+
+/* 3. 작품 썸네일 (압축형) */
+.imageCard {
+  width: 100%;
+  height: 90px; /* 110px -> 90px */
+  border-radius: 10px;
+  position: relative;
+  background-color: #2d2d44;
+}
+.imageOverlay {
+  position: absolute;
+  bottom: 8px;
+  left: 10px;
+  color: #fff;
+  font-size: 12px; /* 13px -> 12px */
+}
+.subInfo {
+  display: block;
+  font-size: 10px;
+  color: #c4b5fd;
+  margin-top: 2px;
+}
+
+/* 4. 공개 게시글 리스트 */
+.postList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px; /* 8px -> 6px */
+}
+
+.postItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px; /* 12px -> 10px */
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  transition: background 0.2s ease;
+  cursor: pointer;
+}
+
+.postItem:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.infoBadge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(107, 70, 193, 0.2);
+  color: #c4b5fd;
+  white-space: nowrap;
+}
+
+.postText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+.postText strong {
+  font-size: 13px; /* 14px -> 13px */
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.postText span {
+  font-size: 11px; /* 12px -> 11px */
+  color: #8f90a6;
+}
+.emptyText {
+  color: #8f90a6;
+  font-size: 12px;
+  text-align: center;
+  padding: 16px 0;
+}
+
+/* 5. 하단 버튼 영역 (알약 모양) */
+.footer {
+  padding: 12px 16px 16px;
+  display: grid;
+  gap: 8px;
+}
+
+.primaryBtn,
+.secondaryBtn {
+  height: 40px; /* 48px -> 40px */
+  border-radius: 999px;
+  font-size: 13px; /* 15px -> 13px */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    filter 0.2s ease;
+}
+
+.primaryBtn:hover,
+.secondaryBtn:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+}
+
+.primaryBtn {
+  background-color: rgba(124, 58, 237, 0.2);
+  border: 1px solid rgba(168, 85, 247, 0.4);
+  color: #dcdce5;
+}
+
+.secondaryBtn {
+  background: rgba(22, 22, 42, 0.8);
+  border: 1px solid #2d2d44;
+  color: #c7c7cf;
+}
+
+/* 6. 미디어 타입별 동적 색상 */
+.suggestionBadge {
+  font-size: 11px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.badge_ANIME {
+  background-color: rgba(124, 58, 237, 0.2);
+  color: #a855f7;
+  border: 1px solid rgba(168, 85, 247, 0.4);
+}
+.badge_DRAMA {
+  background-color: rgba(190, 24, 93, 0.2);
+  color: #ec4899;
+  border: 1px solid rgba(236, 72, 153, 0.4);
+}
+.badge_MOVIE {
+  background-color: rgba(180, 83, 9, 0.2);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.footerBtn_ANIME {
+  background: linear-gradient(135deg, #7c3aed, #ec4899);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(124, 58, 237, 0.3);
+}
+.footerBtn_DRAMA {
+  background: linear-gradient(135deg, #be185d, #ec4899);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(190, 24, 93, 0.3);
+}
+.footerBtn_MOVIE {
+  background: linear-gradient(135deg, #b45309, #f59e0b);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(180, 83, 9, 0.3);
+}
