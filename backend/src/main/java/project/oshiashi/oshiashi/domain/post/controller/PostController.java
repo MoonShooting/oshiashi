@@ -31,23 +31,20 @@ public class PostController {
 	// 1. 전체 조회 (루트가 있는 게시판)
 	@GetMapping
 	public ResponseEntity<List<PostResponse>> getPosts(
-			
-			@RequestParam(required = false, defaultValue = "createdAt") String sort,
+			@RequestParam(required = false, defaultValue = "latest") String sort,
 			@RequestParam(required = false) String search,
 			@RequestParam(required = false) List<String> tags
 	) {
-		// 서비스 호출 시 필터 조건을 함께 전달
 		List<PostResponse> responses = postService.getAllPost(false, sort, search, tags);
 		return ResponseEntity.ok(responses);
 	}
 	// 1-1. 전체 조회 (루트가 없는 자유 게시판)
 	@GetMapping("/notroute")
 	public ResponseEntity<List<PostResponse>> getPostsNotRoute(
-			@RequestParam(required = false, defaultValue = "createdAt") String sort,
+			@RequestParam(required = false, defaultValue = "latest") String sort,
 			@RequestParam(required = false) String search,
 			@RequestParam(required = false) List<String> tags
 	) {
-		// 서비스 호출 시 routeIdIsNull을 true로 고정해서 넘겨줌
 		return ResponseEntity.ok(postService.getAllPost(true, sort, search, tags));
 	}
 	

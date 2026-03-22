@@ -28,4 +28,22 @@ public interface PostRepository extends JpaRepository<PostEntity, Long> {
 	List<PostEntity> findAllByRouteIsNotNull();
 	// 루트가 없는 게시글(커뮤니티)만 조회
 	List<PostEntity> findAllByRouteIsNull();
+
+	// 루트가 있는 게시글을 최신순으로 조회
+	List<PostEntity> findAllByRouteIsNotNullOrderByCreatedAtDesc();
+
+	// 루트가 있는 게시글을 조회수순으로 조회
+	List<PostEntity> findAllByRouteIsNotNullOrderByViewCountDescCreatedAtDesc();
+
+	// 루트가 있는 게시글을 좋아요순으로 조회
+	List<PostEntity> findAllByRouteIsNotNullOrderByLikeCountDescCreatedAtDesc();
+
+	// 루트가 없는 게시글을 최신순으로 조회
+	List<PostEntity> findAllByRouteIsNullOrderByCreatedAtDesc();
+
+	// 루트가 없는 게시글을 조회수순으로 조회
+	List<PostEntity> findAllByRouteIsNullOrderByViewCountDescCreatedAtDesc();
+
+	// 루트가 없는 게시글을 좋아요순으로 조회
+	List<PostEntity> findAllByRouteIsNullOrderByLikeCountDescCreatedAtDesc();
 }
