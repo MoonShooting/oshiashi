@@ -40,40 +40,40 @@ public class PostServiceImpl implements PostService {
 	 * - 필수 반환: 모든 필드 (postId, title, content, status, viewCount, likeCount, tagNames, createdAt, updateAt)
 	 * - 특징: 데이터가 없으면 빈 리스트 [] 반환
 	 */
-	@Override
+	@Override // 2026-03-22 이상학 : 작업한 최신순, 조회수 순, 좋아요 순 날아간거 복구했습니다.
 	@Transactional(readOnly = true)
 	public List<PostResponse> getAllPost(Boolean routeIdIsNull, String sort, String search, List<String> tags) {
-		log.debug("[Service] 루트가 포함된 게시글 전체 조회 요청 발생");
-		// 1. 게시판 분류 (계약 불일치 해결 핵심)
+		log.debug("[Service] 게시글 전체 조회 요청 발생 - routeIdIsNull: {}, sort: {}", routeIdIsNull, sort);
+
+		String normalizedSort = (sort == null || sort.isBlank()) ? "latest" : sort.trim().toLowerCase();
+
 		List<PostEntity> posts;
-		if (routeIdIsNull != null) {
-			if (routeIdIsNull) {
-				// 자유게시판: route_id가 없는 것만 조회
-				posts = postRepository.findAllByRouteIsNull();
-			} else {
-				// 루트게시판: route_id가 있는 것만 조회
-				posts = postRepository.findAllByRouteIsNotNull();
-			}
+
+		if (Boolean.TRUE.equals(routeIdIsNull)) {
+			posts = switch (normalizedSort) {
+				case "view" -> postRepository.findAllByRouteIsNullOrderByViewCountDescCreatedAtDesc();
+				case "like" -> postRepository.findAllByRouteIsNullOrderByLikeCountDescCreatedAtDesc();
+				case "latest", "createdat" -> postRepository.findAllByRouteIsNullOrderByCreatedAtDesc();
+				default -> throw new IllegalArgumentException("지원하지 않는 정렬 방식입니다: " + sort);
+			};
 		} else {
-			// 없으면 전체 조회 (기존 방식 유지)
-			posts = postRepository.findAll();
+			posts = switch (normalizedSort) {
+				case "view" -> postRepository.findAllByRouteIsNotNullOrderByViewCountDescCreatedAtDesc();
+				case "like" -> postRepository.findAllByRouteIsNotNullOrderByLikeCountDescCreatedAtDesc();
+				case "latest", "createdat" -> postRepository.findAllByRouteIsNotNullOrderByCreatedAtDesc();
+				default -> throw new IllegalArgumentException("지원하지 않는 정렬 방식입니다: " + sort);
+			};
 		}
-		
-		log.debug("[Service] 조회된 게시글 총 개수: {}개", posts.size());
-		
-		// 2. 검색, 태그 필터링 및 최신순 정렬 (Stream 활용)
+
 		return posts.stream()
-				// 검색어 필터: 제목이나 내용에 키워드 포함 여부
-				.filter(post -> (search == null || search.isBlank()) ||
-						post.getTitle().contains(search) || post.getContent().contains(search))
-				
+				// 검색어 필터: 제목 또는 내용에 포함되는지 확인
+				.filter(post -> (search == null || search.isBlank())
+						|| post.getTitle().contains(search)
+						|| post.getContent().contains(search))
 				// 태그 필터: 선택한 태그를 하나라도 가지고 있는지 확인
-				.filter(post -> (tags == null || tags.isEmpty()) ||
-						post.getPostTags().stream().anyMatch(pt -> tags.contains(pt.getTag().getTagName())))
-				
-				// 정렬 로직: 무조건 최신순 (내림차순)
-				.sorted((p1, p2) -> p2.getCreatedAt().compareTo(p1.getCreatedAt()))
-				
+				.filter(post -> (tags == null || tags.isEmpty())
+						|| post.getPostTags().stream()
+						.anyMatch(pt -> tags.contains(pt.getTag().getTagName())))
 				.map(PostResponse::fromEntity)
 				.collect(Collectors.toUnmodifiableList());
 	}
