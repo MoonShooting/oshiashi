@@ -85,11 +85,17 @@ public class BookmarkServiceImpl implements BookmarkService {
     @Transactional
     public void updateBookmarkName(String userId, Long bookmarkId, String newName) {
         BookmarkEntity bookmark = bookmarkRepository.findById(bookmarkId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 북마크를 찾을 수 없습니다."));
+                .orElseThrow(() -> new BusinessException(
+                        ErrorCode.RESOURCE_NOT_FOUND,
+                        "해당 북마크를 찾을 수 없습니다."
+                ));
 
         // 본인 확인: 남의 북마크 이름을 바꿀 수 없도록 방어
         if (!bookmark.getUser().getUserId().equals(userId)) {
-            throw new IllegalStateException("본인의 북마크 이름만 수정할 수 있습니다.");
+            throw new BusinessException(
+                    ErrorCode.ACCESS_DENIED,
+                    "본인의 북마크 이름만 수정할 수 있습니다."
+            );
         }
 
         bookmark.changeCustomName(newName);
@@ -102,11 +108,17 @@ public class BookmarkServiceImpl implements BookmarkService {
 	@Transactional
 	public void deleteBookmark(String userId, Long bookmarkId) {
 		BookmarkEntity bookmark = bookmarkRepository.findById(bookmarkId)
-				.orElseThrow(() -> new IllegalArgumentException("삭제할 북마크를 찾을 수 없습니다."));
+                .orElseThrow(() -> new BusinessException(
+                        ErrorCode.RESOURCE_NOT_FOUND,
+                        "삭제할 북마크를 찾을 수 없습니다."
+                ));
 
 		// 본인 확인: 남의 북마크를 삭제할 수 없도록 방어
 		if (!bookmark.getUser().getUserId().equals(userId)) {
-			throw new IllegalStateException("본인의 북마크만 삭제할 수 있습니다.");
+            throw new BusinessException(
+                    ErrorCode.ACCESS_DENIED,
+                    "본인의 북마크만 삭제할 수 있습니다."
+            );
 		}
 
 		bookmarkRepository.delete(bookmark);
