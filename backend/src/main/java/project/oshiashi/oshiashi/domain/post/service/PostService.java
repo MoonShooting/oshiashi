@@ -20,7 +20,7 @@ public interface PostService {
 	PostResponse updatePost(Long postId,String userId , PostRequest request);
 
 	//좋아요
-	PostResponse likePost(Long postId);
+	PostResponse likePost(Long postId, String userId);
 	
 	List<PostResponse> getAllPost(Boolean routeIdIsNull, String sort, String search, List<String> tags);
 }
