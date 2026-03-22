@@ -11,6 +11,8 @@ import project.oshiashi.oshiashi.domain.spot.dto.SpotCreateRequest;
 import project.oshiashi.oshiashi.domain.spot.dto.SpotResponse;
 import project.oshiashi.oshiashi.domain.spot.entity.SpotEntity;
 import project.oshiashi.oshiashi.domain.spot.repository.SpotRepository;
+import project.oshiashi.oshiashi.global.exception.BusinessException;
+import project.oshiashi.oshiashi.global.exception.ErrorCode;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -60,7 +62,7 @@ public class SpotService {
 				request.getAddress(),
 				request.getSceneImgUrl()
 		);
-		
+
 		
 		return SpotResponse.fromEntity(spot);
 	}
@@ -80,7 +82,7 @@ public class SpotService {
 			boolean isLngValid = longitude.compareTo(new BigDecimal("-180")) >= 0 && longitude.compareTo(new BigDecimal("180")) <= 0;
 			
 			if (!isLatValid || !isLngValid) {
-				throw new IllegalArgumentException("위도 또는 경도가 유효 범위를 벗어났습니다.");
+				throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "위도 또는 경도가 유효 범위를 벗어났습니다.");
 			}
 		}
 	}

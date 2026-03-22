@@ -13,6 +13,8 @@ import project.oshiashi.oshiashi.domain.user.dto.UserSignUpRequest;
 import project.oshiashi.oshiashi.domain.user.entity.UserEntity;
 import project.oshiashi.oshiashi.domain.user.repository.UserRepository;
 import project.oshiashi.oshiashi.global.constant.RedisKeys;
+import project.oshiashi.oshiashi.global.exception.BusinessException;
+import project.oshiashi.oshiashi.global.exception.ErrorCode;
 import project.oshiashi.oshiashi.security.AuthenticatedUser;
 import project.oshiashi.oshiashi.security.JwtProvider;
 import project.oshiashi.oshiashi.security.stmp.EmailAuthType;
@@ -64,7 +66,7 @@ public class AuthService {
 		boolean exists = userRepository.existsById(userId);
 		if (exists) {
 			log.warn("[AuthService] 중복 체크 결과: '{}'는 이미 존재함 (중복)", userId);
-			throw new IllegalArgumentException("이미 사용 중인 아이디입니다.");
+			throw new BusinessException(ErrorCode.DUPLICATE_RESOURCE, "이미 사용 중인 아이디입니다.");
 		} else {
 			log.info("[AuthService] 중복 체크 결과: '{}'는 사용 가능 (미중복)", userId);
 		}
@@ -84,7 +86,7 @@ public class AuthService {
 		boolean exists = userRepository.existsByNickname(nickname);
 		if (exists) {
 			log.warn("[AuthService] 중복 체크 결과: 닉네임 '{}'은 이미 사용 중 (중복)", nickname);
-			throw new IllegalArgumentException("이미 사용 중인 닉네임입니다.");
+			throw new BusinessException(ErrorCode.DUPLICATE_RESOURCE, "이미 사용 중인 닉네임입니다.");
 		} else {
 			log.info("[AuthService] 중복 체크 결과: 닉네임 '{}'은 사용 가능 (미중복)", nickname);
 		}
@@ -104,7 +106,7 @@ public class AuthService {
 		boolean exists = userRepository.existsByEmail(email);
 		if (exists) {
 			log.warn("[AuthService] 중복 체크 결과: 이메일 '{}'은 이미 가입됨 (중복)", email);
-			throw new IllegalArgumentException("이미 가입된 이메일입니다.");
+			throw new BusinessException(ErrorCode.DUPLICATE_RESOURCE, "이미 가입된 이메일입니다.");
 		} else {
 			log.info("[AuthService] 중복 체크 결과: 이메일 '{}'은 사용 가능 (미중복)", email);
 		}
@@ -159,9 +161,9 @@ public class AuthService {
 	 * [데이터 중복 일괄 검증] -> signup에서 호출하는 용도로 사용
 	 */
 	private void validateDuplicateData(UserSignUpRequest request) {
-		if (isUserIdDuplicated(request.getUserId())) throw new IllegalArgumentException("이미 사용 중인 아이디입니다.");
-		if (isNicknameDuplicated(request.getNickname())) throw new IllegalArgumentException("이미 사용 중인 닉네임입니다.");
-		if (isEmailDuplicated(request.getEmail())) throw new IllegalArgumentException("이미 가입된 이메일입니다.");
+		if (isUserIdDuplicated(request.getUserId())) throw new BusinessException(ErrorCode.DUPLICATE_RESOURCE, "이미 사용 중인 아이디입니다.");
+		if (isNicknameDuplicated(request.getNickname())) throw new BusinessException(ErrorCode.DUPLICATE_RESOURCE, "이미 사용 중인 닉네임입니다.");
+		if (isEmailDuplicated(request.getEmail())) throw new BusinessException(ErrorCode.DUPLICATE_RESOURCE, "이미 가입된 이메일입니다.");
 	}
 
 	/**
@@ -179,7 +181,7 @@ public class AuthService {
 
 		if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
 			log.warn("[AuthService] 로그인 실패: 비밀번호 불일치 - UserID: {}", request.getUserId());
-			throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+			throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "비밀번호가 일치하지 않습니다.");
 		}
 		// 무상태 환경에서의 통행증(JWT) 발급
 		String token = jwtProvider.createToken(user.getUserId());
@@ -247,14 +249,20 @@ public class AuthService {
 
 		if (requestCount != null && requestCount > 5) {
 			redisTemplate.opsForValue().decrement(dailyCountKey); // 초과 시 다시 원상복구
-			throw new IllegalArgumentException(type.getDescription() + " 일일 인증 횟수(5회)를 초과했습니다.");
+			throw new BusinessException(
+					ErrorCode.INVALID_INPUT_VALUE,
+					type.getDescription() + " 일일 인증 횟수(5회)를 초과했습니다."
+			);
 		}
 
 		// 2. Redis에 목적별로 인증번호 저장
 		String redisCodeKey = RedisKeys.AUTH_CODE + type.name() + ":" + email;
 		Long expireTime = redisTemplate.getExpire(redisCodeKey, TimeUnit.SECONDS);
 		if (expireTime != null && expireTime > 120) {
-			throw new IllegalArgumentException("이미 인증 메일을 발송했습니다. 1분 후 다시 시도해주세요.");
+			throw new BusinessException(
+					ErrorCode.INVALID_INPUT_VALUE,
+					"이미 인증 메일을 발송했습니다. 1분 후 다시 시도해주세요."
+			);
 		}
 
 		String authCode = String.format("%06d", ThreadLocalRandom.current().nextInt(1000000));
@@ -291,8 +299,8 @@ public class AuthService {
 
 		// 목적에 맞는 키로 조회
 		String savedCode = redisTemplate.opsForValue().get(redisCodeKey);
-		if (savedCode == null) throw new IllegalArgumentException("인증 시간이 만료되었습니다.");
-		if (!savedCode.equals(code)) throw new IllegalArgumentException("인증번호가 일치하지 않습니다.");
+		if (savedCode == null) throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "인증 시간이 만료되었습니다.");
+		if (!savedCode.equals(code)) throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "인증번호가 일치하지 않습니다.");
 
 		// 검증 성공 처리
 		redisTemplate.delete(redisCodeKey); // 사용된 인증번호 파기
@@ -345,7 +353,7 @@ public class AuthService {
 
 		if (!userRepository.existsByEmail(email)) {
 			log.warn("[Email Auth] 가입되지 않은 이메일로 비번 재설정 시도: {}", email);
-			throw new IllegalArgumentException("해당 이메일로 가입된 정보가 없습니다. 다시 확인해주세요.");
+			throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "해당 이메일로 가입된 정보가 없습니다. 다시 확인해주세요.");
 		}
 
 		// [수정] 비밀번호 재설정 목적(FIND_PW)을 명시하여 발송 로직 호출
@@ -367,7 +375,7 @@ public class AuthService {
 		UserEntity managedUser = userRepository.findById(userId)
 				.orElseThrow(() -> new IllegalArgumentException("유저 정보를 찾을 수 없습니다."));
 		if (!passwordEncoder.matches(oldPassword, managedUser.getPassword())) {
-			throw new IllegalArgumentException("현재 비밀번호가 일치하지 않습니다.");
+			throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "현재 비밀번호가 일치하지 않습니다.");
 		}
 		managedUser.changePassword(passwordEncoder.encode(newPassword));
 	}
@@ -399,7 +407,7 @@ public class AuthService {
 
 		// 5. 닉네임 중복 검사 (타인이 사용 중인지 확인)
 		if (userRepository.existsByNickname(newNickname)) {
-			throw new IllegalArgumentException("이미 존재하는 닉네임입니다.");
+			throw new BusinessException(ErrorCode.DUPLICATE_RESOURCE, "이미 존재하는 닉네임입니다.");
 		}
 
 		// 6. 엔티티 정보 수정 (JPA 더티 체킹)
@@ -419,12 +427,12 @@ public class AuthService {
 		// 1. 시큐리티 컨텍스트에서 유저 ID 추출
 		Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 		if (!(principal instanceof AuthenticatedUser authUser)) {
-			throw new IllegalStateException("인증 정보가 없습니다. 다시 로그인해주세요.");
+			throw new BusinessException(ErrorCode.UNAUTHORIZED, "인증 정보가 없습니다. 다시 로그인해주세요.");
 		}
 		String userId = authUser.getUsername();
 		log.info("[AuthService] 회원 탈퇴 요청 - UserID: {}", userId);
 		if (rawPassword == null || rawPassword.trim().isEmpty()) {
-			throw new IllegalArgumentException("비밀번호를 입력해주세요.");
+			throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "비밀번호를 입력해주세요.");
 		}
 		// 2. DB에서 최신 엔티티를 직접 조회 (삭제 보장을 위해)
 		UserEntity user = userRepository.findById(userId)
@@ -432,7 +440,7 @@ public class AuthService {
 		// 3. 비밀번호 재검증 로직
 		if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
 			log.warn("[AuthService] 탈퇴 실패: 비밀번호 불일치 - UserID: {}", userId);
-			throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+			throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "비밀번호가 일치하지 않습니다.");
 		}
 		if (authHeader != null && authHeader.startsWith("Bearer ")) {
 			logout(authHeader);
@@ -453,7 +461,7 @@ public class AuthService {
 		// 1. 현재 로그인한 유저의 ID 가져오기
 		Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 		if (!(principal instanceof AuthenticatedUser authUser)) {
-			throw new IllegalStateException("인증 정보가 없습니다.");
+			throw new BusinessException(ErrorCode.UNAUTHORIZED, "인증 정보가 없습니다.");
 		}
 		String userId = authUser.getUsername();
 		// 2. DB에서 최신 엔티티를 직접 조회
@@ -472,7 +480,7 @@ public class AuthService {
 	private UserEntity getCurrentUserEntity() {
 		Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 		if (!(principal instanceof AuthenticatedUser authenticatedUser)) {
-			throw new IllegalStateException("인증 정보가 없습니다. 다시 로그인해주세요.");
+			throw new BusinessException(ErrorCode.UNAUTHORIZED, "인증 정보가 없습니다. 다시 로그인해주세요.");
 		}
 		return authenticatedUser.user();
 	}
@@ -486,7 +494,10 @@ public class AuthService {
 		String redisVerifiedKey = RedisKeys.VERIFIED_EMAIL + type.name() + ":" + email;
 		Boolean isVerified = redisTemplate.hasKey(redisVerifiedKey);
 		if (isVerified == null || !isVerified) {
-			throw new IllegalArgumentException(type.getDescription() + " 이메일 인증이 완료되지 않았습니다.");
+			throw new BusinessException(
+					ErrorCode.INVALID_INPUT_VALUE,
+					type.getDescription() + " 이메일 인증이 완료되지 않았습니다."
+			);
 		}
 	}
 
@@ -499,7 +510,7 @@ public class AuthService {
 	@Transactional
 	public void logout(String authHeader) {
 		if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-			throw new IllegalArgumentException("유효하지 않은 토큰 헤더입니다.");
+			throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "유효하지 않은 토큰 헤더입니다.");
 		}
 		String token = authHeader.substring(7); // "Bearer " 제거
 		// 1. 토큰의 남은 유효 기간(TTL) 계산
@@ -518,25 +529,25 @@ public class AuthService {
 	// 아이디 형식 검증
 	private void validateIdFormat(String userId) {
 		if (userId == null || !userId.matches(ID_REGEX)) {
-			throw new IllegalArgumentException("4~20자의 영문 소문자, 숫자만 가능합니다.");
+			throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "4~20자의 영문 소문자, 숫자만 가능합니다.");
 		}
 	}
 	//  비밀번호 형식 검증
 	private void validatePasswordFormat(String password) {
 		if (password == null || !password.matches(PW_REGEX)) {
-			throw new IllegalArgumentException("8~20자의 영문, 숫자, 특수문자를 포함해야 합니다.");
+			throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "8~20자의 영문, 숫자, 특수문자를 포함해야 합니다.");
 		}
 	}
 	//  닉네임 형식 검증
 	private void validateNicknameFormat(String nickname) {
 		if (nickname == null || !nickname.matches(NICK_REGEX)) {
-			throw new IllegalArgumentException("2~12자의 한글, 영문, 숫자만 가능합니다.");
+			throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "2~12자의 한글, 영문, 숫자만 가능합니다.");
 		}
 	}
 	//  이메일 형식 검증
 	private void validateEmailFormat(String email) {
 		if (email == null || !email.matches(EMAIL_REGEX)) {
-			throw new IllegalArgumentException("올바른 이메일 형식이 아닙니다.");
+			throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "올바른 이메일 형식이 아닙니다.");
 		}
 	}
 

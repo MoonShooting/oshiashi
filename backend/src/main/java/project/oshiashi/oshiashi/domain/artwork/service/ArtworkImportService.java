@@ -320,12 +320,19 @@ public class ArtworkImportService {
 
         // Artwork.title은 필수값이므로 저장 전에 제목이 비어 있지 않은지 확인합니다.
         if (resolvedTitle == null) {
-            throw new IllegalArgumentException("작품 제목은 필수입니다.");
+            throw new BusinessException(
+                    ErrorCode.INVALID_INPUT_VALUE,
+                    "작품 제목은 필수입니다."
+            );
         }
 
         // 현재 Artwork는 poster_url을 필수로 사용하므로, 포스터 경로가 없으면 저장하지 않습니다.
         if (request.getPosterPath() == null || request.getPosterPath().isBlank()) {
-            throw new IllegalArgumentException("포스터 경로는 필수입니다.");
+            throw new BusinessException(
+                    ErrorCode.INVALID_INPUT_VALUE,
+                    "포스터 경로는 필수입니다."
+            );
+
         }
 
         ArtworkTypeEntity artworkType = resolveArtworkType(
