@@ -98,7 +98,7 @@ const PostCommunityDetailPage = () => {
       sceneNote: isEditingPost ? editContent : post?.content ?? '',
       soundtrack: '기록된 OST 없음',
       visitTimeLabel: post?.publishedTimeLabel ?? '-',
-      moodTags: Array.isArray(post?.tags) ? post.tags : [],
+      moodTags: Array.isArray(post?.tagNames) ? post.tagNames : [],
     }),
     [post, isEditingPost, editContent],
   );

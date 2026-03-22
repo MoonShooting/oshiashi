@@ -73,6 +73,23 @@ export const appendUserIdQuery = (endpoint, userId) => {
   return `${endpoint}${delimiter}userId=${encodeURIComponent(userId)}`;
 };
 
+export const normalizeTagNames = (value) => {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => String(item).trim().replace(/^#/, ''))
+      .filter(Boolean);
+  }
+
+  if (typeof value === 'string') {
+    return value
+      .split(',')
+      .map((item) => item.trim().replace(/^#/, ''))
+      .filter(Boolean);
+  }
+
+  return [];
+};
+
 export const normalizeBookmark = (bookmark) => ({
   bookmarkId: String(bookmark?.bookmarkId ?? bookmark?.id ?? ''),
   bookmarkName: bookmark?.bookmarkName ?? '',

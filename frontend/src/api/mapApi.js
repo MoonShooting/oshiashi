@@ -57,12 +57,17 @@ import { FetchClient } from '@/api/FetchClient';
  *   postImageUrl: string | null  // Post_image.image_url (sort_order=0) → 팝업 게시물 사진
  * }
  */
+const toFloatOrNull = (value) => {
+  const parsed = parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
 const normalizeSpot = (raw) => ({
-  id: String(raw.spotId),
-  title: raw.name,
+  id: String(raw.spotId ?? raw.id ?? ''),
+  title: raw.name ?? raw.spotName ?? '',
   position: {
-    lat: parseFloat(raw.latitude),
-    lng: parseFloat(raw.longitude),
+    lat: toFloatOrNull(raw.latitude ?? raw.position?.lat),
+    lng: toFloatOrNull(raw.longitude ?? raw.position?.lng),
   },
   address: raw.address ?? null,
   placePhotoUrl: raw.sceneImageUrl ?? null, // 팝업 카드 좌측: 장소 사진
@@ -89,7 +94,8 @@ const normalizeRoute = (raw) => ({
   title: raw.title,
   isPublic: raw.isPublic,
   createdAt: raw.createdAt,
-  spots: (raw.spots ?? []).map(normalizeSpot),
+  userId: raw.userId ?? '',
+  spots: (raw.routeSpots ?? raw.spots ?? []).map(normalizeSpot),
 });
 
 // Spot(핀) 조회 API
@@ -163,7 +169,7 @@ export const getSpotDetail = async (spotId) => {
  * @returns {Promise<Array>}
  */
 export const getMyRoutes = async () => {
-  const raw = await FetchClient('/api/v1/routes/my');
+  const raw = await FetchClient('/api/v1/routes');
   return Array.isArray(raw) ? raw.map(normalizeRoute) : [];
 };
 
