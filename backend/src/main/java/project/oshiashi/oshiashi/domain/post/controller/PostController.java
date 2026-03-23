@@ -95,10 +95,14 @@ public class PostController {
 	
 	// 6. 게시글 좋아요 기능
 	@PostMapping("/{postId}/like")
-	public PostResponse likePost(@PathVariable Long postId) {
+	public PostResponse likePost(@PathVariable Long postId,
+								 @AuthenticationPrincipal UserDetails userDetails) {
 		log.debug(">>> [Controller] 좋아요 클릭! 대상 게시글 ID: {}", postId);
 		
-		PostResponse updatedPost = postService.likePost(postId);
+		// 현재 로그인한 유저의 ID를 가져옵니다.
+		String userId = userDetails.getUsername();
+		
+		PostResponse updatedPost = postService.likePost(postId, userId);
 		
 		log.info(">>> [Controller] 좋아요 반영 완료. 현재 좋아요 수: {}", updatedPost.getLikeCount());
 		return updatedPost;
