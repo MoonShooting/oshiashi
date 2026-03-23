@@ -41,7 +41,7 @@ public class PostController {
 		return ResponseEntity.ok(responses);
 	}
 	// 1-1. 전체 조회 (루트가 없는 자유 게시판)
-	@GetMapping("/notroute")
+	@GetMapping("/community")
 	public ResponseEntity<List<PostResponse>> getPostsNotRoute(
 			@RequestParam(required = false, defaultValue = "latest") String sort,
 			@RequestParam(required = false) String search,
@@ -95,14 +95,24 @@ public class PostController {
 	
 	// 6. 게시글 좋아요 기능
 	@PostMapping("/{postId}/like")
-	public PostResponse likePost(@PathVariable Long postId) {
+	public PostResponse likePost(@PathVariable Long postId,
+								 @AuthenticationPrincipal UserDetails userDetails) {
 		log.debug(">>> [Controller] 좋아요 클릭! 대상 게시글 ID: {}", postId);
 		
-		PostResponse updatedPost = postService.likePost(postId);
+		// 현재 로그인한 유저의 ID를 가져옵니다.
+		String userId = userDetails.getUsername();
+		
+		PostResponse updatedPost = postService.likePost(postId, userId);
 		
 		log.info(">>> [Controller] 좋아요 반영 완료. 현재 좋아요 수: {}", updatedPost.getLikeCount());
 		return updatedPost;
 	}
-	
-	
+
+	// 인기글 목록 조회
+	// 현재는 좋아요가 많은 순으로 상위 10개의 게시글을 반환합니다.
+	@GetMapping("/top")
+	public ResponseEntity<List<PostResponse>> getTopPosts() {
+		return ResponseEntity.ok(postService.getTopPosts());
+	}
+
 }
