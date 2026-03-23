@@ -25,6 +25,42 @@ const emitCommunityPostsUpdated = () => {
   }
 };
 
+const SORT_QUERY_MAP = {
+  latest: 'latest',
+  popular: 'like',
+  views: 'view',
+};
+
+const getStoredAccessToken = () =>
+  localStorage.getItem('accessToken') ?? sessionStorage.getItem('accessToken');
+
+const decodeBase64Url = (value) => {
+  const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+  const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+  return atob(padded);
+};
+
+const resolveUserId = (explicitUserId) => {
+  if (typeof explicitUserId === 'string' && explicitUserId.trim()) {
+    return explicitUserId.trim();
+  }
+
+  const rawToken = getStoredAccessToken();
+  if (!rawToken) return '';
+
+  const token = rawToken.replace(/^Bearer\s+/i, '').trim();
+  const payloadPart = token.split('.')[1];
+  if (!payloadPart) return '';
+
+  try {
+    const payload = JSON.parse(decodeBase64Url(payloadPart));
+    const tokenUserId = payload?.userId ?? payload?.sub ?? payload?.username ?? '';
+    return typeof tokenUserId === 'string' ? tokenUserId.trim() : '';
+  } catch {
+    return '';
+  }
+};
+
 // postApiShared 유틸을 재사용해 route/community 간 응답 처리 규칙을 통일합니다.
 
 const resolvePostId = (post) => String(post?.postId ?? post?.id ?? '');
@@ -106,18 +142,17 @@ const toSummary = (detail) => ({
 
 /*
 [커뮤니티 목록 조회]
-- routeIdIsNull=true 조건으로 커뮤니티 글만 가져옵니다.
+- 백엔드 명세에 맞춰 커뮤니티 전용 엔드포인트(/api/v1/posts/notroute)를 호출합니다.
 - 검색어/정렬 조건을 그대로 querystring으로 전달합니다.
 */
 export const fetchCommunityPosts = async ({ search = '', sortBy = 'latest', limit } = {}) => {
   const params = new URLSearchParams();
-  params.set('routeIdIsNull', 'true');
-  params.set('sort', sortBy);
+  params.set('sort', SORT_QUERY_MAP[sortBy] ?? 'latest');
 
   const keyword = search.trim();
   if (keyword) params.set('search', keyword);
 
-  const response = await FetchJson(`/api/v1/posts?${params.toString()}`);
+  const response = await FetchJson(`/api/v1/posts/notroute?${params.toString()}`);
   const posts = extractArrayPayload(response)
     .map((post) => toCommunityDetail(post, []))
     .filter((post) => post && post.routeId == null && post.id)
@@ -154,8 +189,10 @@ export const createCommunityPost = async ({ title, content }) => {
 };
 
 // 게시글 수정 후 상세를 재조회해 화면 상태를 서버 기준으로 맞춥니다.
-export const updateCommunityPost = async ({ postId, title, content }) => {
-  await FetchJson(`/api/v1/posts/${postId}`, {
+export const updateCommunityPost = async ({ postId, title, content, userId }) => {
+  const endpoint = appendUserIdQuery(`/api/v1/posts/${postId}`, resolveUserId(userId));
+
+  await FetchJson(endpoint, {
     method: 'PATCH',
     body: JSON.stringify({ title, content }),
   });
@@ -166,8 +203,9 @@ export const updateCommunityPost = async ({ postId, title, content }) => {
 };
 
 // 삭제는 성공 여부만 확인하고, 목록 갱신 이벤트를 발행합니다.
-export const deleteCommunityPost = async ({ postId }) => {
-  await FetchJson(`/api/v1/posts/${postId}`, { method: 'DELETE' });
+export const deleteCommunityPost = async ({ postId, userId }) => {
+  const endpoint = appendUserIdQuery(`/api/v1/posts/${postId}`, resolveUserId(userId));
+  await FetchJson(endpoint, { method: 'DELETE' });
   emitCommunityPostsUpdated();
 };
 
