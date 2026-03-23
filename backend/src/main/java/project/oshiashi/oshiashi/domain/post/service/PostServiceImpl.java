@@ -324,4 +324,21 @@ public class PostServiceImpl implements PostService {
 			}
 		});
 	}
+
+	/**
+	 * 메인 화면용 인기 게시글 목록 조회
+	 * - 현재는 루트가 있는 게시글만 대상으로 합니다.
+	 * - 좋아요가 많은 순으로 정렬한 뒤 상위 10개만 반환합니다.
+	 * - 좋아요 수가 같으면 더 최근 글이 먼저 오도록 createdAt 기준을 함께 사용합니다.
+	 */
+	@Override
+	@Transactional(readOnly = true)
+	public List<PostResponse> getTopPosts() {
+		log.debug("[Service] 메인 인기 게시글 목록 조회 요청");
+
+		return postRepository.findAllByRouteIsNotNullOrderByLikeCountDescCreatedAtDesc().stream()
+				.limit(10)
+				.map(PostResponse::fromEntity)
+				.toList();
+	}
 }

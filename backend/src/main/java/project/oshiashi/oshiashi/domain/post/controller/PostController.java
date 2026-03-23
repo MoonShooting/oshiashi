@@ -103,6 +103,12 @@ public class PostController {
 		log.info(">>> [Controller] 좋아요 반영 완료. 현재 좋아요 수: {}", updatedPost.getLikeCount());
 		return updatedPost;
 	}
-	
-	
+
+	// 인기글 목록 조회
+	// 현재는 좋아요가 많은 순으로 상위 10개의 게시글을 반환합니다.
+	@GetMapping("/top")
+	public ResponseEntity<List<PostResponse>> getTopPosts() {
+		return ResponseEntity.ok(postService.getTopPosts());
+	}
+
 }
