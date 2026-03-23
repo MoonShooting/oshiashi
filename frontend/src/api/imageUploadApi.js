@@ -1,4 +1,4 @@
-import { API_BASE_URL, FetchMultipart } from '@/api/FetchClient';
+import { BASE_URL, FetchMultipart } from '@/api/FetchClient';
 
 // 백엔드가 data/result 래퍼를 붙여도 이 계층에서 흡수해
 // 화면 코드는 "업로드 결과 객체"만 신경 쓰도록 맞춥니다.
@@ -28,7 +28,7 @@ const resolveUploadedUrl = (payload) => {
     return rawUrl;
   }
 
-  return new URL(rawUrl, API_BASE_URL).toString();
+  return new URL(rawUrl, BASE_URL).toString();
 };
 
 export const uploadPostImage = async (file, { purpose = 'post-image' } = {}) => {
