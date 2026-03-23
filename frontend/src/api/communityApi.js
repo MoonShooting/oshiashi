@@ -142,7 +142,7 @@ const toSummary = (detail) => ({
 
 /*
 [커뮤니티 목록 조회]
-- 백엔드 명세에 맞춰 커뮤니티 전용 엔드포인트(/api/v1/posts/notroute)를 호출합니다.
+- 백엔드 명세에 맞춰 커뮤니티 전용 엔드포인트(/api/v1/posts/community)를 호출합니다.
 - 검색어/정렬 조건을 그대로 querystring으로 전달합니다.
 */
 export const fetchCommunityPosts = async ({ search = '', sortBy = 'latest', limit } = {}) => {
