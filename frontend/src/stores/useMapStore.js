@@ -1,20 +1,28 @@
-import { create } from 'zustand';
-
-/**[전역으로 지도 호출 관리하여 랜더링 시 매끄럽게 바로 전환되기 위함.]
- * 핀 목록, 최적 경로, 검색 결과 등 지도와 관련된 모든 데이터를 여기서 관리합니다.
+/**
+ * @file useMapStore.js
+ * @description 지도 관련 전역 상태 관리 (Zustand)
+ *
+ * [activeMediaTypes]
+ * - DB artwork_type_name 값 배열 (ex: ['애니메이션', '드라마'])
+ * - mapConstants.MEDIA_TYPE 값과 동일한 한국어 문자열
+ * - 복수 선택 지원 (toggle 방식)
  */
-export const useMapStore = create((set) => ({
-  displayPlaces: [], // 지도페이지 첫 화면에 보여줄 핀들
-  selectedPlaces: [], // 사용자가 담은 장소들 (핀 목록)
+
+import { create } from 'zustand';
+import { FetchClient } from '@/api/FetchClient.js';
+import { getPlaces, searchPlaces } from '@/api/mapApi.js';
+
+export const useMapStore = create((set, get) => ({
+  displayPlaces: [], // 지도에 표시할 MapPlaceResponse[] 목록
+  selectedPlaces: [], // 사용자가 경로에 담은 장소들
   optimizedPath: null, // 최단 거리 계산 결과
   previewLocation: null, // 검색 리스트 클릭 시 잠깐 보여줄 위치
 
-  // 필터 상태 (MapFilterPanel 사용)
-  // MapFilterPanel이 useMapStore에서 가져오는 값들, 스토어에 없으면 undefined TypeError 발생
-  activeMediaTypes: [], // 활성 미디어 타입 배열 (예: ['ANIME', 'DRAMA'])
+  // 필터 상태 — DB artwork_type_name 값 배열 (복수 선택)
+  activeMediaTypes: [], // 예: ['애니메이션', '드라마']
   sortType: 'popular', // 현재 정렬 기준
 
-  // 미디어 타입 토글 (이미 있으면 제거, 없으면 추가)
+  //  미디어 타입 토글 (이미 있으면 제거, 없으면 추가)
   toggleMediaType: (type) =>
     set((state) => ({
       activeMediaTypes: state.activeMediaTypes.includes(type) ? state.activeMediaTypes.filter((t) => t !== type) : [...state.activeMediaTypes, type],
@@ -23,53 +31,60 @@ export const useMapStore = create((set) => ({
   // 미디어 타입 필터 전체 해제
   clearMediaFilter: () => set({ activeMediaTypes: [] }),
 
-  //가져다 쓸 함수 목록
-  // 장소 추가 (Search.jsx에서 호출)
+  //  장소 담기 (placeId 기준 중복 방지)
   addPlace: (place) =>
-    set((state) => ({
-      selectedPlaces: [...state.selectedPlaces, place],
-    })),
+    set((state) => {
+      if (state.selectedPlaces.some((p) => p.placeId === place.placeId)) return state;
+      return { selectedPlaces: [...state.selectedPlaces, place] };
+    }),
 
-  // 순서 변경 (Route Create Page에서 드래그 끝났을 때 호출)
+  // 순서 변경 (드래그 앤 드롭)
   reorderPlaces: (newList) => set({ selectedPlaces: newList }),
 
-  // 장소 삭제
-  removePlace: (id) =>
+  // 장소 삭제 (placeId 기준)
+  removePlace: (placeId) =>
     set((state) => ({
-      selectedPlaces: state.selectedPlaces.filter((p) => p.id !== id),
+      selectedPlaces: state.selectedPlaces.filter((p) => p.placeId !== placeId),
     })),
 
-  // 미리보기 위치 설정 (지도 부드러운 이동용)
+  // 미리보기 위치 설정
   setPreview: (loc) => set({ previewLocation: loc }),
 
-  // 초기화 (새로운 경로 만들기 등)
+  // 지도 상태 초기화
   clearMap: () => set({ selectedPlaces: [], optimizedPath: null }),
 
-  // 서버에서 인기순/최신순 10개 가져오기(popular | update)
-  fetchHotPlaces: async (sortType = 'popular') => {
+  // 전체 장소 초기 로드
+  fetchAllPlaces: async () => {
     try {
-      const data = await FetchClient(`/api/v1/posts/top?sort=${sortType}`);
-      set({ displayPlaces: data });
-    } catch (error) {
-      console.warn('⚠️ 백엔드 연결 실패! 테스트용 데이터를 로드합니다.');
-
-      // 임시 처리: 서버 에러 시 보여줄 가짜 데이터 10개
-      const dummyData = Array.from({ length: 10 }).map((_, i) => ({
-        id: `dummy-${i}`,
-        title: `테스트 성지 ${i + 1} (${sortType === 'popular' ? '인기순' : '최신순'})`,
-        position: {
-          lat: 35.6812 + (Math.random() - 0.5) * 0.01,
-          lng: 139.7671 + (Math.random() - 0.5) * 0.01,
-        },
-        description: '백엔드 연결 시 실제 데이터로 교체됩니다.',
-      }));
-
-      set({ displayPlaces: dummyData });
+      const data = await getPlaces();
+      set({ displayPlaces: data ?? [] });
+    } catch (err) {
+      console.warn('[useMapStore] fetchAllPlaces 실패:', err);
     }
   },
 
-  // 작품명 + 타입으로 검색
-  searchByWork: async (workName, typeId) => {
-    // 검색 로직 구현
+  // 인기/최신 장소 목록 로드
+  // TODO: /api/v1/posts/top?sort= 파라미터 값 확정 후 수정
+  fetchHotPlaces: async (sortType = 'popular') => {
+    try {
+      const data = await FetchClient(`/api/v1/posts/top?sort=${sortType}`);
+      set({ displayPlaces: data ?? [], sortType });
+    } catch (err) {
+      console.warn('[useMapStore] fetchHotPlaces 실패:', err);
+    }
+  },
+
+  // 작품명 + 미디어 타입으로 장소 검색
+  // workName: 작품명
+  // mediaType: DB artwork_type_name 값 ('영화', '드라마', '애니메이션') 또는 null
+  searchByWork: async (workName, mediaType = null) => {
+    try {
+      const data = await searchPlaces(workName, mediaType);
+      set({ displayPlaces: data ?? [] });
+      return data ?? [];
+    } catch (err) {
+      console.warn('[useMapStore] searchByWork 실패:', err);
+      return [];
+    }
   },
 }));

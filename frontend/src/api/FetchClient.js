@@ -8,8 +8,7 @@
 // 업로드 응답의 상대 경로를 절대 URL로 보정할 때도 같은 기준 주소를 써야 하므로 export 합니다.
 export const BASE_URL = 'http://localhost:9933';
 
-const getAccessToken = () =>
-  localStorage.getItem('accessToken') ?? sessionStorage.getItem('accessToken');
+const getAccessToken = () => localStorage.getItem('accessToken') ?? sessionStorage.getItem('accessToken');
 
 // 요청 헤더 공통 조립:
 // - Authorization 자동 주입
@@ -94,30 +93,27 @@ const request = async (endpoint, options = {}, { isMultipart = false } = {}) => 
 
   return parseResponseBody(response);
 };
-
 /**
  * JSON 요청 전용 클라이언트
  * - 기존 FetchClient와 동일하게 Content-Type: application/json 기본 주입
  */
-export const FetchJson = (endpoint, options = {}) =>
-  request(
-    endpoint,
-    {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    },
-    { isMultipart: false },
-  );
+export const FetchJson = (endpoint, options = {}) => {
+  const method = (options.method || 'GET').toUpperCase();
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  };
+  if (method === 'GET') {
+    delete headers['Content-Type'];
+  }
+  return request(endpoint, { ...options, headers }, { isMultipart: false });
+};
 
 /**
  * multipart/form-data 요청 전용 클라이언트
  * - FormData를 body로 넘기고 Content-Type은 브라우저가 자동으로 설정
  */
-export const FetchMultipart = (endpoint, options = {}) =>
-  request(endpoint, options, { isMultipart: true });
+export const FetchMultipart = (endpoint, options = {}) => request(endpoint, options, { isMultipart: true });
 
 // 기존 코드 호환용 alias (기본은 JSON 요청)
 export const FetchClient = FetchJson;

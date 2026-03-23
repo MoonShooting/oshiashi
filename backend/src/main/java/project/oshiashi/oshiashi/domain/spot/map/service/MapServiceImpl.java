@@ -38,15 +38,6 @@ public class MapServiceImpl implements MapService {
                 .toList();
     }
 
-    // 지도 범위(북/남/동/서) 안에 포함되는 장소만 조회합니다.
-    // 현재 화면 안에 보이는 마커만 효율적으로 내려주기 위한 기능입니다.
-    @Override
-    public List<MapPlaceResponse> getMarkersInBounds(Double north, Double south, Double east, Double west) {
-        return spotRepository.findMarkersInBounds(north, south, east, west).stream()
-                .map(MapPlaceResponse::from)
-                .toList();
-    }
-
     // placeId에 해당하는 장소 1건을 조회합니다.
     // 마커 클릭 후 상세 패널/모달에 보여줄 데이터를 반환하는 용도입니다.
     @Override
@@ -61,13 +52,16 @@ public class MapServiceImpl implements MapService {
     }
 
     // 현재 좌표(lat, lng) 기준으로 radiusKm 반경 안에 있는 장소만 조회합니다.
-    // 먼저 사각형 범위로 후보를 가져온 뒤, 실제 거리 계산으로 다시 한 번 필터링합니다.
+    // 먼저 사각형 범위로 후보를 가져온 뒤, 실제 거리 계산으로 다시 한 번 필터링하고 거리순으로 정렬한 뒤 limit만큼 잘라냅니다.
     @Override
-    public List<MapPlaceResponse> getNearbyPlaces(Double lat, Double lng, Double radiusKm) {
+    public List<MapPlaceResponse> getNearbyPlaces(Double lat, Double lng, Double radiusKm, String mediaType, Integer limit) {
         // 좌표나 반경 값이 비정상이면 빈 목록을 반환합니다.
         if (lat == null || lng == null || radiusKm == null || radiusKm <= 0) {
             return List.of();
         }
+
+        int maxResults = (limit != null && limit > 0) ? limit : 10;
+        String typeFilter = (mediaType != null && !mediaType.isBlank()) ? mediaType.trim() : null;
 
         // 위도 1도는 대략 111km이므로, 반경을 위도 차이로 환산합니다.
         double latDelta = radiusKm / 111.0;
@@ -83,22 +77,29 @@ public class MapServiceImpl implements MapService {
 
         // DB에서는 먼저 사각형 범위 안의 후보 장소만 조회합니다.
         return spotRepository.findMarkersInBounds(north, south, east, west).stream()
-                // 좌표 정보가 없는 장소는 주변 탐색 결과에서 제외합니다.
+                .filter(spot -> spot.getLatitude() != null && spot.getLongitude() != null)
                 .filter(spot -> {
-                    if (spot.getLatitude() == null || spot.getLongitude() == null) {
-                        return false;
-                    }
-
-                    // 현재 좌표와 장소 좌표 사이의 실제 거리를 km 단위로 계산합니다.
                     double distance = calculateDistanceKm(
                             lat,
                             lng,
                             spot.getLatitude().doubleValue(),
                             spot.getLongitude().doubleValue()
                     );
-
                     return distance <= radiusKm;
                 })
+                .filter(spot -> {
+                    if (typeFilter == null) {
+                        return true;
+                    }
+                    return typeFilter.equals(spot.getArtwork().getArtworkType().getArtworkTypeName());
+                })
+                .sorted(java.util.Comparator.comparingDouble(spot -> calculateDistanceKm(
+                        lat,
+                        lng,
+                        spot.getLatitude().doubleValue(),
+                        spot.getLongitude().doubleValue()
+                )))
+                .limit(maxResults)
                 .map(MapPlaceResponse::from)
                 .toList();
     }
