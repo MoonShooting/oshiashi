@@ -27,19 +27,23 @@ public class TagController {
 	// 실제 핵심 로직(유효성 검사, 중복 체크, 저장 등)은 tagService에 맡기고, 그 결과를 받아옵니다.
 	@PostMapping
 	public ResponseEntity<TagResponse> createTag(@RequestBody TagRequest request) {
-		TagResponse response = tagService.createTag(request);
-		return ResponseEntity.ok(response);
+		return ResponseEntity.ok(tagService.createTag(request));
 	}
 	
 	// 특정 작품의 태그 삭제 (또는 작품 삭제 API 호출 시 내부적으로 사용)
+	// tagName 기준 태그 삭제
 	@DeleteMapping("/artwork/{artworkId}")
-	//ResponseEntity<Void>: 삭제 성공 후 딱히 돌려줄 데이터 내용(Body)이 없을 때 사용합니다.
-	public ResponseEntity<Void> deleteTagsByArtwork(@PathVariable Long artworkId) {
-		tagService.deleteTagsByArtwork(artworkId);
+	public ResponseEntity<Void> deleteTagByArtwork(@PathVariable Long artworkId) {
+		tagService.deleteTagByArtwork(artworkId);
 		return ResponseEntity.noContent().build();
 	}
-	
-	
+
+	// 전체 태그 목록 조회
+	// 현재 태그 목록은 일반 장르 태그가 아니라, 작품 제목을 태그 형식으로 저장한 목록입니다.
+	@GetMapping
+	public ResponseEntity<List<TagResponse>> getTags() {
+		return ResponseEntity.ok(tagService.getTags());
+	}
 }
     
 

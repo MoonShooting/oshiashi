@@ -1,9 +1,6 @@
 package project.oshiashi.oshiashi.domain.tag.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.antlr.v4.runtime.misc.NotNull;
 
 @Data
@@ -12,5 +9,4 @@ import org.antlr.v4.runtime.misc.NotNull;
 @Builder
 public class TagRequest {
 	private Long artworkId;
-	private String tagName;
 }
