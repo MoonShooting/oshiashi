@@ -4,6 +4,7 @@
 - UI 컴포넌트가 API 응답 스키마를 직접 알지 않도록 중간 계층 역할을 담당
 */
 const parseNumber = (value) => {
+  if (value === null || value === undefined || value === '') return null;
   const next = Number(value);
   return Number.isFinite(next) ? next : null;
 };
@@ -41,6 +42,10 @@ export const createRouteEntries = (route) =>
       longitude: spot.longitude,
       sceneImageUrl: spot.sceneImageUrl,
       referenceImageUrl: null,
+      referenceImagePreviewUrl: null,
+      referenceImageUploadStatus: 'idle',
+      referenceImageUploadError: '',
+      referenceImageFileName: '',
       experiencePhotos: [],
     };
   });
@@ -58,5 +63,9 @@ export const createCustomPlaceEntry = (sortOrder = 0) => ({
   longitude: null,
   sceneImageUrl: null,
   referenceImageUrl: null,
+  referenceImagePreviewUrl: null,
+  referenceImageUploadStatus: 'idle',
+  referenceImageUploadError: '',
+  referenceImageFileName: '',
   experiencePhotos: [],
 });

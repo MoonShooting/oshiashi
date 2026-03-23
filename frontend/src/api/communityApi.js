@@ -7,6 +7,7 @@ import {
   formatDateLabel,
   formatRelativeTimeLabel,
   formatTimeLabel,
+  normalizeTagNames,
   normalizeBookmark,
 } from '@/api/postApiShared';
 
@@ -21,6 +22,42 @@ const COMMUNITY_POSTS_UPDATED_EVENT = 'community-posts-changed';
 const emitCommunityPostsUpdated = () => {
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent(COMMUNITY_POSTS_UPDATED_EVENT));
+  }
+};
+
+const SORT_QUERY_MAP = {
+  latest: 'latest',
+  popular: 'like',
+  views: 'view',
+};
+
+const getStoredAccessToken = () =>
+  localStorage.getItem('accessToken') ?? sessionStorage.getItem('accessToken');
+
+const decodeBase64Url = (value) => {
+  const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+  const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+  return atob(padded);
+};
+
+const resolveUserId = (explicitUserId) => {
+  if (typeof explicitUserId === 'string' && explicitUserId.trim()) {
+    return explicitUserId.trim();
+  }
+
+  const rawToken = getStoredAccessToken();
+  if (!rawToken) return '';
+
+  const token = rawToken.replace(/^Bearer\s+/i, '').trim();
+  const payloadPart = token.split('.')[1];
+  if (!payloadPart) return '';
+
+  try {
+    const payload = JSON.parse(decodeBase64Url(payloadPart));
+    const tokenUserId = payload?.userId ?? payload?.sub ?? payload?.username ?? '';
+    return typeof tokenUserId === 'string' ? tokenUserId.trim() : '';
+  } catch {
+    return '';
   }
 };
 
@@ -51,18 +88,6 @@ const normalizeComment = (comment) => {
   };
 };
 
-const resolvePostTagNames = (post) => {
-  if (!post) return [];
-
-  const source = post.tagNames ?? post.tag_names ?? post.tags;
-  if (!Array.isArray(source)) return [];
-
-  return source
-    .filter(Boolean)
-    .map((tag) => String(tag).replace(/^#/, '').trim())
-    .filter(Boolean);
-};
-
 // 게시글 + 댓글 응답을 커뮤니티 상세 화면용 모델로 합칩니다.
 const toCommunityDetail = (post, comments = []) => {
   if (!post) return null;
@@ -87,7 +112,7 @@ const toCommunityDetail = (post, comments = []) => {
     createdAt,
     publishedDateLabel: formatDateLabel(createdAt),
     publishedTimeLabel: formatTimeLabel(createdAt),
-    tags: resolvePostTagNames(post),
+    tagNames: normalizeTagNames(post.tagNames),
     stats: {
       views: Number(post.viewCount ?? 0),
       likes: Number(post.likeCount ?? 0),
@@ -107,7 +132,7 @@ const toSummary = (detail) => ({
   viewCount: detail.stats?.views ?? 0,
   likeCount: detail.stats?.likes ?? 0,
   commentCount: detail.commentCount ?? detail.comments?.length ?? 0,
-  tags: detail.tags ?? [],
+  tagNames: detail.tagNames ?? [],
   imageUrl: '',
   publishedAt: detail.publishedDateLabel ?? '',
   boardType: 'FREE',
@@ -117,18 +142,17 @@ const toSummary = (detail) => ({
 
 /*
 [커뮤니티 목록 조회]
-- routeIdIsNull=true 조건으로 커뮤니티 글만 가져옵니다.
+- 백엔드 명세에 맞춰 커뮤니티 전용 엔드포인트(/api/v1/posts/community)를 호출합니다.
 - 검색어/정렬 조건을 그대로 querystring으로 전달합니다.
 */
 export const fetchCommunityPosts = async ({ search = '', sortBy = 'latest', limit } = {}) => {
   const params = new URLSearchParams();
-  params.set('routeIdIsNull', 'true');
-  params.set('sort', sortBy);
+  params.set('sort', SORT_QUERY_MAP[sortBy] ?? 'latest');
 
   const keyword = search.trim();
   if (keyword) params.set('search', keyword);
 
-  const response = await FetchJson(`/api/v1/posts?${params.toString()}`);
+  const response = await FetchJson(`/api/v1/posts/community?${params.toString()}`);
   const posts = extractArrayPayload(response)
     .map((post) => toCommunityDetail(post, []))
     .filter((post) => post && post.routeId == null && post.id)
@@ -165,8 +189,10 @@ export const createCommunityPost = async ({ title, content }) => {
 };
 
 // 게시글 수정 후 상세를 재조회해 화면 상태를 서버 기준으로 맞춥니다.
-export const updateCommunityPost = async ({ postId, title, content }) => {
-  await FetchJson(`/api/v1/posts/${postId}`, {
+export const updateCommunityPost = async ({ postId, title, content, userId }) => {
+  const endpoint = appendUserIdQuery(`/api/v1/posts/${postId}`, resolveUserId(userId));
+
+  await FetchJson(endpoint, {
     method: 'PATCH',
     body: JSON.stringify({ title, content }),
   });
@@ -177,8 +203,9 @@ export const updateCommunityPost = async ({ postId, title, content }) => {
 };
 
 // 삭제는 성공 여부만 확인하고, 목록 갱신 이벤트를 발행합니다.
-export const deleteCommunityPost = async ({ postId }) => {
-  await FetchJson(`/api/v1/posts/${postId}`, { method: 'DELETE' });
+export const deleteCommunityPost = async ({ postId, userId }) => {
+  const endpoint = appendUserIdQuery(`/api/v1/posts/${postId}`, resolveUserId(userId));
+  await FetchJson(endpoint, { method: 'DELETE' });
   emitCommunityPostsUpdated();
 };
 

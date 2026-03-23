@@ -45,6 +45,10 @@ public class PostEntity {
 
 	@Column(name = "view_count")
 	private Integer viewCount = 0;
+	
+	public void incrementViewCount() {
+		this.viewCount++;
+	}
 
 	@Column(name = "like_count")
 	private Integer likeCount = 0;

@@ -5,7 +5,8 @@
 - 에러 조기 발견: 서버 에러(404, 500 등) 발생 시 명확한 에러 메시지를 던져줍니다.
 - 코드 단축: 반복되는 BASE_URL이나 headers 설정을 생략할 수 있어 코드가 깔끔해집니다.
 */
-const BASE_URL = 'http://localhost:9933';
+// 업로드 응답의 상대 경로를 절대 URL로 보정할 때도 같은 기준 주소를 써야 하므로 export 합니다.
+export const BASE_URL = 'http://localhost:9933';
 
 const getAccessToken = () => localStorage.getItem('accessToken') ?? sessionStorage.getItem('accessToken');
 

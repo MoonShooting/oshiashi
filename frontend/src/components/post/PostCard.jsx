@@ -37,7 +37,7 @@ const PostCard = ({
   category = '',
   author = '',
   publishedAt = '',
-  tags = [],
+  tagNames = [],
   viewCount,
   likeCount,
   commentCount,
@@ -83,9 +83,9 @@ const PostCard = ({
 
         {/* 태그 영역은 검색 결과 페이지에서 특히 중요합니다.
             현재 카드가 어떤 검색 문맥에 속하는지 사용자가 한눈에 이해하도록 도와줍니다. */}
-        {tags.length > 0 ? (
+        {tagNames.length > 0 ? (
           <div className={styles.tags}>
-            {tags.map((tag) => (
+            {tagNames.map((tag) => (
               <span key={tag} className={styles.tag}>
                 #{tag}
               </span>

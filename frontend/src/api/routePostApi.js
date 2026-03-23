@@ -17,8 +17,8 @@ import { MOCK_POST_CREATE_ROUTES } from '@/data/post/postCreateMockData';
 - 목적: /posts 화면에서 사용하는 목록/상세/게시글 CRUD/댓글 CRUD/좋아요/북마크를 한 곳에서 관리
 - 원칙: 백엔드 응답 스키마 차이를 이 계층에서 흡수하고, 화면에는 안정적인 ViewModel만 전달
 - 생성 규약: POST /api/v1/posts JSON
-  - body: routeId/title/content/status/images[]
-  - images[]: imageUrl/sortOrder/exifLatitude/exifLongitude
+  - body: routeId/title/content/status/thumbnailUrl/images[]/entries[]
+  - 파일 자체는 별도 업로드 API에서 URL을 먼저 발급받은 뒤 JSON에 포함
 - 동기화: 데이터 변경 시 route-posts-changed 이벤트를 발행해 목록/홈 미리보기 갱신
 */
 const ROUTE_POSTS_UPDATED_EVENT = 'route-posts-changed';
@@ -33,6 +33,7 @@ const emitRoutePostsUpdated = () => {
 // 공통 정규화 유틸
 // ------------------------------
 const parseNumber = (value) => {
+  if (value === null || value === undefined || value === '') return null;
   const next = Number(value);
   return Number.isFinite(next) ? next : null;
 };
@@ -99,16 +100,26 @@ const normalizeTagNames = (value) =>
     ),
   );
 
-const resolvePostTagNames = (postResponse) => {
-  const payload = unwrapObjectPayload(postResponse);
-  if (!payload) return [];
+const isPersistableImageUrl = (value) =>
+  typeof value === 'string' && value.trim().length > 0 && !value.startsWith('blob:');
 
-  return normalizeTagNames(
-    payload.tagNames ??
-      payload.tag_names ??
-      payload.tags,
-  );
+const resolvePersistableUserImageUrl = (entry) => {
+  const representativePhoto = entry?.experiencePhotos?.[0] ?? null;
+  // 대표 사진은 업로드 완료 URL만 저장 대상으로 인정합니다.
+  // blob 미리보기나 임시 값은 여기서 걸러야 백엔드에 로컬 URL이 섞이지 않습니다.
+  const candidates = [representativePhoto?.uploadedUrl, representativePhoto?.imageUrl];
+  return candidates.find(isPersistableImageUrl) ?? '';
 };
+
+const resolvePersistableReferenceImageUrl = (entry) => {
+  // 참고 이미지는 사용자가 직접 올린 referenceImageUrl이 우선이고,
+  // 없으면 기존 spot의 sceneImageUrl을 fallback으로 사용합니다.
+  const candidates = [entry?.referenceImageUrl, entry?.sceneImageUrl];
+  return candidates.find(isPersistableImageUrl) ?? '';
+};
+
+const resolvePostTagNames = (postResponse) =>
+  normalizeTagNames(unwrapObjectPayload(postResponse)?.tagNames);
 
 // 백엔드 응답 래퍼(data/result) 유무와 무관하게 실제 payload 객체를 꺼냅니다.
 const unwrapObjectPayload = (response) => {
@@ -170,7 +181,7 @@ const normalizeEntry = (entry, index, fallback = {}) => {
     sceneNote: entry?.sceneNote ?? entry?.experience ?? entry?.note ?? fallback.sceneNote ?? '',
     soundtrack: entry?.soundtrack ?? fallback.soundtrack ?? '기록된 OST 없음',
     visitTimeLabel: entry?.visitTimeLabel ?? fallback.visitTimeLabel ?? '-',
-    moodTags: normalizeTagList(entry?.moodTags ?? entry?.tags ?? fallback.moodTags),
+    moodTags: normalizeTagList(entry?.moodTags ?? entry?.tagNames ?? fallback.moodTags),
   };
 };
 
@@ -179,7 +190,18 @@ const normalizeEntry = (entry, index, fallback = {}) => {
 // 둘 다 없으면 최소 1개 entry를 만들어 상세 화면이 깨지지 않게 합니다.
 const buildEntriesFromPost = (postResponse) => {
   const routeId = resolveRouteId(postResponse);
-  const images = extractArrayPayload(postResponse?.images);
+
+  // 백엔드가 과도기일 수 있어 images 또는 imageUrl 둘 다 허용합니다.
+  // entries가 아직 없더라도 상세 화면이 최대한 유지되게 하는 호환 계층입니다.
+  const images =
+    extractArrayPayload(postResponse?.images).length > 0
+      ? extractArrayPayload(postResponse?.images)
+      : Array.isArray(postResponse?.imageUrl)
+        ? postResponse.imageUrl.map((imageUrl, index) => ({
+            postImageId: `image-${index}`,
+            imageUrl,
+          }))
+        : [];
   const postTagNames = resolvePostTagNames(postResponse);
 
   if (Array.isArray(postResponse?.entries) && postResponse.entries.length > 0) {
@@ -200,7 +222,7 @@ const buildEntriesFromPost = (postResponse) => {
           experience: image.experience,
           latitude: image.exifLatitude,
           longitude: image.exifLongitude,
-          tags: postTagNames,
+          tagNames: postTagNames,
           title: `장소 ${index + 1}`,
           artworkTitle: postResponse?.artworkTitle,
           address: postResponse?.address,
@@ -217,7 +239,7 @@ const buildEntriesFromPost = (postResponse) => {
         id: 'entry-0',
         title: postResponse?.title,
         experience: postResponse?.content,
-        tags: postTagNames,
+        tagNames: postTagNames,
       },
       0,
       {
@@ -245,6 +267,15 @@ const toRoutePostDetail = (postResponse, comments = []) => {
   const entries = buildEntriesFromPost(payload);
   const postTagNames = resolvePostTagNames(payload);
 
+  // 목록/마이페이지는 1장짜리 대표 이미지가 있으면 가장 안정적이므로
+  // 명시적 thumbnailUrl이 없을 때만 entry 첫 장을 fallback으로 사용합니다.
+  const thumbnailUrl =
+    payload.thumbnailUrl ??
+    payload.thumbnail_url ??
+    entries[0]?.userImageUrl ??
+    entries[0]?.referenceImageUrl ??
+    '';
+
   const locationSummary =
     payload.locationSummary ??
     entries
@@ -268,7 +299,7 @@ const toRoutePostDetail = (postResponse, comments = []) => {
     createdAt,
     publishedDateLabel: formatDateLabel(createdAt),
     publishedTimeLabel: formatTimeLabel(createdAt),
-    tags: postTagNames,
+    tagNames: postTagNames,
     routeTitle: payload.routeTitle ?? payload.route?.title ?? `루트 ${routeId ?? '-'}`,
     locationSummary: locationSummary || '위치 정보 없음',
     guideText:
@@ -281,6 +312,7 @@ const toRoutePostDetail = (postResponse, comments = []) => {
     },
     commentCount: Number(payload.commentCount ?? payload.comment_count ?? normalizedComments.length ?? 0),
     comments: normalizedComments,
+    thumbnailUrl,
     entries,
   };
 };
@@ -295,8 +327,9 @@ const toSummary = (detail) => ({
   viewCount: detail.stats?.views ?? 0,
   likeCount: detail.stats?.likes ?? 0,
   commentCount: detail.commentCount ?? detail.comments?.length ?? 0,
-  tags: detail.tags ?? [],
-  imageUrl: detail.entries?.[0]?.userImageUrl ?? detail.entries?.[0]?.referenceImageUrl ?? '',
+  tagNames: detail.tagNames ?? [],
+  imageUrl:
+    detail.thumbnailUrl ?? detail.entries?.[0]?.userImageUrl ?? detail.entries?.[0]?.referenceImageUrl ?? '',
   publishedAt: detail.publishedDateLabel ?? '',
   boardType: detail.boardType ?? 'FREE',
   category: '게시물',
@@ -402,42 +435,52 @@ const dedupeRoutes = (routes) =>
   Array.from(new Map(routes.filter(Boolean).map((route) => [String(route.id), route])).values());
 
 // JSON 생성 payload 빌더:
-// - 백엔드 계약(PostCreateRequest)에 맞춰 routeId/title/content/status/images[]/tagNames를 전송
-// - 이미지 파일 자체는 보내지 않고 imageUrl 문자열만 보냅니다.
+// - 이미지는 사전 업로드 후 반환받은 URL만 전송합니다.
+// - entries 배열을 함께 보내면 상세 화면이 spot 단위로 복원됩니다.
 const buildRouteCreatePayload = ({ selectedRoute, title, selectedTags = [], entries }) => {
-  const payloadImages = entries
-    .map((entry, index) => {
-      const representativePhoto = entry.experiencePhotos?.[0] ?? null;
-      if (!representativePhoto) return null;
+  const payloadEntries = entries.map((entry, index) => {
+    const representativePhoto = entry.experiencePhotos?.[0] ?? null;
 
-      // 현재 작성 UI는 로컬 파일 선택 중심이므로, URL 계약을 맞추기 위해
-      // 우선순위를 두고 imageUrl 후보를 선택합니다.
-      // 1) 대표사진 미리보기 URL(blob:...)
-      // 2) 참고 이미지 URL
-      // 3) 루트 장면 URL
-      const imageUrl =
-        representativePhoto.previewUrl ??
-        entry.referenceImageUrl ??
-        entry.sceneImageUrl ??
-        '';
+    // 프론트가 수집한 입력 상태를 "백엔드가 그대로 저장하기 쉬운 평면 DTO"로 바꿉니다.
+    // 상세 페이지가 필요한 값(name/address/userImageUrl/note)을 이 단계에서 명시적으로 맞춥니다.
+    return {
+      entryId: entry.id,
+      spotId: entry.spotId ?? null,
+      name: entry.name?.trim() ?? '',
+      artworkTitle: entry.artworkTitle?.trim() ?? '',
+      address: entry.address?.trim() ?? '',
+      latitude: parseNumber(entry.latitude),
+      longitude: parseNumber(entry.longitude),
+      sortOrder: entry.sortOrder ?? index,
+      referenceImageUrl: resolvePersistableReferenceImageUrl(entry),
+      userImageUrl: resolvePersistableUserImageUrl(entry),
+      note: representativePhoto?.note?.trim() ?? '',
+    };
+  });
 
-      return {
-        imageUrl,
-        sortOrder: index + 1,
-        exifLatitude: parseNumber(entry.latitude),
-        exifLongitude: parseNumber(entry.longitude),
-      };
-    })
-    .filter((image) => Boolean(image?.imageUrl));
+  // 기존 post_image 구조도 계속 쓸 수 있게 대표 사진 목록을 별도로 만듭니다.
+  const payloadImages = payloadEntries
+    .map((entry, index) => ({
+      imageUrl: entry.userImageUrl,
+      sortOrder: index + 1,
+      exifLatitude: entry.latitude,
+      exifLongitude: entry.longitude,
+    }))
+    .filter((image) => Boolean(image.imageUrl));
 
-  const content = entries
-    .map((entry) => {
-      const representativePhoto = entry.experiencePhotos?.[0] ?? null;
-      return {
-        placeName: entry.name?.trim() ?? '',
-        experience: representativePhoto?.note?.trim() ?? '',
-      };
-    })
+  // 대표 썸네일은 "내 사진 우선, 없으면 참고 이미지" 규칙으로 고정합니다.
+  const thumbnailUrl =
+    payloadEntries.find((entry) => entry.userImageUrl)?.userImageUrl ??
+    payloadEntries.find((entry) => entry.referenceImageUrl)?.referenceImageUrl ??
+    '';
+
+  // 본문은 별도 에디터 대신 장소별 감상 노트를 이어 붙여 생성합니다.
+  // 백엔드가 entries를 저장하지 못하더라도 최소한 텍스트 본문은 남게 하려는 fallback입니다.
+  const content = payloadEntries
+    .map((entry) => ({
+      placeName: entry.name,
+      experience: entry.note,
+    }))
     .filter((entry) => entry.experience)
     .map((entry) => `${entry.placeName || '장소'}: ${entry.experience}`)
     .join('\n\n')
@@ -448,10 +491,11 @@ const buildRouteCreatePayload = ({ selectedRoute, title, selectedTags = [], entr
     title: title.trim(),
     content: content || title.trim(),
     status: 'PUBLIC',
-    // 선택 작품 객체 대신 태그 이름 배열만 전송합니다.
-    // 이번 범위의 목적이 "작성 페이지에서 태그 삽입 UI 준비"이기 때문입니다.
     tagNames: normalizeTagNames(selectedTags),
+    thumbnailUrl,
     images: payloadImages,
+    imageUrl: payloadImages.map((image) => image.imageUrl),
+    entries: payloadEntries,
   };
 
   return post;
@@ -488,7 +532,7 @@ export const fetchRoutePosts = async ({ tags = [], search = '', sortBy = 'latest
     .map(toSummary)
     .filter((item) => {
       if (normalizedTags.length === 0) return true;
-      const lowerTags = (item.tags ?? []).map((tag) => String(tag).toLowerCase());
+      const lowerTags = (item.tagNames ?? []).map((tag) => String(tag).toLowerCase());
       return normalizedTags.every((tag) => lowerTags.includes(tag));
     });
 

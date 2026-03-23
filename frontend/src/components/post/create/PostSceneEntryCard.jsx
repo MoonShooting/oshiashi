@@ -24,9 +24,29 @@ const PostSceneEntryCard = ({
   const photoInputRef = useRef(null);
   const referenceInputRef = useRef(null);
 
-  const referenceImageUrl = entry.referenceImageUrl ?? entry.sceneImageUrl ?? null;
+  const referenceImageUrl =
+    entry.referenceImagePreviewUrl ?? entry.referenceImageUrl ?? entry.sceneImageUrl ?? null;
   const referenceLabel = entry.kind === 'custom-place' ? '비교용 참고 이미지' : '원본 장면';
   const uploadedPhoto = entry.experiencePhotos[0] ?? null;
+
+  // 업로드 상태 문구는 이 카드에서만 가공해,
+  // 부모 페이지는 "상태 값"만 관리하도록 역할을 분리합니다.
+  const referenceUploadMessage =
+    entry.referenceImageUploadStatus === 'uploading'
+      ? '참고 이미지를 업로드하는 중입니다.'
+      : entry.referenceImageUploadStatus === 'error'
+        ? entry.referenceImageUploadError || '참고 이미지 업로드에 실패했습니다.'
+        : entry.referenceImageUploadStatus === 'uploaded'
+          ? `${entry.referenceImageFileName || '참고 이미지'} 업로드가 완료되었습니다.`
+          : '';
+  const photoUploadMessage =
+    uploadedPhoto?.uploadStatus === 'uploading'
+      ? '대표 사진을 업로드하는 중입니다.'
+      : uploadedPhoto?.uploadStatus === 'error'
+        ? uploadedPhoto.uploadError || '대표 사진 업로드에 실패했습니다.'
+        : uploadedPhoto?.uploadStatus === 'uploaded'
+          ? `${uploadedPhoto.name} 업로드가 완료되었습니다.`
+          : '';
   const photoPromptPresets = [
     '이 장면이 특히 좋았던 이유는 ',
     '이 사진을 찍을 때 들은 음악은 ',
@@ -118,6 +138,8 @@ const PostSceneEntryCard = ({
             tabIndex={0}
             onClick={() => referenceInputRef.current?.click()}
             onKeyDown={(event) => {
+              // reference 카드 전체를 업로드 트리거로 열어
+              // 모바일/데스크톱 모두 클릭 영역이 넓게 유지되도록 합니다.
               if (event.key === 'Enter' || event.key === ' ') {
                 event.preventDefault();
                 referenceInputRef.current?.click();
@@ -164,6 +186,17 @@ const PostSceneEntryCard = ({
             </button>
           </div>
 
+          {referenceUploadMessage ? (
+            <p
+              className={
+                entry.referenceImageUploadStatus === 'error'
+                  ? `${styles.uploadStatusText} ${styles.uploadStatusError}`
+                  : styles.uploadStatusText
+              }>
+              {referenceUploadMessage}
+            </p>
+          ) : null}
+
           <input
             ref={referenceInputRef}
             type="file"
@@ -172,8 +205,6 @@ const PostSceneEntryCard = ({
             onChange={(event) => {
               const files = Array.from(event.target.files ?? []);
               if (files.length > 0) {
-                // 참고 이미지는 작성 UI 비교용 상태만 업데이트합니다.
-                // (이번 범위 서버 업로드 대상은 대표사진 files 파트)
                 onUploadReferenceImage(entry.id, files[0]);
               }
               event.target.value = '';
@@ -200,7 +231,7 @@ const PostSceneEntryCard = ({
           <input
             ref={photoInputRef}
             type="file"
-            // 생성 정책 고정: 대표사진은 jpg/png/webp만 허용
+            // 페이지 정책과 동일하게 대표 사진은 jpg/png/webp만 허용합니다.
             accept="image/jpeg,image/png,image/webp"
             hidden
             onChange={(event) => {
@@ -246,6 +277,16 @@ const PostSceneEntryCard = ({
                     </span>
                     <span className={styles.entryMeta}>{uploadedPhoto.name}</span>
                   </div>
+                  {photoUploadMessage ? (
+                    <p
+                      className={
+                        uploadedPhoto.uploadStatus === 'error'
+                          ? `${styles.uploadStatusText} ${styles.uploadStatusError}`
+                          : styles.uploadStatusText
+                      }>
+                      {photoUploadMessage}
+                    </p>
+                  ) : null}
                   <div className={styles.photoNoteHeader}>
                     <strong className={styles.photoNoteLabel}>이 사진의 감상</strong>
                     <span className={styles.photoNoteHelper}>

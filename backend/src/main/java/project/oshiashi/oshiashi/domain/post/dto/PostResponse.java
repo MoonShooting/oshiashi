@@ -38,6 +38,9 @@ public class PostResponse {
 	 * - PostTagEntity 리스트에서 태그 이름(String)만 추출하여 담습니다.
 	 */
 	private List<String> tagNames;
+	
+	// 프론트에서 설정한 댓글 카운팅 하는 변수입니다
+	private Integer commentCount;
 
 	/**
 	 * 엔티티를 DTO로 변환하는 정적 팩토리 메서드
@@ -55,6 +58,8 @@ public class PostResponse {
 				.viewCount(entity.getViewCount())
 				.likeCount(entity.getLikeCount())
 				.createdAt(entity.getCreatedAt())
+				// (추가) 댓글 리스트의 크기를 측정하여 매핑 (Null 체크 포함)
+				.commentCount(entity.getComments() != null ? entity.getComments().size() : 0)
 				.updateAt(entity.getUpdateAt())
 				// [핵심] PostTagEntity 리스트를 순회하며 태그 이름만 String 리스트로 수집
 				.tagNames(entity.getPostTags().stream()

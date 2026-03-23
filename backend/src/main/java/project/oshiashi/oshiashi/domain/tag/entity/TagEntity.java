@@ -34,8 +34,8 @@ public class TagEntity {
     @Column(name = "tag_id", nullable = false, updatable = false)
     private Long tagId;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false) // foreign 키 설정
-    @JoinColumn(name = "artwork_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = true) // foreign 키 설정
+    @JoinColumn(name = "artwork_id", nullable = true)
     private ArtworkEntity artwork;
 
     @Column(name = "tag_name", length = 100, nullable = false, unique = true) // 유니크 추가
@@ -44,8 +44,14 @@ public class TagEntity {
     /**
      * TagEntity 객체를 생성하는 생성자입니다.
      */
-    public TagEntity(ArtworkEntity artwork, String cleanName) {
-        this.artwork = artwork; // 타입이 ArtworkEntity, 전달받은 'artwork' 객체를 엔티티 내부의 'artwork' 필드에 대입합니다.
+    public TagEntity(String cleanName) {
         this.tagName = cleanName; // 가공(Trim, 소문자화)된 태그 이름인 'cleanName' 을 엔티티의 'tagName' 필드에 대입합니다.
+    }
+
+    public static TagEntity of(ArtworkEntity artwork, String tagName) {
+        return TagEntity.builder()
+                .artwork(artwork)
+                .tagName(tagName)
+                .build();
     }
 }

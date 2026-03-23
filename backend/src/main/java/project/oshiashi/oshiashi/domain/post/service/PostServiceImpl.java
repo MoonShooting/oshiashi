@@ -10,7 +10,9 @@ import project.oshiashi.oshiashi.domain.post.dto.PostRequest;
 import project.oshiashi.oshiashi.domain.post.dto.PostResponse;
 import project.oshiashi.oshiashi.domain.post.entity.PostEntity;
 import project.oshiashi.oshiashi.domain.post.entity.PostImageEntity;
+import project.oshiashi.oshiashi.domain.post.entity.PostLikeEntity;
 import project.oshiashi.oshiashi.domain.post.entity.PostTagEntity;
+import project.oshiashi.oshiashi.domain.post.repository.PostLikeRepository;
 import project.oshiashi.oshiashi.domain.post.repository.PostRepository;
 import project.oshiashi.oshiashi.domain.route.entity.RouteEntity;
 import project.oshiashi.oshiashi.domain.route.repository.RouteRepository;
@@ -18,9 +20,12 @@ import project.oshiashi.oshiashi.domain.tag.entity.TagEntity;
 import project.oshiashi.oshiashi.domain.tag.repository.TagRepository;
 import project.oshiashi.oshiashi.domain.user.entity.UserEntity;
 import project.oshiashi.oshiashi.domain.user.repository.UserRepository;
+import project.oshiashi.oshiashi.global.exception.BusinessException;
+import project.oshiashi.oshiashi.global.exception.ErrorCode;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -33,6 +38,7 @@ public class PostServiceImpl implements PostService {
 	private final UserRepository userRepository;
 	private final RouteRepository routeRepository;
 	private final TagRepository tagRepository;
+	private final PostLikeRepository postLikeRepository;
 
 	/**
 	 * 1. 게시글 전체 조회 ( 루트가 있는 게시물)
@@ -51,16 +57,19 @@ public class PostServiceImpl implements PostService {
 
 		if (Boolean.TRUE.equals(routeIdIsNull)) {
 			posts = switch (normalizedSort) {
-				case "view" -> postRepository.findAllByRouteIsNullOrderByViewCountDescCreatedAtDesc();
-				case "like" -> postRepository.findAllByRouteIsNullOrderByLikeCountDescCreatedAtDesc();
-				case "latest", "createdat" -> postRepository.findAllByRouteIsNullOrderByCreatedAtDesc();
+				// 프론트에서 설정한 값에 맞춰서 case 변수명 맞추었습니다
+				// 프론트에서는 <option value="latest">최신순</option> <option value="popular">인기순</option>
+				// <option value="views">조회순</option> 으로 설정 되어있습니다
+				case "views" -> postRepository.findAllByRouteIsNullOrderByViewCountDescCreatedAtDesc();
+				case "popular"  -> postRepository.findAllByRouteIsNullOrderByLikeCountDescCreatedAtDesc();
+				case "latest"-> postRepository.findAllByRouteIsNullOrderByCreatedAtDesc();
 				default -> throw new IllegalArgumentException("지원하지 않는 정렬 방식입니다: " + sort);
 			};
 		} else {
 			posts = switch (normalizedSort) {
-				case "view" -> postRepository.findAllByRouteIsNotNullOrderByViewCountDescCreatedAtDesc();
-				case "like" -> postRepository.findAllByRouteIsNotNullOrderByLikeCountDescCreatedAtDesc();
-				case "latest", "createdat" -> postRepository.findAllByRouteIsNotNullOrderByCreatedAtDesc();
+				case "views" -> postRepository.findAllByRouteIsNotNullOrderByViewCountDescCreatedAtDesc();
+				case "popular"  -> postRepository.findAllByRouteIsNotNullOrderByLikeCountDescCreatedAtDesc();
+				case "latest"-> postRepository.findAllByRouteIsNotNullOrderByCreatedAtDesc();
 				default -> throw new IllegalArgumentException("지원하지 않는 정렬 방식입니다: " + sort);
 			};
 		}
@@ -86,18 +95,22 @@ public class PostServiceImpl implements PostService {
 	 * - 예외: ID가 존재하지 않을 경우 RuntimeException 발생
 	 */
 	@Override
-	@Transactional(readOnly = true)
+	@Transactional
 	public PostResponse getPostById(Long postId) {
 		log.debug("[Service] 게시글 단건 조회 시작 - ID: {}", postId);
 
 		return postRepository.findById(postId)
 				.map(entity -> {
+					
+					entity.incrementViewCount();
+					log.debug("[Service] 조회수 증가!, {}", entity.getViewCount() );
+					
 					log.debug("[Service] 게시글 조회 성공: {}", entity.getTitle());
 					return PostResponse.fromEntity(entity);
 				})
 				.orElseThrow(() -> {
 					log.debug("[Service] 조회 실패: {}번 게시글이 존재하지 않음", postId);
-					return new RuntimeException("게시글을 찾을 수 없습니다.");
+					return new BusinessException(ErrorCode.POST_NOT_FOUND);
 				});
 	}
 
@@ -120,18 +133,18 @@ public class PostServiceImpl implements PostService {
 		String currentUserId = SecurityContextHolder.getContext().getAuthentication().getName();
 		
 		if (currentUserId == null || currentUserId.equals("anonymousUser")) {
-			throw new RuntimeException("인증 정보가 없습니다. 로그인이 필요합니다.");
+			throw new BusinessException(ErrorCode.UNAUTHORIZED, "인증 정보가 없습니다. 로그인이 필요합니다.");
 		}
 		
 		log.debug("[Service] 게시글 등록 요청 시작 - 제목: {}", request.getTitle());
 		
 		UserEntity user = userRepository.findById(request.getUserId())
-				.orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+				.orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "사용자를 찾을 수 없습니다."));
 		
 		RouteEntity route = null;
 		if (request.getRouteId() != null) {
 			route = routeRepository.findById(request.getRouteId())
-					.orElseThrow(() -> new RuntimeException("지정한 루트를 찾을 수 없습니다."));
+					.orElseThrow(() -> new BusinessException(ErrorCode.ROUTE_NOT_FOUND));
 		}
 		
 		
@@ -197,7 +210,7 @@ public class PostServiceImpl implements PostService {
 		PostEntity postEntity = postRepository.findById(postId)
 				.orElseThrow(() -> {
 					log.debug("!!! [Service] 삭제 실패: {}번 게시글이 없습니다.", postId);
-					return new RuntimeException("삭제할 게시글을 찾을 수 없습니다.");
+					return new BusinessException(ErrorCode.POST_NOT_FOUND, "삭제할 게시글을 찾을 수 없습니다.");
 				});
 		
 		// 2. 작성자 검증
@@ -206,7 +219,7 @@ public class PostServiceImpl implements PostService {
 			log.debug("작성자가 아닙니다. 게시글 작성자 ID: {}, 로그인 유저 ID: {}",
 					postEntity.getUser().getUserId(), userId);
 			log.debug("본인꺼만 삭제 가능합니다");
-			throw new RuntimeException("본인이 작성한 글만 삭제할 수 있습니다.");
+			throw new BusinessException(ErrorCode.ACCESS_DENIED, "본인이 작성한 글만 삭제할 수 있습니다.");
 		}
 		
 		postRepository.deleteById(postId);
@@ -229,13 +242,13 @@ public class PostServiceImpl implements PostService {
 		PostEntity postEntity = postRepository.findById(postId)
 				.orElseThrow(() -> {
 					log.debug("[Service] 수정 실패: {}번 게시글이 없습니다.", postId);
-					return new RuntimeException("수정할 게시글을 찾을 수 없습니다.");
+					return new BusinessException(ErrorCode.POST_NOT_FOUND, "수정할 게시글을 찾을 수 없습니다.");
 				});
 		
 		// 작성자 검증
 		if (!postEntity.getUser().getUserId().equals(userId)) {
 			log.debug("본인꺼만 수정 가능합니다");
-			throw new RuntimeException("본인이 작성한 글만 수정할 수 있습니다.");
+			throw new BusinessException(ErrorCode.ACCESS_DENIED, "본인이 작성한 글만 수정할 수 있습니다.");
 		}
 		// 2. 엔티티 데이터 업데이트
 		// 실제로는 route 객체도 새로 찾아와서 수정하는거 고려
@@ -280,17 +293,31 @@ public class PostServiceImpl implements PostService {
 	 * - 예외: 게시글이 없을 경우 EntityNotFoundException 발생
 	 */
 	@Override
-	public PostResponse likePost(Long postId) {
+	public PostResponse likePost(Long postId, String userId) {
 		log.debug("[Service] 좋아요 요청 - ID: {}", postId);
 
-		PostEntity postEntity = postRepository.findById(postId)
+		PostEntity post = postRepository.findById(postId)
 				.orElseThrow(() -> new EntityNotFoundException("게시글 없음: " + postId));
-
-		int oldLikes = (postEntity.getLikeCount() == null) ? 0 : postEntity.getLikeCount();
-		postEntity.setLikeCount(oldLikes + 1);
-
-		log.debug("[Service] 좋아요 반영 완료 ({} -> {})", oldLikes, postEntity.getLikeCount());
-		return PostResponse.fromEntity(postEntity);
+		UserEntity user = userRepository.findById(userId)
+				.orElseThrow(() -> new EntityNotFoundException("유저 없음: " + userId));
+		
+		// 1. 이미 좋아요를 눌렀는지 확인
+		Optional<PostLikeEntity> postLike = postLikeRepository.findByPostAndUser(post, user);
+		
+		if (postLike.isPresent()) {
+			// 2. 이미 있다면? 좋아요 취소 (삭제)
+			postLikeRepository.delete(postLike.get());
+			post.setLikeCount(Math.max(0, post.getLikeCount() - 1));
+			log.debug("[Service] 좋아요 취소 완료");
+		} else {
+			// 3. 없다면? 좋아요 등록 (저장)
+			PostLikeEntity newLike = PostLikeEntity.create(post, user);
+			postLikeRepository.save(newLike);
+			post.setLikeCount((post.getLikeCount() == null ? 0 : post.getLikeCount()) + 1);
+			log.debug("[Service] 좋아요 등록 완료");
+		}
+		
+		return PostResponse.fromEntity(post);
 	}
 
 	/**
@@ -298,6 +325,7 @@ public class PostServiceImpl implements PostService {
 	 * @param post 대상 게시글 엔티티
 	 * @param tagNames 추가할 태그 이름 리스트
 	 */
+	// 게시글 태그는 자유 입력 태그가 아니라 DB에 저장된 작품 제목 태그만 연결합니다.
 	private void addTagsToPost(PostEntity post, List<String> tagNames) {
 		tagNames.forEach(rawName -> {
 			String name = rawName == null ? null : rawName.trim();
@@ -308,7 +336,7 @@ public class PostServiceImpl implements PostService {
 			// DB에 이미 저장된 태그만 선택해서 연결합니다.
 			// 존재하지 않는 태그는 새로 만들지 않고 예외를 발생시킵니다.
 			TagEntity tag = tagRepository.findByTagName(name)
-					.orElseThrow(() -> new IllegalArgumentException("존재하지 않는 태그입니다: " + name));
+					.orElseThrow(() -> new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "존재하지 않는 태그입니다: " + name));
 			
 			// 같은 게시글에 동일한 태그가 중복으로 연결되지 않도록 한 번 더 확인합니다.
 			boolean alreadyMapped = post.getPostTags().stream()
@@ -321,5 +349,22 @@ public class PostServiceImpl implements PostService {
 				post.getPostTags().add(postTag);
 			}
 		});
+	}
+
+	/**
+	 * 메인 화면용 인기 게시글 목록 조회
+	 * - 현재는 루트가 있는 게시글만 대상으로 합니다.
+	 * - 좋아요가 많은 순으로 정렬한 뒤 상위 10개만 반환합니다.
+	 * - 좋아요 수가 같으면 더 최근 글이 먼저 오도록 createdAt 기준을 함께 사용합니다.
+	 */
+	@Override
+	@Transactional(readOnly = true)
+	public List<PostResponse> getTopPosts() {
+		log.debug("[Service] 메인 인기 게시글 목록 조회 요청");
+
+		return postRepository.findAllByRouteIsNotNullOrderByLikeCountDescCreatedAtDesc().stream()
+				.limit(10)
+				.map(PostResponse::fromEntity)
+				.toList();
 	}
 }

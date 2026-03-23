@@ -10,6 +10,8 @@ import project.oshiashi.oshiashi.domain.artwork.repository.ArtworkRepository;
 import project.oshiashi.oshiashi.domain.artwork.repository.ArtworkTypeRepository;
 import project.oshiashi.oshiashi.domain.spot.dto.SpotResponse;
 import project.oshiashi.oshiashi.domain.spot.repository.SpotRepository;
+import project.oshiashi.oshiashi.global.exception.BusinessException;
+import project.oshiashi.oshiashi.global.exception.ErrorCode;
 
 import java.util.List;
 
@@ -78,7 +80,10 @@ public class ArtworkServiceImpl implements ArtworkService {
          * 존재하지 않으면 예외 발생
          */
         ArtworkEntity artwork = artworkRepository.findById(artworkId)
-                .orElseThrow(() -> new IllegalArgumentException("Artwork not found"));
+                .orElseThrow(() -> new BusinessException(
+                        ErrorCode.RESOURCE_NOT_FOUND,
+                        "작품을 찾을 수 없습니다."
+                ));
 
         // Entity → DTO 변환
         return ArtworkResponse.fromEntity(artwork);

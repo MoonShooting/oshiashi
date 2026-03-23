@@ -1,6 +1,6 @@
-package project.oshiashi.oshiashi.domain.map.service;
+package project.oshiashi.oshiashi.domain.spot.map.service;
 
-import project.oshiashi.oshiashi.domain.map.dto.MapPlaceResponse;
+import project.oshiashi.oshiashi.domain.spot.map.dto.MapPlaceResponse;
 
 import java.util.List;
 
@@ -13,4 +13,6 @@ public interface MapService {
     List<MapPlaceResponse> getNearbyPlaces(Double lat, Double lng, Double radiusKm, String mediaType, Integer limit);
     // 장소명 / 작품명 기준 자동완성 추천어를 조회합니다.
     List<String> autocompletePlaces(String keyword);
+
+    List<MapPlaceResponse> getPlacesByTagName(String tagName);
 }

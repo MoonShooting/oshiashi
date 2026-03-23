@@ -43,7 +43,6 @@ const normalizePlace = (raw) => {
       lng,
     },
     title: raw.name ?? '',
-
     placeId,
     artworkId: toIdString(raw.artworkId),
     artworkTitle: raw.artworkTitle ?? '',

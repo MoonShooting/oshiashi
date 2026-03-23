@@ -15,6 +15,8 @@ import project.oshiashi.oshiashi.domain.post.entity.PostEntity;
 import project.oshiashi.oshiashi.domain.post.repository.PostRepository;
 import project.oshiashi.oshiashi.domain.user.entity.UserEntity;
 import project.oshiashi.oshiashi.domain.user.repository.UserRepository;
+import project.oshiashi.oshiashi.global.exception.BusinessException;
+import project.oshiashi.oshiashi.global.exception.ErrorCode;
 import project.oshiashi.oshiashi.security.AuthenticatedUser;
 
 
@@ -39,8 +41,10 @@ public class CommentServiceImpl implements CommentService {
 
         // 게시글 존재 여부 확인
         PostEntity post = postRepository.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다. postId=" + postId));
-        
+                .orElseThrow(() -> new BusinessException(
+                        ErrorCode.POST_NOT_FOUND,
+                        "게시글이 존재하지 않습니다. postId=" + postId
+                ));
         // Comment 엔티티 생성 (Builder 패턴 사용)
         CommentEntity comment = CommentEntity.builder()
                 .post(post)
@@ -90,7 +94,10 @@ public class CommentServiceImpl implements CommentService {
         // 작성자만 수정 가능
         if (!comment.getUser().getUserId().equals(userEntity.getUserId())) {
             log.debug("댓글 수정 권한 없음: 요청자={}, 작성자={}", userEntity.getUserId(), comment.getUser().getUserId());
-            throw new IllegalStateException("댓글 수정 권한이 없습니다.");
+            throw new BusinessException(
+                    ErrorCode.ACCESS_DENIED,
+                    "댓글 수정 권한이 없습니다."
+            );
         }
         // 수정 내용 로그 기록
         log.debug("댓글 내용 변경: [{}] -> [{}]", comment.getContent(), request.getContent());
@@ -112,7 +119,10 @@ public class CommentServiceImpl implements CommentService {
         // 작성자만 삭제 가능
         if (!comment.getUser().getUserId().equals(userEntity.getUserId())) {
             log.debug("댓글 삭제 권한 없음: 요청자={}, 작성자={}", userEntity.getUserId(), comment.getUser().getUserId());
-            throw new IllegalStateException("댓글 삭제 권한이 없습니다.");
+            throw new BusinessException(
+                    ErrorCode.ACCESS_DENIED,
+                    "댓글 삭제 권한이 없습니다."
+            );
         }
         
         log.debug("댓글 삭제 실행: ID = {}, 작성자 = {}", commentId, comment.getUser().getUserId());
@@ -125,7 +135,10 @@ public class CommentServiceImpl implements CommentService {
         
         // 1. 부모 댓글 존재 확인
         CommentEntity parent = commentRepository.findById(parentId)
-                .orElseThrow(() -> new IllegalArgumentException("부모 댓글이 존재하지 않습니다. ID=" + parentId));
+                .orElseThrow(() -> new BusinessException(
+                        ErrorCode.COMMENT_NOT_FOUND,
+                        "부모 댓글이 존재하지 않습니다. ID=" + parentId
+                ));
         
         // 2. 대댓글 생성 (부모 엔티티 설정)
         // 빌더에 parent 필드가 활성화되어 있어야 합니다. (엔티티 Builder)
@@ -158,7 +171,10 @@ public class CommentServiceImpl implements CommentService {
         log.debug("현재 로그인 상태 검사 : {}", principal);
         // 인증 안 된 상태면 principal이 String("anonymousUser")일 수 있음
         if (!(principal instanceof AuthenticatedUser authenticatedUser)) {
-            throw new IllegalStateException("인증 정보가 없습니다.");
+            throw new BusinessException(
+                    ErrorCode.UNAUTHORIZED,
+                    "인증 정보가 없습니다."
+            );
         }
         log.debug("통과 여부 체크 : {}", principal);
         return authenticatedUser.user();
@@ -170,11 +186,17 @@ public class CommentServiceImpl implements CommentService {
     // 만약 댓글이 비어있거나 255자를 넘었는지를 판단합니다
     private void validateContent(String content) {
         if (content == null || content.trim().isEmpty()) {
-            throw new IllegalArgumentException("댓글 내용은 비어 있을 수 없습니다.");
+            throw new BusinessException(
+                    ErrorCode.INVALID_INPUT_VALUE,
+                    "댓글 내용은 비어 있을 수 없습니다."
+            );
         }
 
         if (content.length() > 255) {
-            throw new IllegalArgumentException("댓글 내용은 255자를 초과할 수 없습니다.");
+            throw new BusinessException(
+                    ErrorCode.INVALID_INPUT_VALUE,
+                    "댓글 내용은 255자를 초과할 수 없습니다."
+            );
         }
     }
 }

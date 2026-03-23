@@ -73,17 +73,34 @@ export const appendUserIdQuery = (endpoint, userId) => {
   return `${endpoint}${delimiter}userId=${encodeURIComponent(userId)}`;
 };
 
+export const normalizeTagNames = (value) => {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => String(item).trim().replace(/^#/, ''))
+      .filter(Boolean);
+  }
+
+  if (typeof value === 'string') {
+    return value
+      .split(',')
+      .map((item) => item.trim().replace(/^#/, ''))
+      .filter(Boolean);
+  }
+
+  return [];
+};
+
 export const normalizeBookmark = (bookmark) => ({
   bookmarkId: String(bookmark?.bookmarkId ?? bookmark?.id ?? ''),
   bookmarkName: bookmark?.bookmarkName ?? '',
   postId: String(bookmark?.postId ?? ''),
 });
 
-// 북마크 목록 endpoint가 환경마다 다를 수 있어 후보 endpoint 순서대로 시도합니다.
-export const fetchBookmarksWithFallback = async ({ fetchJson, userId } = {}) => {
+// 북마크 목록 endpoint는 사용자 컨트롤러와 북마크 컨트롤러 두 경로를 순차 시도합니다.
+export const fetchBookmarksWithFallback = async ({ fetchJson } = {}) => {
   const endpoints = [
     '/api/v1/user/myBookmarks',
-    userId ? appendUserIdQuery('/api/v1/user/bookmarks', userId) : null,
+    '/api/v1/bookmarks',
   ].filter(Boolean);
 
   let lastError = null;
