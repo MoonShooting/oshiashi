@@ -140,6 +140,7 @@ export const usePostDetailController = ({
         postId: post.id,
         title: editTitle,
         content: editContent,
+        userId: currentUserId,
       });
 
       setPost(updated);
@@ -161,7 +162,7 @@ export const usePostDetailController = ({
     setIsSavingPost(true);
 
     try {
-      await api.deletePost({ postId: post.id });
+      await api.deletePost({ postId: post.id, userId: currentUserId });
       navigate(listPath);
     } catch (error) {
       setActionError(toErrorMessage(error, mergedMessages.deletePostError));
