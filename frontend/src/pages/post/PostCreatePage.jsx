@@ -5,6 +5,7 @@ import MainLayout from '@/components/layout/MainLayout';
 import PostEditorFields from '@/components/post/create/PostEditorFields';
 import PostRoutePicker from '@/components/post/create/PostRoutePicker';
 import PostSceneEntryCard from '@/components/post/create/PostSceneEntryCard';
+import { uploadPostImage } from '@/api/imageUploadApi';
 import SearchInputPanel from '@/components/search/SearchInputPanel';
 import { loadPostCreateRoutes, submitPostCreate } from '@/api/postCreateApi';
 import { createCustomPlaceEntry, createRouteEntries } from '@/data/post/postCreateDraftUtils';
@@ -20,11 +21,15 @@ const parseTagInput = (value) =>
     .map((item) => normalizeTag(item))
     .filter(Boolean);
 
+// blob: URL은 로컬 미리보기 전용이라 서버 저장 대상으로 보면 안 됩니다.
+const hasUploadedUrl = (value) =>
+  typeof value === 'string' && value.trim().length > 0 && !value.startsWith('blob:');
+
 /*
 [PostCreatePage]
-- 루트 선택 -> 장소 카드 생성 -> 대표사진/감상 입력 -> JSON 생성 전송
+- 루트 선택 -> 장소 카드 생성 -> 대표사진/감상 입력 -> 업로드 API 호출 -> JSON 생성 전송
 - 업로드 정책: 장소별 대표사진 1장, jpg/png/webp, 10MB 이하
-- 참고 이미지는 비교 UI 용도로만 관리(이번 범위 서버 전송 제외)
+- 참고 이미지는 업로드 성공 시 entry.referenceImageUrl로 저장됩니다.
 */
 const PostCreatePage = () => {
   const navigate = useNavigate();
@@ -119,7 +124,33 @@ const PostCreatePage = () => {
     entry.experiencePhotos.some((photo) => photo.previewUrl || photo.note.trim().length > 0),
   ).length;
   const incompleteEntries = entries.filter((entry) => entry.experiencePhotos.length === 0).length;
-  const canSubmit = Boolean(selectedRoute && title.trim() && totalPhotos > 0 && !isSubmitting);
+
+  // 작성 화면에서는 "파일 선택"과 "실제 서버 업로드 완료"를 분리해서 관리합니다.
+  // 이 플래그들이 있어야 업로드 중/실패 상태에서 게시글이 먼저 저장되는 것을 막을 수 있습니다.
+  const hasPendingUploads = entries.some(
+    (entry) =>
+      entry.referenceImageUploadStatus === 'uploading' ||
+      entry.experiencePhotos.some((photo) => photo.uploadStatus === 'uploading'),
+  );
+  const hasFailedUploads = entries.some(
+    (entry) =>
+      entry.referenceImageUploadStatus === 'error' ||
+      entry.experiencePhotos.some((photo) => photo.uploadStatus === 'error'),
+  );
+  const hasMissingUploadedPhotos = entries.some((entry) =>
+    entry.experiencePhotos.some((photo) => !hasUploadedUrl(photo.uploadedUrl)),
+  );
+
+  // 대표 사진은 1장만 있으면 되지만, 반드시 "업로드 완료된 URL"이 있어야 등록 가능하게 막습니다.
+  const canSubmit = Boolean(
+    selectedRoute &&
+      title.trim() &&
+      totalPhotos > 0 &&
+      !isSubmitting &&
+      !hasPendingUploads &&
+      !hasFailedUploads &&
+      !hasMissingUploadedPhotos,
+  );
 
   const registerObjectUrl = (url) => {
     if (url.startsWith('blob:')) {
@@ -169,9 +200,15 @@ const PostCreatePage = () => {
     previewUrl: registerObjectUrl(URL.createObjectURL(file)),
     note: '',
     file,
+    // 파일을 고른 직후에는 미리보기는 가능하지만 서버 URL은 아직 없으므로
+    // 업로드 상태를 함께 들고 다니며 UI와 제출 가능 여부를 제어합니다.
+    uploadStatus: 'uploading',
+    uploadError: '',
+    uploadedUrl: '',
+    uploadedImageId: null,
   });
 
-  const handleAddPhotos = (entryId, files) => {
+  const handleAddPhotos = async (entryId, files) => {
     const nextFile = files[0];
     if (!nextFile) return;
 
@@ -196,6 +233,50 @@ const PostCreatePage = () => {
     });
 
     setSubmitState({ status: 'idle', message: '' });
+
+    try {
+      // 대표 사진은 선택 즉시 서버에 올려 URL을 확보합니다.
+      // 이후 게시글 생성은 file이 아니라 uploadedUrl을 사용합니다.
+      const uploadedImage = await uploadPostImage(nextFile, {
+        purpose: 'post-user-image',
+      });
+
+      updateEntry(entryId, (entry) => ({
+        ...entry,
+        experiencePhotos: entry.experiencePhotos.map((photo) =>
+          photo.id === nextPhoto.id
+            ? {
+                ...photo,
+                uploadStatus: 'uploaded',
+                uploadError: '',
+                uploadedUrl: uploadedImage.url,
+                uploadedImageId: uploadedImage.imageId,
+              }
+            : photo,
+        ),
+      }));
+    } catch (error) {
+      // 실패한 사진은 미리보기는 유지하되, 업로드 실패 상태를 남겨
+      // 사용자가 다시 올리거나 삭제하도록 유도합니다.
+      updateEntry(entryId, (entry) => ({
+        ...entry,
+        experiencePhotos: entry.experiencePhotos.map((photo) =>
+          photo.id === nextPhoto.id
+            ? {
+                ...photo,
+                uploadStatus: 'error',
+                uploadError: error.message || '대표 사진 업로드에 실패했습니다.',
+                uploadedUrl: '',
+                uploadedImageId: null,
+              }
+            : photo,
+        ),
+      }));
+      setSubmitState({
+        status: 'error',
+        message: error.message || '대표 사진 업로드에 실패했습니다.',
+      });
+    }
   };
 
   const handleRemovePhoto = (entryId, photoId) => {
@@ -221,18 +302,50 @@ const PostCreatePage = () => {
     }));
   };
 
-  const handleUploadReferenceImage = (entryId, file) => {
+  const handleUploadReferenceImage = async (entryId, file) => {
+    const previewUrl = registerObjectUrl(URL.createObjectURL(file));
+
     updateEntry(entryId, (entry) => {
-      if (entry.referenceImageUrl) {
-        revokeObjectUrl(entry.referenceImageUrl);
+      if (entry.referenceImagePreviewUrl) {
+        revokeObjectUrl(entry.referenceImagePreviewUrl);
       }
 
-      // 참고 이미지는 UI 비교용 상태만 교체합니다.
       return {
         ...entry,
-        referenceImageUrl: registerObjectUrl(URL.createObjectURL(file)),
+        // 참고 이미지는 업로드 완료 전에도 비교 UI에서 미리 볼 수 있게
+        // preview URL과 실제 저장 URL을 분리해서 들고 갑니다.
+        referenceImagePreviewUrl: previewUrl,
+        referenceImageUploadStatus: 'uploading',
+        referenceImageUploadError: '',
+        referenceImageFileName: file.name,
       };
     });
+
+    try {
+      // 참고 이미지는 상세 비교 뷰의 좌측 이미지로 바로 재사용되므로
+      // sceneImageUrl을 덮어쓰지 않고 별도 referenceImageUrl로 저장합니다.
+      const uploadedImage = await uploadPostImage(file, {
+        purpose: 'post-reference-image',
+      });
+
+      updateEntry(entryId, (entry) => ({
+        ...entry,
+        referenceImageUrl: uploadedImage.url,
+        referenceImageUploadStatus: 'uploaded',
+        referenceImageUploadError: '',
+        referenceImageFileName: uploadedImage.originalName,
+      }));
+    } catch (error) {
+      updateEntry(entryId, (entry) => ({
+        ...entry,
+        referenceImageUploadStatus: 'error',
+        referenceImageUploadError: error.message || '참고 이미지 업로드에 실패했습니다.',
+      }));
+      setSubmitState({
+        status: 'error',
+        message: error.message || '참고 이미지 업로드에 실패했습니다.',
+      });
+    }
   };
 
   const handleAddExtraPlace = () => {
@@ -242,8 +355,8 @@ const PostCreatePage = () => {
   const handleRemoveEntry = (entryId) => {
     setEntries((prev) => {
       const target = prev.find((entry) => entry.id === entryId);
-      if (target?.referenceImageUrl) {
-        revokeObjectUrl(target.referenceImageUrl);
+      if (target?.referenceImagePreviewUrl) {
+        revokeObjectUrl(target.referenceImagePreviewUrl);
       }
       target?.experiencePhotos.forEach((photo) => revokeObjectUrl(photo.previewUrl));
 
@@ -273,8 +386,8 @@ const PostCreatePage = () => {
   const handleSubmit = async () => {
     if (!canSubmit || !selectedRoute || isSubmitting) return;
 
-    // 작성 페이지는 선택 작품 객체를 보내지 않고,
-    // 사용자가 직접 정리한 selectedTags를 함께 보내 태그 삽입 UI 역할에 집중합니다.
+    // 작성 페이지는 업로드가 끝난 URL과 장소별 노트만 정리해서 보내고,
+    // 서버가 이 구조를 상세 조회 응답(entries)로 다시 내려주는 것을 전제로 합니다.
     setSubmitState({ status: 'idle', message: '' });
     setIsSubmitting(true);
 
@@ -308,7 +421,7 @@ const PostCreatePage = () => {
           <h1 className={styles.pageTitle}>루트 기반 게시물 작성</h1>
           <p className={styles.pageDescription}>
             루트를 선택하면 장소 수만큼 기록 카드가 자동으로 생성됩니다. 각 장소마다 대표 사진 1장과
-            감상을 남기고, 등록 시 이미지 URL JSON으로 한 번에 저장합니다.
+            감상을 남기고, 업로드가 끝난 이미지 URL과 장소별 기록 JSON을 함께 저장합니다.
           </p>
         </header>
 
@@ -323,6 +436,20 @@ const PostCreatePage = () => {
           <div className={styles.banner}>
             <AlertCircle size={16} />
             {routeIssues[0]}
+          </div>
+        ) : null}
+
+        {hasPendingUploads ? (
+          <div className={styles.banner}>
+            <AlertCircle size={16} />
+            이미지 업로드가 진행 중입니다. 모든 업로드가 끝나면 게시글을 등록할 수 있습니다.
+          </div>
+        ) : null}
+
+        {hasFailedUploads ? (
+          <div className={styles.banner}>
+            <AlertCircle size={16} />
+            업로드에 실패한 이미지가 있습니다. 다시 업로드하거나 제거한 뒤 등록해 주세요.
           </div>
         ) : null}
 
@@ -376,8 +503,8 @@ const PostCreatePage = () => {
             <strong>현재 작성 진행 상태</strong>
           </div>
           <p className={styles.overviewText}>
-            각 장소에서 대표 사진 1장과 감상을 입력하면, 등록 시 게시글 메타와 이미지 URL 목록을
-            JSON으로 함께 전송합니다.
+            각 장소에서 대표 사진 1장과 감상을 입력하면, 등록 시 게시글 메타와 장소별 이미지 URL 및
+            노트를 JSON으로 함께 전송합니다.
           </p>
           <div className={styles.overviewMetrics}>
             <div className={styles.metricCard}>
@@ -454,7 +581,8 @@ const PostCreatePage = () => {
             <strong className={styles.bottomSummaryTitle}>게시 즉시 공개됩니다</strong>
             <p className={styles.bottomSummaryText}>
               총 {entries.length}개 장소 중 {incompleteEntries}개 장소가 아직 대표 사진을 기다리고 있습니다.
-              장소별 대표 사진은 1장, 파일 용량은 10MB 이하(jpg/png/webp)로 제한됩니다.
+              장소별 대표 사진은 1장, 파일 용량은 10MB 이하(jpg/png/webp)로 제한되며, 업로드가 완료된
+              사진만 최종 등록됩니다.
             </p>
           </div>
 

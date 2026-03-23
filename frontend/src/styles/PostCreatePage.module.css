@@ -849,6 +849,16 @@
   flex-wrap: wrap;
 }
 
+.uploadStatusText {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--pc-text-secondary);
+}
+
+.uploadStatusError {
+  color: #fda4af;
+}
+
 .photoNoteHeader {
   display: flex;
   flex-direction: column;
