@@ -1,4 +1,4 @@
-package project.oshiashi.oshiashi.domain.map.dto;
+package project.oshiashi.oshiashi.domain.spot.map.dto;
 
 import lombok.Builder;
 import lombok.Getter;

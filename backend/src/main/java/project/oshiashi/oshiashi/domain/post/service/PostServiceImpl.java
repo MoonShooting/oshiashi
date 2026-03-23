@@ -325,6 +325,7 @@ public class PostServiceImpl implements PostService {
 	 * @param post 대상 게시글 엔티티
 	 * @param tagNames 추가할 태그 이름 리스트
 	 */
+	// 게시글 태그는 자유 입력 태그가 아니라 DB에 저장된 작품 제목 태그만 연결합니다.
 	private void addTagsToPost(PostEntity post, List<String> tagNames) {
 		tagNames.forEach(rawName -> {
 			String name = rawName == null ? null : rawName.trim();

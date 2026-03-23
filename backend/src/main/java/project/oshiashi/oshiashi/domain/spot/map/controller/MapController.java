@@ -1,9 +1,9 @@
-package project.oshiashi.oshiashi.domain.map.controller;
+package project.oshiashi.oshiashi.domain.spot.map.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-import project.oshiashi.oshiashi.domain.map.dto.MapPlaceResponse;
-import project.oshiashi.oshiashi.domain.map.service.MapService;
+import project.oshiashi.oshiashi.domain.spot.map.dto.MapPlaceResponse;
+import project.oshiashi.oshiashi.domain.spot.map.service.MapService;
 
 import java.util.List;
 
@@ -66,5 +66,13 @@ public class MapController {
     @GetMapping("/autocomplete")
     public List<String> autocompletePlaces(@RequestParam String keyword) {
         return mapService.autocompletePlaces(keyword);
+    }
+
+    // 태그명으로 장소(Spot) 목록 조회
+    // 현재 태그는 작품 제목 태그이므로, 내부적으로는 tagName -> artworkId를 찾은 뒤
+    // 해당 작품에 연결된 Spot 목록을 조회합니다.
+    @GetMapping("/by-tag")
+    public List<MapPlaceResponse> getPlacesByTag(@RequestParam String tagName) {
+        return mapService.getPlacesByTagName(tagName);
     }
 }

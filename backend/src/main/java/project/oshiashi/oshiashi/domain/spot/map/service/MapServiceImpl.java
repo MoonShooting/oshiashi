@@ -1,13 +1,15 @@
-package project.oshiashi.oshiashi.domain.map.service;
+package project.oshiashi.oshiashi.domain.spot.map.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import project.oshiashi.oshiashi.domain.artwork.repository.ArtworkRepository;
-import project.oshiashi.oshiashi.domain.map.dto.MapPlaceResponse;
+import project.oshiashi.oshiashi.domain.spot.map.dto.MapPlaceResponse;
 import project.oshiashi.oshiashi.domain.post.repository.PostRepository;
 import project.oshiashi.oshiashi.domain.spot.entity.SpotEntity;
 import project.oshiashi.oshiashi.domain.spot.repository.SpotRepository;
+import project.oshiashi.oshiashi.domain.tag.entity.TagEntity;
+import project.oshiashi.oshiashi.domain.tag.repository.TagRepository;
 import project.oshiashi.oshiashi.global.exception.BusinessException;
 import project.oshiashi.oshiashi.global.exception.ErrorCode;
 
@@ -24,6 +26,8 @@ public class MapServiceImpl implements MapService {
     private final SpotRepository spotRepository;
     private final PostRepository postRepository;
     private final ArtworkRepository artworkRepository;
+    private final TagRepository tagRepository;
+
 
     // 전체 장소를 지도용 응답 DTO(MapPlaceResponse)로 변환해서 반환합니다.
     // 추후 정렬/페이징이 필요하면 이 메서드에서 확장할 수 있습니다.
@@ -157,6 +161,36 @@ public class MapServiceImpl implements MapService {
                 .filter(name -> name != null && !name.isBlank())
                 .distinct()
                 .limit(10)
+                .toList();
+    }
+
+    /**
+     * 태그명 기준 장소 조회
+     * - 현재 태그는 작품 제목 태그로 설계되어 있습니다.
+     * - 따라서 tagName으로 TagEntity를 찾고, 그 태그가 참조하는 artworkId를 기준으로
+     *   해당 작품의 Spot 목록을 조회합니다.
+     * - Spot 자체에 태그가 직접 연결된 구조는 아닙니다.
+     */
+    @Override
+    public List<MapPlaceResponse> getPlacesByTagName(String tagName) {
+        String cleanName = tagName == null ? null : tagName.trim();
+
+        if (cleanName == null || cleanName.isBlank()) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "태그 이름이 비어 있습니다.");
+        }
+
+        TagEntity tag = tagRepository.findByTagName(cleanName)
+                .orElseThrow(() -> new BusinessException(
+                        ErrorCode.RESOURCE_NOT_FOUND,
+                        "해당 태그를 찾을 수 없습니다."
+                ));
+
+        if (tag.getArtwork() == null) {
+            return List.of();
+        }
+
+        return spotRepository.findByArtwork_ArtworkId(tag.getArtwork().getArtworkId()).stream()
+                .map(MapPlaceResponse::from)
                 .toList();
     }
 }

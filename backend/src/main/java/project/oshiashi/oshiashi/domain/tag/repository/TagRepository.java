@@ -4,6 +4,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import project.oshiashi.oshiashi.domain.tag.entity.TagEntity;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -28,6 +29,10 @@ public interface TagRepository extends JpaRepository<TagEntity, Long> {
 	 */
 	boolean existsByTagName(String tagName);
 
+	// 아트워크 ID 기반
+	Optional<TagEntity> findByArtwork_ArtworkId(Long artworkId);
+	boolean existsByArtwork_ArtworkId(Long artworkId);
+
 	// --- 기존 Artwork 관련 메서드 (이미지 내용 반영) ---
 
 	/**
@@ -44,4 +49,7 @@ public interface TagRepository extends JpaRepository<TagEntity, Long> {
 	 * - 용도: 작품 삭제 시 연쇄 삭제(Trigger 대용) 로직에서 사용합니다.
 	 */
 	void deleteByArtwork_ArtworkId(Long artworkId);
+
+	// 존재하는 tag 목록을 조회하여 선택하도록 하기 위한 조회용
+	List<TagEntity> findAllByOrderByTagNameAsc();
 }
