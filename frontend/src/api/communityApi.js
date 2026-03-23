@@ -117,7 +117,7 @@ export const fetchCommunityPosts = async ({ search = '', sortBy = 'latest', limi
   const keyword = search.trim();
   if (keyword) params.set('search', keyword);
 
-  const response = await FetchJson(`/api/v1/posts?${params.toString()}`);
+  const response = await FetchJson(`/api/v1/posts/community?${params.toString()}`);
   const posts = extractArrayPayload(response)
     .map((post) => toCommunityDetail(post, []))
     .filter((post) => post && post.routeId == null && post.id)
