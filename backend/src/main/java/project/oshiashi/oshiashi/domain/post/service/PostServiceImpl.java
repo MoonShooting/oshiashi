@@ -57,16 +57,19 @@ public class PostServiceImpl implements PostService {
 
 		if (Boolean.TRUE.equals(routeIdIsNull)) {
 			posts = switch (normalizedSort) {
-				case "view", "views" -> postRepository.findAllByRouteIsNullOrderByViewCountDescCreatedAtDesc();
-				case "like","likes", "popular"  -> postRepository.findAllByRouteIsNullOrderByLikeCountDescCreatedAtDesc();
-				case "latest", "createdat" -> postRepository.findAllByRouteIsNullOrderByCreatedAtDesc();
+				// 프론트에서 설정한 값에 맞춰서 case 변수명 맞추었습니다
+				// 프론트에서는 <option value="latest">최신순</option> <option value="popular">인기순</option>
+				// <option value="views">조회순</option> 으로 설정 되어있습니다
+				case "views" -> postRepository.findAllByRouteIsNullOrderByViewCountDescCreatedAtDesc();
+				case "popular"  -> postRepository.findAllByRouteIsNullOrderByLikeCountDescCreatedAtDesc();
+				case "latest"-> postRepository.findAllByRouteIsNullOrderByCreatedAtDesc();
 				default -> throw new IllegalArgumentException("지원하지 않는 정렬 방식입니다: " + sort);
 			};
 		} else {
 			posts = switch (normalizedSort) {
-				case "view", "views" -> postRepository.findAllByRouteIsNotNullOrderByViewCountDescCreatedAtDesc();
-				case "like","likes", "popular"  -> postRepository.findAllByRouteIsNotNullOrderByLikeCountDescCreatedAtDesc();
-				case "latest", "createdat" -> postRepository.findAllByRouteIsNotNullOrderByCreatedAtDesc();
+				case "views" -> postRepository.findAllByRouteIsNotNullOrderByViewCountDescCreatedAtDesc();
+				case "popular"  -> postRepository.findAllByRouteIsNotNullOrderByLikeCountDescCreatedAtDesc();
+				case "latest"-> postRepository.findAllByRouteIsNotNullOrderByCreatedAtDesc();
 				default -> throw new IllegalArgumentException("지원하지 않는 정렬 방식입니다: " + sort);
 			};
 		}
