@@ -1,9 +1,21 @@
 /**
  * @file MapCore.jsx
  * @description 공통 지도 베이스 컴포넌트
- * - pins: CustomPin(미디어 타입별 색상 마커) 렌더링
- * - innerContent: <Map> 내부에 주입할 추가 요소 (OrderPin, DirectionsRenderer 등)
- * - children: <Map> 바깥 오버레이 (searchBar 등)
+ *
+ * [pins 데이터 기준] MapPlaceResponse
+ * - placeId   : 마커 key, selectedPinId 비교 기준
+ * - latitude  : 위도 (Double)
+ * - longitude : 경도 (Double)
+ * - mediaType : 작품 타입명 (DB 한국어값)
+ *
+ * @param {MapPlaceResponse[]} pins          - 지도에 표시할 장소 목록
+ * @param {number|null}        selectedPinId - 선택된 장소의 placeId
+ * @param {{ lat, lng }}       center        - 지도 중심 좌표
+ * @param {boolean}            disableMapClick
+ * @param {ReactNode}          innerContent  - Map 내부 주입 슬롯
+ * @param {ReactNode}          searchBar     - Map 바깥 오버레이
+ * @param {(center: { lat: number, lng: number }) => void} [onCameraIdle] - 지도 카메라가 멈출 때(드래그·줌 후) 현재 중심 좌표 전달 (SpotPage 등에서는 미전달)
+ * @param {(pos: { lat: number, lng: number }) => void} [onMapClick] - SpotPage: 빈 지도 클릭 시 좌표 전달
  */
 import React, { useEffect, useRef } from 'react';
 import { Map, useMap } from '@vis.gl/react-google-maps';
@@ -26,12 +38,41 @@ function MapPanController({ center }) {
   return null;
 }
 
-/**
- * @param {boolean} disableMapClick - true 시 배경 클릭 이벤트 차단
- * @param {ReactNode} innerContent  - <Map> 내부에 렌더링할 요소 (OrderPin, SpotDirections 등)
- * @param {ReactNode} children      - <Map> 바깥 오버레이
- */
-export default function MapCore({ pins, selectedPinId, center, children, innerContent, onPinClick, disableMapClick = false, searchBar = null }) {
+/** 지도 idle 시점의 실제 중심 좌표를 부모에 알립니다 (MapPage 근처 검색 디바운스용). */
+function MapCameraIdleBridge({ onCameraIdle }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!map || typeof onCameraIdle !== 'function') return;
+
+    const listener = google.maps.event.addListener(map, 'idle', () => {
+      const c = map.getCenter();
+      if (!c) return;
+      onCameraIdle({ lat: c.lat(), lng: c.lng() });
+    });
+
+    return () => {
+      google.maps.event.removeListener(listener);
+    };
+  }, [map, onCameraIdle]);
+
+  return null;
+}
+
+export default function MapCore({
+  pins,
+  selectedPinId,
+  center,
+  children,
+  innerContent,
+  onPinClick,
+  disableMapClick = false,
+  searchBar = null,
+  onCameraIdle = undefined,
+  onMapClick = undefined,
+}) {
+  const safePins = Array.isArray(pins) ? pins : [];
+
   return (
     <div className={styles.mapCoreWrapper}>
       <Map
@@ -40,32 +81,44 @@ export default function MapCore({ pins, selectedPinId, center, children, innerCo
         mapId={MAP_ID}
         style={{ width: '100%', height: '100%' }}
         disableDefaultUI={true}
-        clickableIcons={!disableMapClick} // 랜드마크 클릭 제어: true면 클릭 막기
+        clickableIcons={!disableMapClick}
         options={{
           draggableCursor: 'default',
           draggingCursor: 'grabbing',
         }}
         onClick={(e) => {
-          // 배경 클릭 제어: disableMapClick이 true면 아무것도 안 함
           if (disableMapClick) return;
-          const lat = e.detail.latLng.lat;
-          const lng = e.detail.latLng.lng;
+          const ll = e.detail?.latLng;
+          if (!ll) return;
+          const lat = typeof ll.lat === 'function' ? ll.lat() : ll.lat;
+          const lng = typeof ll.lng === 'function' ? ll.lng() : ll.lng;
+          if (typeof onMapClick === 'function') {
+            onMapClick({ lat: Number(lat), lng: Number(lng) });
+            return;
+          }
           console.log('map click', lat, lng);
         }}>
         <MapPanController center={center} />
-        {pins?.map((pin) => (
-          <CustomPin
-            key={pin.id}
-            place={pin}
-            isSelected={selectedPinId === pin.id}
-            onClick={() => onPinClick?.(pin)}
-            onCloseOverlay={() => onPinClick?.(null)}
-          />
-        ))}
-        {/* <Map> 내부 주입 슬롯: OrderPin, SpotDirections 등 Map 컨텍스트가 필요한 요소 */}
+        {typeof onCameraIdle === 'function' ? <MapCameraIdleBridge onCameraIdle={onCameraIdle} /> : null}
+
+        {safePins.map((pin) => {
+          // latitude/longitude 없는 핀은 렌더 생략
+          if (pin.latitude == null || pin.longitude == null) return null;
+          return (
+            <CustomPin
+              key={pin.placeId}
+              place={pin}
+              isSelected={selectedPinId === pin.placeId}
+              onClick={() => onPinClick?.(pin)}
+              onCloseOverlay={() => onPinClick?.(null)}
+            />
+          );
+        })}
+
         {innerContent}
       </Map>
-      {/* searchBar는 <Map> 바깥에 렌더링. 내부에 두면 mousedown 차단으로 드래그 pan 불가 */}
+
+      {/* searchBar: Map 바깥 렌더링 (내부에 두면 mousedown 차단으로 pan 불가) */}
       {searchBar}
       {children}
     </div>

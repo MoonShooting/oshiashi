@@ -40,7 +40,7 @@ public class WebSecurityConfig {
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers(
 								"/v3/api-docs/**",     // Swagger 내부 기본 경로
-								"/api-docs/**",        // 지우님이 설정한 커스텀 경로
+								"/api-docs/**",        // 커스텀 경로
 								"/swagger-ui/**",      // Swagger UI 관련 자원
 								"/swagger-ui.html"     // Swagger UI 접속 페이지
 						).permitAll()
@@ -52,13 +52,19 @@ public class WebSecurityConfig {
 								"/api/v1/auth/withdraw",
 								"/api/v1/auth/me"
 						).authenticated()
-						// 1. 테스트 페이지 및 메인 경로 허용 (추가된 부분)
+						// 테스트 페이지 및 메인 경로 허용 (추가된 부분)
 						.requestMatchers("/", "/home", "/home.html", "/api/v1/auth/**").permitAll()
-						// 2. 인증 없이 접근 가능한 API 경로
+						// 인증 없이 접근 가능한 API 경로
 						.requestMatchers("/api/v1/auth/**").permitAll()
-						// 3. 게시글/댓글 조회(GET)는 비로그인 사용자도 가능
+						// 메인 작품/스팟 조회 공개
+						.requestMatchers(HttpMethod.GET, "/api/v1/main/**").permitAll()
+						// 게시글/댓글 조회(GET)는 비로그인 사용자도 가능
 						.requestMatchers(HttpMethod.GET, "/api/v1/posts/**", "/api/v1/comments/**").permitAll()
-						// 4. 반드시 유효한 토큰이 있어야 하는 경로 (마이페이지 등)
+						// 지도/작품 조회 API는 비로그인 사용자도 조회 가능
+						.requestMatchers(HttpMethod.GET, "/api/v1/map/**").permitAll()
+						.requestMatchers(HttpMethod.GET, "/api/v1/artwork/**").permitAll()
+						.requestMatchers(HttpMethod.POST, "/api/v1/artwork/import").permitAll()
+						// 반드시 유효한 토큰이 있어야 하는 경로 (마이페이지 등)
 						.requestMatchers("/api/v1/user/**").authenticated()
 						.requestMatchers(HttpMethod.POST, "/api/v1/posts/**", "/api/v1/comments/**").authenticated()
 						.requestMatchers(HttpMethod.PATCH, "/api/v1/posts/**", "/api/v1/comments/**").authenticated()

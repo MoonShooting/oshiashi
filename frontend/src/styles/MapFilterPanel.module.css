@@ -6,7 +6,7 @@
   position: absolute;
   top: 120px; /* 필터 사이드바 top 간격 */
   left: 14px;
-  width: 250px;
+  width: 260px;
   background: rgba(16, 16, 26, 0.96);
   border: 1px solid rgba(157, 80, 187, 0.22);
   border-radius: 14px;
@@ -16,6 +16,10 @@
   z-index: 50; /* map 필터 */
   overflow: hidden;
   transition: height 0.25s;
+}
+
+.panel.overflowVisible {
+  overflow: visible;
 }
 
 /* 헤더 */
@@ -107,11 +111,17 @@
   color: rgba(255, 255, 255, 0.3);
 }
 
-/* 칩 행 */
+/* 미디어 타입 칩 정렬 (한 줄 배치) */
 .chipRow {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap; /* 줄바꿈 방지 */
   gap: 6px;
+  overflow-x: scroll;
+  padding-bottom: 5px;
+}
+
+.chipRow::-webkit-scrollbar {
+  display: none;
 }
 
 /* 칩 버튼 */
@@ -143,6 +153,61 @@
   font-weight: 500;
 }
 
+/* 활성 칩별 테두리 강조 (인라인 스타일 대체) */
+.chipTint_ANIME {
+  border-color: #7c3aed;
+}
+.chipTint_DRAMA {
+  border-color: #be185d;
+}
+.chipTint_MOVIE {
+  border-color: #b45309;
+}
+
+.toggleBtn svg {
+  transition: transform 0.2s ease;
+}
+.toggleBtnCollapsed svg {
+  transform: rotate(180deg);
+}
+
 .chipIcon {
   font-size: 10px;
+}
+/* 1. 작품명 입력창 감싸는 영역 */
+.workSearchWrapper {
+  position: relative;
+  width: 100%;
+}
+
+/* 2. 자동완성 드롭다운 (다크 테마 최적화) */
+.autocompleteList {
+  position: absolute;
+  top: calc(100% + 4px); /* 입력창 바로 아래 살짝 띄움 */
+  left: 0;
+  width: 100%;
+  background-color: #272738;
+  border: 1px solid rgba(157, 80, 187, 0.4); /* 보라색 포인트 유지 */
+  border-radius: 8px; /* 패널과 통일감 */
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5); /* 공중에 뜬 느낌 부여 */
+  z-index: 1000;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.autocompleteItem {
+  padding: 8px 12px;
+  cursor: pointer;
+  color: #b0b0cf;
+  /* color: #eee; */
+  font-size: 0.9rem;
+}
+/* font-size: 0.85rem;
+  transition: all 0.2s ease;
+} */
+
+.autocompleteItem:hover,
+.autocompleteItem.active {
+  background-color: #3f3f5f;
+  color: #ffffff;
 }

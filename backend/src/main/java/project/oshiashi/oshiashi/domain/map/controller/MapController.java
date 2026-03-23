@@ -34,37 +34,30 @@ public class MapController {
         return mapService.searchPlaces(keyword, mediaType);
     }
 
-    // 현재 지도 화면에 보이는 범위 안의 장소만 조회합니다.
-    // 프론트가 지도 이동/확대 축소 후 보이는 영역에 맞는 마커만 다시 그릴 때 사용합니다.
-    @GetMapping("/markers")
-    public List<MapPlaceResponse> getMarkers(
-            @RequestParam Double north, // 여기도 더블이네
-            @RequestParam Double south,
-            @RequestParam Double east,
-            @RequestParam Double west
-    ) {
-        return mapService.getMarkersInBounds(north, south, east, west);
-    }
-
-    // 사용자가 특정 마커를 클릭했을 때 보여줄 장소 상세 정보를 조회합니다.
-    // 반경(radiusKm) 안에 있는 장소 목록을 조회합니다.
-    @GetMapping("/{placeId}")
-    public MapPlaceResponse getPlaceDetail(@PathVariable Long placeId) {
-        return mapService.getPlaceDetail(placeId);
-    }
-
-    // 현제 위치 또는 지도 중심 좌표 기준으로 반경 내 장소를 조회
+    // 지도 중심 좌표 기준 반경 내 장소 목록 (거리 가까운 순, 최대 limit건)
+    // 경로: /{placeId} 보다 먼저 등록해 "nearby"가 placeId로 해석되지 않도록 합니다.
     @GetMapping("/nearby")
     public List<MapPlaceResponse> getNearbyPlaces(
             @RequestParam Double lat,
             @RequestParam Double lng,
-            @RequestParam(defaultValue = "3.0") Double radiusKm
+            @RequestParam(defaultValue = "10.0") Double radiusKm,
+            @RequestParam(required = false) String mediaType,
+            @RequestParam(name = "artworkTypeName", required = false) String artworkTypeName,
+            @RequestParam(defaultValue = "10") Integer limit
     ) {
-        return mapService.getNearbyPlaces(lat, lng, radiusKm);
+        String typeFilter = (mediaType != null && !mediaType.isBlank()) ? mediaType : artworkTypeName;
+        return mapService.getNearbyPlaces(lat, lng, radiusKm, typeFilter, limit);
     }
-    // 검색창 자동완성용 추천어를 조회합니다.
+
+    // 검색창 자동완성 — /{placeId} 보다 먼저 등록 (문자 경로 충돌 방지)
     @GetMapping("/autocomplete")
     public List<String> autocompletePlaces(@RequestParam String keyword) {
         return mapService.autocompletePlaces(keyword);
+    }
+
+    // 사용자가 특정 마커를 클릭했을 때 보여줄 장소 상세 정보를 조회합니다.
+    @GetMapping("/{placeId}")
+    public MapPlaceResponse getPlaceDetail(@PathVariable Long placeId) {
+        return mapService.getPlaceDetail(placeId);
     }
 }

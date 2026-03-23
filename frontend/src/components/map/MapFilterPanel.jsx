@@ -1,117 +1,196 @@
-/**
- * @file MapFilterPanel.jsx
- * @description 지도 좌측 필터 패널 (MapPage 전용)
- *
- * UI 캡처본 기준:
- * - 좌측 상단 고정
- * - 접기/펼치기 토글
- * - 작품 검색 입력
- * - 미디어 타입 필터 (애니 / 드라마 / 영화)
- * - 정렬 (최신 / 인기)
- *
- * @param {Function} onFilterChange - 필터 변경 시 콜백
- */
-
-import React, { useState } from 'react';
-import { useMapStore } from '@/stores/useMapStore';
-import { MEDIA_TYPE, MEDIA_TYPE_LABEL, SORT_TYPE, SORT_TYPE_LABEL, PIN_COLOR } from '@/constants/mapConstants';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import styles from '@/styles/MapFilterPanel.module.css';
+import { autocompletePlaces, importArtwork } from '@/api/mapApi.js';
+import { PIN_COLOR } from '@/constants/mapConstants';
 
-export default function MapFilterPanel({ onFilterChange }) {
+export default function MapFilterPanel({ activeMediaTypes = [], onToggleMediaType, onWorkSearch, serverMediaTypes = [] }) {
   const [collapsed, setCollapsed] = useState(false);
   const [workKeyword, setWorkKeyword] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
+  const [isOpen, setIsOpen] = useState(false);
+  const [activeIdx, setActiveIdx] = useState(-1);
 
-  const { activeMediaTypes, sortType, toggleMediaType, fetchHotPlaces, searchByWork, clearMediaFilter } = useMapStore();
+  const debounceRef = useRef(null);
+  const wrapperRef = useRef(null);
+  const isComposing = useRef(false); // 한글 입력 조합 상태 관리
 
-  // 미디어 타입 토글
+  const FIXED_MEDIA_TYPES = ['영화', '드라마', '애니메이션']; //api 호출하지말고 고정값 사용
 
-  const handleMediaToggle = (type) => {
-    toggleMediaType(type);
-    onFilterChange?.();
-  };
-
-  // 정렬 변경
-
-  const handleSortChange = (sort) => {
-    fetchHotPlaces(sort);
-    onFilterChange?.();
-  };
-
-  // 작품명 검색
-
-  const handleWorkSearch = () => {
-    if (!workKeyword.trim()) {
-      clearMediaFilter();
-      fetchHotPlaces(sortType);
-    } else {
-      // 활성화된 미디어 타입 중 첫 번째로 검색 (복수 타입 지원은 TODO)
-      searchByWork(workKeyword, activeMediaTypes[0] || null);
+  // 자동완성 호출 로직 (백엔드 ExternalArtworkCandidateResponse 대응)
+  const scheduleAutocomplete = useCallback((val) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    const query = val?.trim();
+    if (!query || query.length <= 1) {
+      setSuggestions([]);
+      setIsOpen(false);
+      return;
     }
-    onFilterChange?.();
+
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const data = await autocompletePlaces(query);
+        // 백엔드에서 온 데이터가 배열인지 확인하고 상태 업데이트
+        setSuggestions(Array.isArray(data) ? data : []);
+        setIsOpen(true);
+        setActiveIdx(-1);
+      } catch (err) {
+        console.error('[MapFilterPanel] 자동완성 로드 실패:', err);
+        setSuggestions([]);
+      }
+    }, 300);
+  }, []);
+
+  // 입력 핸들러 (한글 씹힘 방지 로직 포함)
+  const handleInputChange = (e) => {
+    const val = e.target.value;
+    setWorkKeyword(val);
+
+    // 한글 조합 중일 때는 API 호출을 하지 않고 기다렸다가, 조합이 끝나면 호출하거나
+    // 타이핑 속도에 맞춰 디바운스만 태웁니다.
+    if (!isComposing.current) {
+      scheduleAutocomplete(val);
+    }
   };
+
+  // 작품 선택 시 (Import API 연동)
+  const handleSelectItem = async (candidate) => {
+    if (!candidate) return;
+
+    // 데이터 구조에 따른 제목 추출 (객체면 .title, 문자열이면 그대로)
+    const title = typeof candidate === 'object' ? candidate.title : candidate;
+
+    try {
+      // TMDB 객체 데이터가 넘어온 경우 (ExternalArtworkCandidateResponse)
+      if (typeof candidate === 'object' && candidate.mediaType) {
+        const saved = await importArtwork({
+          title: candidate.title,
+          posterPath: candidate.posterPath,
+          overview: candidate.overview,
+          mediaType: candidate.mediaType,
+          genreIds: candidate.genreIds,
+        });
+        const finalTitle = saved.title || title;
+        setWorkKeyword(finalTitle);
+        onWorkSearch?.(finalTitle);
+      } else {
+        // 단순 DB 검색 결과인 경우
+        setWorkKeyword(title);
+        onWorkSearch?.(title);
+      }
+    } catch (err) {
+      console.error('[MapFilterPanel] 작품 연동 실패:', err);
+      // 에러 시에도 일단 검색은 시도
+      onWorkSearch?.(title);
+    } finally {
+      setIsOpen(false);
+      setSuggestions([]);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (isComposing.current) return; // 한글 조합 중 엔터로 인한 중복 호출 방지
+
+    if (e.key === 'ArrowDown' && isOpen) {
+      e.preventDefault();
+      setActiveIdx((prev) => Math.min(prev + 1, suggestions.length - 1));
+    } else if (e.key === 'ArrowUp' && isOpen) {
+      e.preventDefault();
+      setActiveIdx((prev) => Math.max(prev - 1, 0));
+    } else if (e.key === 'Enter') {
+      if (isOpen && activeIdx >= 0) {
+        handleSelectItem(suggestions[activeIdx]);
+      } else if (workKeyword.trim()) {
+        onWorkSearch?.(workKeyword.trim());
+        setIsOpen(false);
+      }
+    }
+  };
+
+  // 외부 클릭 시 닫기
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) setIsOpen(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
 
   return (
-    <div className={`${styles.panel}`}>
-      {/* 헤더 */}
+    <div className={`${styles.panel} ${isOpen && suggestions.length > 0 ? styles.overflowVisible : ''}`} ref={wrapperRef}>
       <div className={styles.header}>
         <span className={styles.title}>필터</span>
-        <button className={styles.toggleBtn} onClick={() => setCollapsed((v) => !v)} aria-label={collapsed ? '필터 펼치기' : '필터 접기'}>
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            style={{ transform: collapsed ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
-            <polyline points="18 15 12 9 6 15" />
+        <button type="button" className={styles.toggleBtn} onClick={() => setCollapsed(!collapsed)}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <polyline points={collapsed ? '6 9 12 15 18 9' : '18 15 12 9 6 15'} />
           </svg>
         </button>
       </div>
 
-      {/* 필터 내용 (접히면 숨김) */}
       {!collapsed && (
         <div className={styles.body}>
-          {/* 작품 검색 */}
           <div className={styles.section}>
             <label className={styles.sectionLabel}>작품</label>
-            <div className={styles.workSearchRow}>
-              <svg className={styles.searchIcon} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
-              <input
-                className={styles.workInput}
-                value={workKeyword}
-                onChange={(e) => setWorkKeyword(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleWorkSearch()}
-                placeholder="작품명 검색..."
-              />
+            <div className={styles.workSearchWrapper}>
+              <div className={styles.workSearchRow}>
+                <input
+                  className={styles.workInput}
+                  value={workKeyword}
+                  onChange={handleInputChange}
+                  onCompositionStart={() => {
+                    isComposing.current = true;
+                  }}
+                  onCompositionEnd={(e) => {
+                    isComposing.current = false;
+                    handleInputChange(e); // 조합 완료 후 최종 값으로 검색
+                  }}
+                  onKeyDown={handleKeyDown}
+                  placeholder="작품명 검색..."
+                  autoComplete="off"
+                />
+              </div>
+
+              {isOpen && suggestions.length > 0 && (
+                <ul className={styles.autocompleteList}>
+                  {suggestions.map((item, idx) => {
+                    const title = typeof item === 'object' ? item.title : item;
+                    return (
+                      <li
+                        key={idx}
+                        className={`${styles.autocompleteItem} ${idx === activeIdx ? styles.active : ''}`}
+                        onClick={() => handleSelectItem(item)}>
+                        {title}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
             </div>
           </div>
 
-          {/* 미디어 타입 */}
           <div className={styles.section}>
-            <label className={styles.sectionLabel}>미디어 타입</label>
+            <label className={styles.sectionLabel}>태그</label>
             <div className={styles.chipRow}>
-              {Object.values(MEDIA_TYPE).map((type) => {
-                // activeMediaTypes가 없으면 빈 배열로 취급해서 includes 에러를 방지합니다.
-                const isActive = (activeMediaTypes || []).includes(type);
+              {FIXED_MEDIA_TYPES.map((type) => {
+                const isActive = activeMediaTypes.includes(type);
+                const config = PIN_COLOR[type] || PIN_COLOR.DEFAULT;
 
-                const color = PIN_COLOR[type];
                 return (
                   <button
                     key={type}
+                    type="button"
                     className={`${styles.chip} ${isActive ? styles.chipActive : ''}`}
-                    onClick={() => handleMediaToggle(type)}
-                    style={isActive ? { borderColor: color.border } : {}}>
-                    {/* 미디어 타입 아이콘 */}
-                    <span className={styles.chipIcon}>
-                      {type === MEDIA_TYPE.ANIME && '▶'}
-                      {type === MEDIA_TYPE.DRAMA && '📺'}
-                      {type === MEDIA_TYPE.MOVIE && '🎬'}
-                    </span>
-                    {MEDIA_TYPE_LABEL[type]}
+                    style={
+                      isActive
+                        ? {
+                            backgroundColor: config.background,
+                            borderColor: config.border,
+                            color: config.glyph,
+                          }
+                        : {}
+                    }
+                    onClick={() => onToggleMediaType?.(type)}>
+                    <span className={styles.chipIcon}>{config.icon}</span>
+                    {type}
                   </button>
                 );
               })}
