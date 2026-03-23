@@ -23,6 +23,9 @@ public interface PostService {
 	PostResponse likePost(Long postId);
 	
 	List<PostResponse> getAllPost(Boolean routeIdIsNull, String sort, String search, List<String> tags);
+
+	// 인기글 목록 조회(좋아요 기준 Top 10)
+	List<PostResponse> getTopPosts();
 }
 /*
   인터페이스를 이용함으로써 사용법(Interface)과 실제 기능(Impl) 을 분리

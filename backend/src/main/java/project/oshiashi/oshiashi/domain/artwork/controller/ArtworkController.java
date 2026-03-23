@@ -5,6 +5,8 @@ import org.springframework.web.bind.annotation.*;
 import project.oshiashi.oshiashi.domain.artwork.dto.ArtworkResponse;
 import project.oshiashi.oshiashi.domain.artwork.dto.ArtworkTypeResponse;
 import project.oshiashi.oshiashi.domain.artwork.service.ArtworkService;
+import project.oshiashi.oshiashi.domain.post.dto.PostResponse;
+import project.oshiashi.oshiashi.domain.post.service.PostService;
 import project.oshiashi.oshiashi.domain.spot.dto.SpotResponse;
 
 import java.util.List;
@@ -29,6 +31,8 @@ public class ArtworkController {
      * Controller는 요청 전달과 응답 반환 역할만 담당
      */
     private final ArtworkService artworkService;
+    private final PostService postService;
+
 
     /*
      * 1. 작품 전체 조회
@@ -121,19 +125,21 @@ public class ArtworkController {
     public List<ArtworkResponse> searchArtworks(@RequestParam String keyword) {
         return artworkService.searchArtworks(keyword);
     }
+
     /*
-    @GetMapping("/test")
-    public List<ArtworkResponse> test() {
-        return List.of(
-                ArtworkResponse.builder()
-                        .artworkId(1L)
-                        .title("테스트 작품")
-                        .posterUrl("https://example.com/poster.jpg")
-                        .description("설명")
-                        .spotifyAlbumId("spotify123")
-                        .artworkTypeId(1L)
-                        .artworkTypeName("애니메이션")
-                        .build()
-        );
-    }*/
+     * 5. 메인 화면 실시간 인기 게시글 조회
+     *
+     * GET /api/v1/main/trendingPost
+     *
+     * 동작
+     * - 좋아요가 많은 게시글을 기준으로 인기글을 조회합니다.
+     * - 현재는 루트가 있는 게시글만 대상으로 상위 10개를 반환합니다.
+     *
+     * 반환
+     * - PostResponse 리스트
+     */
+    @GetMapping("/trendingPost")
+    public List<PostResponse> getTrendingPosts() {
+        return postService.getTopPosts();
+    }
 }
