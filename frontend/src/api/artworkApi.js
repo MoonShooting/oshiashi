@@ -76,79 +76,34 @@ const normalizeArtwork = (item, mediaType) => ({
 });
 
 // 홈 메인 화면은 자동 인기 집계 대신 서비스가 보여주고 싶은 대표작 5개를 고정 큐레이션합니다.
-// TMDB에서는 각 작품의 실제 포스터/제목/연도를 가져오되, 어떤 작품을 노출할지는 프론트에서 명시합니다.
+// 검색어 기반 매칭은 동명이작/오탐에 취약하므로 홈 큐레이션은 TMDB ID를 고정합니다.
 const FEATURED_HOME_ARTWORKS = [
   {
-    query: 'Toradora!',
+    tmdbId: 42916,
     mediaType: 'tv',
     fallbackTitle: '토라도라!',
   },
   {
-    query: 'The Melancholy of Haruhi Suzumiya',
+    tmdbId: 42511,
     mediaType: 'tv',
     fallbackTitle: '스즈미야 하루히의 우울',
   },
   {
-    query: 'K-ON!',
+    tmdbId: 42253,
     mediaType: 'tv',
     fallbackTitle: '케이온!',
-    aliases: ['K-ON!', '케이온!'],
   },
   {
-    // "너의 이름은"은 동명 결과가 섞일 수 있어
-    // 신카이 마코토 작품으로 안정적으로 잡히도록 일본어 원제를 사용합니다.
-    query: '君の名は。',
+    tmdbId: 372058,
     mediaType: 'movie',
     fallbackTitle: '너의 이름은',
   },
   {
-    query: 'Bocchi the Rock!',
+    tmdbId: 119100,
     mediaType: 'tv',
     fallbackTitle: '봇치 더 록!',
   },
 ];
-
-const normalizeTitleForMatch = (value) =>
-  String(value ?? '')
-    .toLowerCase()
-    .replace(/[^a-z0-9가-힣ぁ-んァ-ヶー]+/g, '');
-
-const collectRawTitleCandidates = (item) => [
-  item?.title,
-  item?.name,
-  item?.original_title,
-  item?.original_name,
-];
-
-const selectBestSearchResult = (results, aliases = []) => {
-  if (!Array.isArray(results) || results.length === 0) return null;
-
-  const normalizedAliases = aliases
-    .map((alias) => normalizeTitleForMatch(alias))
-    .filter(Boolean);
-
-  if (normalizedAliases.length === 0) {
-    return results[0];
-  }
-
-  const exactMatched = results.find((item) => {
-    const candidates = collectRawTitleCandidates(item).map((title) => normalizeTitleForMatch(title));
-    return normalizedAliases.some((alias) => candidates.includes(alias));
-  });
-
-  if (exactMatched) {
-    return exactMatched;
-  }
-
-  const partialMatched = results.find((item) => {
-    const candidates = collectRawTitleCandidates(item).map((title) => normalizeTitleForMatch(title));
-    return normalizedAliases.some((alias) =>
-      candidates.some((candidate) => candidate.includes(alias) || alias.includes(candidate)),
-    );
-  });
-
-  return partialMatched ?? results[0];
-};
 
 const fetchTmdbSearch = async ({ path, query, mediaType }) => {
   const { headers } = readTmdbCredential();
@@ -173,9 +128,9 @@ const fetchTmdbSearch = async ({ path, query, mediaType }) => {
     .map((item) => normalizeArtwork(item, mediaType));
 };
 
-const fetchTmdbSearchRaw = async ({ path, query }) => {
+const fetchTmdbDetail = async ({ path, mediaType }) => {
   const { headers } = readTmdbCredential();
-  const { url } = buildTmdbUrl(path, { query });
+  const { url } = buildTmdbUrl(path);
   const response = await fetch(url, {
     headers: {
       accept: 'application/json',
@@ -189,7 +144,7 @@ const fetchTmdbSearchRaw = async ({ path, query }) => {
   }
 
   const payload = await response.json();
-  return Array.isArray(payload.results) ? payload.results : [];
+  return normalizeArtwork(payload, mediaType);
 };
 
 // ArtworkSearchPage가 바로 소비할 수 있는 공통 작품 모델로 변환해 반환합니다.
@@ -223,28 +178,20 @@ export const searchExternalArtworks = async ({ query, mediaType = 'all' }) => {
 };
 
 // 홈 "인기 작품" 섹션은 자동 인기순이 아니라 서비스가 직접 고른 대표작 목록을 사용합니다.
-// 각 항목은 TMDB 검색 결과 중 첫 번째 일치 작품을 사용해 실제 포스터/연도/타입을 보여줍니다.
+// 각 항목은 고정된 TMDB ID를 사용해 항상 같은 작품의 포스터/연도/타입을 보여줍니다.
 export const fetchPopularArtworks = async ({ limit = FEATURED_HOME_ARTWORKS.length } = {}) => {
   const results = await Promise.all(
     FEATURED_HOME_ARTWORKS.slice(0, limit).map(async (item) => {
-      const path = item.mediaType === 'movie' ? '/search/movie' : '/search/tv';
-      // 홈 큐레이션 작품은 "검색 첫 결과"를 바로 쓰면 잘못된 포스터가 섞일 수 있어
-      // query/fallbackTitle/alias를 기준으로 가장 정확히 맞는 결과를 다시 골라냅니다.
-      const rawResults = await fetchTmdbSearchRaw({
+      const path = item.mediaType === 'movie' ? `/movie/${item.tmdbId}` : `/tv/${item.tmdbId}`;
+      const matched = await fetchTmdbDetail({
         path,
-        query: item.query,
-      });
-      const matchedRaw = selectBestSearchResult(rawResults, [
-        item.query,
-        item.fallbackTitle,
-        ...(item.aliases ?? []),
-      ]);
-      const matched = matchedRaw ? normalizeArtwork(matchedRaw, item.mediaType) : null;
+        mediaType: item.mediaType,
+      }).catch(() => null);
 
       if (!matched) {
         return {
-          id: `${item.mediaType}-${item.query}`,
-          tmdbId: null,
+          id: `${item.mediaType}-${item.tmdbId}`,
+          tmdbId: item.tmdbId,
           mediaType: item.mediaType,
           artworkTypeName: item.mediaType === 'movie' ? '영화' : '드라마',
           title: item.fallbackTitle,
