@@ -5,7 +5,8 @@
 - 에러 조기 발견: 서버 에러(404, 500 등) 발생 시 명확한 에러 메시지를 던져줍니다.
 - 코드 단축: 반복되는 BASE_URL이나 headers 설정을 생략할 수 있어 코드가 깔끔해집니다.
 */
-const BASE_URL = 'http://localhost:9933';
+// 업로드 응답의 상대 경로를 절대 URL로 보정할 때도 같은 기준 주소를 써야 하므로 export 합니다.
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:9933';
 
 const getAccessToken = () =>
   localStorage.getItem('accessToken') ?? sessionStorage.getItem('accessToken');
@@ -78,7 +79,7 @@ const parseErrorMessage = async (response) => {
 const request = async (endpoint, options = {}, { isMultipart = false } = {}) => {
   // 로그인 유지 여부에 따라 localStorage 또는 sessionStorage 중 한 곳에만 토큰이 저장됩니다.
   // 공통 fetch 계층에서는 두 저장소를 모두 확인해, 페이지 코드가 저장 위치를 알 필요 없게 만듭니다.
-  const response = await fetch(`${BASE_URL}${endpoint}`, {
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     headers: buildHeaders(options.headers, { isMultipart }),
   });
