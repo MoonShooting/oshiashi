@@ -41,7 +41,7 @@ public class PostController {
 		return ResponseEntity.ok(responses);
 	}
 	// 1-1. 전체 조회 (루트가 없는 자유 게시판)
-	@GetMapping("/notroute")
+	@GetMapping("/community")
 	public ResponseEntity<List<PostResponse>> getPostsNotRoute(
 			@RequestParam(required = false, defaultValue = "latest") String sort,
 			@RequestParam(required = false) String search,
