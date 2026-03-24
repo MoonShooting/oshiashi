@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import project.oshiashi.oshiashi.domain.route.dto.RouteResponse;
 import project.oshiashi.oshiashi.domain.user.dto.UserProfileResponse;
 import project.oshiashi.oshiashi.domain.user.dto.UserResponse;
 import project.oshiashi.oshiashi.domain.user.service.UserService;
@@ -40,7 +41,7 @@ public class UserController {
 
 	// 내 루트 목록 조회: /api/v1/user/myRoute
 	@GetMapping("/myRoute")
-	public ResponseEntity<List<?>> getMyRoutes() {
+	public ResponseEntity<List<RouteResponse>> getMyRoutes() {
 		log.info("[API] 내 루트 목록 조회 호출");
 		return ResponseEntity.ok(userService.getMyRoutes());
 	}
