@@ -26,9 +26,11 @@ public class UserResponse {
 	private String email;  // 이메일
 	private String name;   // 실명
 	private String nickname; // 활동 닉네임
-
 	private UserEntity.Role role;       // 권한 (user, admin)
-	private UserEntity.UserStatus status; // 상태 (active, dormant)
+	private UserEntity.UserStatus status; // 상태 (active, dormant, withdrawn)
+	private Long selectedAchievementId;    // 칭호 ID
+	private String selectedAchievementName;  // 칭호 이름 (프론트 표시용)
+	private String selectedAchievementIcon;  // 칭호 아이콘 URL (프론트 표시용)
 
 	// 날짜 정보를 프론트엔드에서 파싱하기 좋게 특정 포맷으로 직렬화하기 위한 코드
 	@JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
@@ -37,13 +39,16 @@ public class UserResponse {
 	@JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
 	private LocalDateTime lastLoginAt;
 
+	@JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+	private LocalDateTime deletedAt; // 탈퇴 요청 일시 (프론트에서 D-Day 계산 시 활용)
+
 	/**
 	 * [정적 팩토리 메서드: fromEntity]
 	 * - 엔티티(UserEntity)를 매개변수로 받아 Response DTO로 안전하게 변환함.
 	 * - 서비스 계층에서 엔티티가 직접 외부로 나가는 것을 방지함.
 	 */
 	public static UserResponse fromEntity(UserEntity userEntity) {
-		return UserResponse.builder()
+		UserResponseBuilder builder = UserResponse.builder()
 				.userId(userEntity.getUserId())
 				.email(userEntity.getEmail())
 				.name(userEntity.getName())
@@ -52,6 +57,15 @@ public class UserResponse {
 				.status(userEntity.getStatus())
 				.createdAt(userEntity.getCreatedAt())
 				.lastLoginAt(userEntity.getLastLoginAt())
-				.build();
+				.deletedAt(userEntity.getDeletedAt()); // 탈퇴일시 매핑 추가
+
+		// 유저가 장착 중인 대표 칭호가 있을 경우에만 내부 정보 추출 (NullPointerException 방어)
+		if (userEntity.getSelectedAchievement() != null) {
+			builder.selectedAchievementId(userEntity.getSelectedAchievement().getAchievementId())
+					.selectedAchievementName(userEntity.getSelectedAchievement().getName())
+					.selectedAchievementIcon(userEntity.getSelectedAchievement().getIconUrl());
+		}
+
+		return builder.build();
 	}
 }

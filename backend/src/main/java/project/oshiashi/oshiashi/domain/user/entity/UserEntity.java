@@ -3,6 +3,8 @@ package project.oshiashi.oshiashi.domain.user.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import project.oshiashi.oshiashi.domain.post.entity.PostEntity;
+import project.oshiashi.oshiashi.domain.achievement.entity.AchievementEntity; // ⚠️ 실제 패키지 경로에 맞게 수정해주세요!
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -68,11 +70,33 @@ public class UserEntity {
 	@OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
 	private List<PostEntity> posts = new ArrayList<>();
 
-	// --- 내부 타입 정의 ---
-	public enum Role { user, admin }
-	public enum UserStatus { active, dormant }
 
-	// --- 비즈니스 로직 (Setter 대신 사용) ---
+	/**
+	 * - 유저가 획득한 업적 중 프로필에 노출할 1개의 대표 칭호
+	 * - 업적이 삭제되더라도 유저 정보는 유지되도록 DB 레벨에서 ON DELETE SET NULL 적용 예정
+	 */
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "selected_achievement_id")
+	private AchievementEntity selectedAchievement;
+
+	/**
+	 * - 회원이 탈퇴를 요청한 일시를 기록
+	 * - 스케줄러가 이 시간을 기준으로 30일 경과 여부를 판단하여 영구 삭제(Hard Delete) 진행
+	 */
+	@Column(name = "deleted_at")
+	private LocalDateTime deletedAt;
+
+
+	public enum Role { user, admin }
+
+	/**
+	 * [UserStatus: 사용자 상태 열거형]
+	 * active: 정상 활동 중인 계정
+	 * dormant: 장기 미접속으로 인한 휴면 계정
+	 * withdrawn: 탈퇴 요청 후 30일 유예 기간 중인 계정 (Soft Delete 상태) <- V1.8 추가
+	 */
+	public enum UserStatus { active, dormant, withdrawn }
+
 
 	/**
 	 * [비밀번호 변경]
@@ -104,5 +128,31 @@ public class UserEntity {
 	 */
 	public void updateLastLogin() {
 		this.lastLoginAt = LocalDateTime.now();
+	}
+
+	/**
+	 * [대표 칭호 설정]
+	 * - 프로필에 표시될 대표 업적을 변경합니다.
+	 */
+	public void updateSelectedAchievement(AchievementEntity achievement) {
+		this.selectedAchievement = achievement;
+	}
+
+	/**
+	 * [회원 탈퇴 요청 (Soft Delete)]
+	 * - DB에서 즉시 삭제하지 않고 상태를 변경하여 30일 유예 기간을 둡니다.
+	 */
+	public void markAsWithdrawn() {
+		this.status = UserStatus.withdrawn;
+		this.deletedAt = LocalDateTime.now();
+	}
+
+	/**
+	 * [회원 탈퇴 철회 (계정 복구)]
+	 * - 30일 유예 기간 내에 로그인하여 복구를 원할 경우 상태를 되돌립니다.
+	 */
+	public void restoreAccount() {
+		this.status = UserStatus.active;
+		this.deletedAt = null;
 	}
 }

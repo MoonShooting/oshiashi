@@ -4,6 +4,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import project.oshiashi.oshiashi.domain.user.entity.UserEntity;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -35,4 +37,11 @@ public interface UserRepository extends JpaRepository<UserEntity, String> {
 
 	// 아이디와 이메일이 동시에 일치하는지 확인 (비밀번호 재설정 전 본인확인용)
 	Optional<UserEntity> findByUserIdAndEmail(String userId, String email);
+
+	/**
+	 * [탈퇴 유예 기간 만료 유저 조회]
+	 * - 특정 상태(WITHDRAWN)이면서,
+	 * - 탈퇴 요청일(deletedAt)이 기준 시간(30일 전)보다 과거인 유저 목록을 반환합니다.
+	 */
+	List<UserEntity> findByStatusAndDeletedAtBefore(UserEntity.UserStatus status, LocalDateTime dateTime);
 }
