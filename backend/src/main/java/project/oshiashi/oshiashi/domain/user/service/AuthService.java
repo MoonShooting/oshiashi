@@ -417,37 +417,38 @@ public class AuthService {
 	}
 
 	/**
-	 * [회원 탈퇴 - 보안 강화 버전]
+	 * [회원 탈퇴 - 30일 유예(Soft Delete) 버전]
 	 * 1. 현재 로그인한 유저 확인
 	 * 2. 입력받은 비밀번호와 DB 비밀번호 대조
-	 * 3. 일치할 경우에만 DB에서 삭제 (영속성 컨텍스트 보장)
+	 * 3. 일치할 경우 상태를 WITHDRAWN으로 변경 (30일 유예 시작)
 	 */
 	@Transactional
 	public void withdraw(String rawPassword, String authHeader) {
-		// 1. 시큐리티 컨텍스트에서 유저 ID 추출
 		Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 		if (!(principal instanceof AuthenticatedUser authUser)) {
 			throw new BusinessException(ErrorCode.UNAUTHORIZED, "인증 정보가 없습니다. 다시 로그인해주세요.");
 		}
 		String userId = authUser.getUsername();
 		log.info("[AuthService] 회원 탈퇴 요청 - UserID: {}", userId);
+
 		if (rawPassword == null || rawPassword.trim().isEmpty()) {
 			throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "비밀번호를 입력해주세요.");
 		}
-		// 2. DB에서 최신 엔티티를 직접 조회 (삭제 보장을 위해)
+
 		UserEntity user = userRepository.findById(userId)
 				.orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다."));
-		// 3. 비밀번호 재검증 로직
+
 		if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
 			log.warn("[AuthService] 탈퇴 실패: 비밀번호 불일치 - UserID: {}", userId);
 			throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "비밀번호가 일치하지 않습니다.");
 		}
+
 		if (authHeader != null && authHeader.startsWith("Bearer ")) {
 			logout(authHeader);
 		}
-		// 4. 조회한 엔티티를 삭제 (이제 확실히 DELETE 쿼리가 나갑니다)
-		userRepository.delete(user);
-		log.info("[AuthService] 회원 탈퇴 완료 - DB에서 영구 삭제됨: {}", userId);
+
+		user.markAsWithdrawn();
+		log.info("[AuthService] 회원 탈퇴 유예 시작 (상태: WITHDRAWN) - UserID: {}", userId);
 	}
 
 	/**
