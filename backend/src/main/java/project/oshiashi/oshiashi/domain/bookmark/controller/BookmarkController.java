@@ -30,11 +30,14 @@ public class BookmarkController {
 	 * - POST /api/v1/bookmarks
 	 */
 	@PostMapping
+	// 북마크 생성은 request body의 userId를 신뢰하지 않고,
+	// 로그인 토큰에서 추출한 사용자(authUser)를 기준으로 처리합니다.
 	public ResponseEntity<BookmarkResponse> createBookmark(
 			@AuthenticationPrincipal AuthenticatedUser authUser,
 			@RequestBody BookmarkCreateRequest request) {
 
 		log.info("[API] 북마크 생성 요청 - User: {}", authUser.getUsername());
+		// 실제 북마크 소유자는 body가 아니라 인증된 사용자 ID(authUser.getUsername())로 결정합니다.
 		BookmarkResponse response = bookmarkService.createBookmark(authUser.getUsername(), request);
 		return ResponseEntity.ok(response);
 	}
@@ -76,6 +79,7 @@ public class BookmarkController {
 	 * - GET /api/v1/bookmarks
 	 */
 	@GetMapping
+	// "내 북마크" 목록 조회이므로, 쿼리 파라미터 없이 현재 로그인 사용자 기준으로만 조회합니다.
 	public ResponseEntity<List<BookmarkResponse>> getMyBookmarks(
 			@AuthenticationPrincipal AuthenticatedUser authUser) {
 
