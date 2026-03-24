@@ -17,7 +17,7 @@ const TRAVEL_MODES = [
 
 const toMin = (sec) => (sec != null ? `${Math.round(sec / 60)}분` : '-');
 
-export default function RouteListSelector({ onSave, durations }) {
+export default function RouteListSelector({ onSave, onReset, durations, isLocked = false, lockMessage = '' }) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [overIdx, setOverIdx] = useState(null);
   const dragIdx = useRef(null);
@@ -25,20 +25,23 @@ export default function RouteListSelector({ onSave, durations }) {
   const { selectedPlaces, removePlace, reorderPlaces, clearMap } = useMapStore();
 
   const handleDragStart = useCallback((e, idx) => {
+    if (isLocked) return;
     dragIdx.current = idx;
     e.dataTransfer.effectAllowed = 'move';
-  }, []);
+  }, [isLocked]);
 
   const handleDragOver = useCallback(
     (e, idx) => {
+      if (isLocked) return;
       e.preventDefault();
       if (overIdx !== idx) setOverIdx(idx);
     },
-    [overIdx],
+    [isLocked, overIdx],
   );
 
   const handleDrop = useCallback(
     (e, dropIdx) => {
+      if (isLocked) return;
       e.preventDefault();
       setOverIdx(null);
       const from = dragIdx.current;
@@ -49,7 +52,7 @@ export default function RouteListSelector({ onSave, durations }) {
       reorderPlaces(next);
       dragIdx.current = null;
     },
-    [selectedPlaces, reorderPlaces],
+    [isLocked, selectedPlaces, reorderPlaces],
   );
 
   const handleDragLeave = useCallback(() => setOverIdx(null), []);
@@ -72,6 +75,7 @@ export default function RouteListSelector({ onSave, durations }) {
 
       {isExpanded && (
         <div className={styles.body}>
+          {isLocked && lockMessage ? <p className={styles.lockNotice}>{lockMessage}</p> : null}
           {selectedPlaces.length === 0 ? (
             <div className={styles.empty}>
               <div className={styles.emptyIcon}>🗺️</div>
@@ -87,13 +91,13 @@ export default function RouteListSelector({ onSave, durations }) {
               {selectedPlaces.map((place, idx) => (
                 <li
                   key={place.id}
-                  className={styles.item}
+                  className={isLocked ? `${styles.item} ${styles.itemLocked}` : styles.item}
                   data-over={overIdx === idx ? 'true' : undefined}
                   onDragOver={(e) => handleDragOver(e, idx)}
                   onDragLeave={handleDragLeave}
                   onDrop={(e) => handleDrop(e, idx)}
                   onDragEnd={handleDragEnd}>
-                  <span className={styles.dragHandle} draggable onDragStart={(e) => handleDragStart(e, idx)} onDragEnd={handleDragEnd}>
+                  <span className={styles.dragHandle} draggable={!isLocked} onDragStart={(e) => handleDragStart(e, idx)} onDragEnd={handleDragEnd}>
                     <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor">
                       <circle cx="2.5" cy="2.5" r="1.5" />
                       <circle cx="7.5" cy="2.5" r="1.5" />
@@ -109,7 +113,11 @@ export default function RouteListSelector({ onSave, durations }) {
                     <span className={styles.itemTitle}>{place.title || place.name}</span>
                     {place.workName && <span className={styles.itemWork}>{place.workName}</span>}
                   </div>
-                  <button className={styles.removeBtn} title="루트에서 제거" onClick={() => removePlace(place.id)}>
+                  <button
+                    className={styles.removeBtn}
+                    title="루트에서 제거"
+                    onClick={() => removePlace(place.placeId ?? place.spotId ?? place.id)}
+                    disabled={isLocked}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <polyline points="3 6 5 6 21 6" />
                       <path d="M19 6l-1 14H6L5 6" />
@@ -135,14 +143,20 @@ export default function RouteListSelector({ onSave, durations }) {
           )}
 
           <div className={styles.footer}>
-            <button className={styles.resetBtn} onClick={clearMap}>
+            <button
+              className={styles.resetBtn}
+              onClick={() => {
+                onReset?.();
+                clearMap();
+              }}
+              disabled={isLocked}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <polyline points="1 4 1 10 7 10" />
                 <path d="M3.51 15a9 9 0 1 0 .49-3.29" />
               </svg>
               초기화
             </button>
-            <button className={styles.saveBtn} onClick={onSave} disabled={selectedPlaces.length < 1}>
+            <button className={styles.saveBtn} onClick={onSave} disabled={selectedPlaces.length < 1 || isLocked}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
                 <polyline points="17 21 17 13 7 13 7 21" />
