@@ -33,9 +33,7 @@ public class UserResponse {
 	private Long selectedAchievementId;    // 칭호 ID
 	private String selectedAchievementName;  // 칭호 이름 (프론트 표시용)
 	private String selectedAchievementIcon;  // 칭호 아이콘 URL (프론트 표시용)
-
-	// ✅ 추가: 보유한 전체 칭호 목록을 담기 위한 필드
-	private List<UserAchievementResponse> achievements;
+	private List<UserAchievementResponse> achievements;//보유한 전체 칭호 목록을 담기 위한 필드
 
 	// 날짜 정보를 프론트엔드에서 파싱하기 좋게 특정 포맷으로 직렬화하기 위한 코드
 	@JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
@@ -63,6 +61,7 @@ public class UserResponse {
 				.createdAt(userEntity.getCreatedAt())
 				.lastLoginAt(userEntity.getLastLoginAt())
 				.deletedAt(userEntity.getDeletedAt()); // 탈퇴일시 매핑 추가
+    
 		// 유저가 장착 중인 대표 칭호가 있을 경우에만 내부 정보 추출 (NullPointerException 방어)
 		if (userEntity.getSelectedAchievement() != null) {
 			builder.selectedAchievementId(userEntity.getSelectedAchievement().getAchievementId())

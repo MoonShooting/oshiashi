@@ -117,10 +117,149 @@
   border: 1px solid rgba(157, 80, 187, 0.3);
   border-radius: 16px;
   padding: 24px;
-  width: 320px;
+  width: 360px;
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.saveModalTitle {
+  margin: 0;
+  color: #fff;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.saveModalInput {
+  width: 100%;
+  min-height: 52px;
+  padding: 0 14px;
+  border: 1px solid rgba(157, 80, 187, 0.26);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+  font: inherit;
+}
+
+.saveModalInput::placeholder {
+  color: rgba(255, 255, 255, 0.38);
+}
+
+.saveModalInput:focus {
+  outline: none;
+  border-color: rgba(217, 70, 239, 0.55);
+  box-shadow: 0 0 0 4px rgba(217, 70, 239, 0.12);
+}
+
+.tagAutocompleteList {
+  margin: -8px 0 0;
+  padding: 6px 0;
+  list-style: none;
+  border: 1px solid rgba(157, 80, 187, 0.32);
+  border-radius: 12px;
+  background: rgba(39, 39, 56, 0.98);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.45);
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.tagAutocompleteItem {
+  padding: 10px 14px;
+  cursor: pointer;
+  color: #b0b0cf;
+  font-size: 14px;
+}
+
+.tagAutocompleteItem:hover,
+.tagAutocompleteItemActive {
+  background: rgba(63, 63, 95, 0.96);
+  color: #fff;
+}
+
+.saveModalHint,
+.saveModalError {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.saveModalHint {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.saveModalError {
+  color: #ff9db0;
+}
+
+.selectedTagBox {
+  min-height: 44px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(217, 70, 239, 0.28);
+  background: rgba(217, 70, 239, 0.08);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+}
+
+.saveModalSuggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.tagSuggestionButton {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid rgba(157, 80, 187, 0.22);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.88);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tagSuggestionButtonActive {
+  border-color: rgba(217, 70, 239, 0.42);
+  background: rgba(217, 70, 239, 0.18);
+  color: #fff;
+}
+
+.saveModalActions {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.saveModalCancel,
+.saveModalConfirm {
+  min-width: 104px;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border: none;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.saveModalCancel {
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.saveModalConfirm {
+  background: linear-gradient(135deg, #9d50bb 0%, #e91e8c 100%);
+  color: #fff;
+}
+
+.saveModalConfirm:disabled,
+.tagSuggestionButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 
 .toast {
