@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import project.oshiashi.oshiashi.domain.route.dto.RouteResponse;
+import project.oshiashi.oshiashi.domain.user.dto.UserAchievementRequest;
 import project.oshiashi.oshiashi.domain.user.dto.UserProfileResponse;
 import project.oshiashi.oshiashi.domain.user.dto.UserResponse;
 import project.oshiashi.oshiashi.domain.user.service.UserService;
@@ -74,14 +75,22 @@ public class UserController {
 		return ResponseEntity.ok(userService.getMyAchievements());
 	}
 
-	// TODO: 현재는 대표 칭호 변경 API 자리만 있으며, 실제 저장 로직은 미구현 상태
-	// 대표 칭호 변경: /api/v1/user/mainAchievement
+	/**
+	 * [대표 칭호 변경]
+	 * - API: PATCH /api/v1/user/mainAchievement
+	 * - 피드백 반영:
+	 * 1. Map 대신 전용 DTO(UserAchievementRequest)를 사용하여 타입 안정성 확보
+	 * 2. 변경 후 최신 유저 정보(UserResponse)를 반환하여 프론트엔드 동기화 지원
+	 */
 	@PatchMapping("/mainAchievement")
-	public ResponseEntity<String> updateMainAchievement(@RequestBody Map<String, Long> request) {
-		Long achievementId = request.get("achievementId");
-		log.info("[API] 대표 칭호 변경 호출: {}", achievementId);
-		userService.updateMainAchievement(achievementId);
-		return ResponseEntity.ok("대표 칭호가 변경되었습니다.");
+	public ResponseEntity<UserResponse> updateMainAchievement(@RequestBody UserAchievementRequest request) {
+		// 1. 요청 데이터에서 대상 ID 추출 (지역 변수 활용)
+		Long achievementId = request.getAchievementId();
+		log.info("[API] 대표 칭호 변경 호출 - 대상 ID: {}", achievementId);
+		// 2. 서비스 호출: 대표 칭호를 변경하고 최신 유저 응답 객체를 받음
+		UserResponse updatedUser = userService.updateMainAchievement(request);
+		// 3. 변경된 유저 정보와 함께 200 OK 반환
+		return ResponseEntity.ok(updatedUser);
 	}
 
 	// 특정 유저 요약 프로필 조회
