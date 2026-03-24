@@ -119,7 +119,11 @@ const resolvePersistableReferenceImageUrl = (entry) => {
 };
 
 const resolvePostTagNames = (postResponse) =>
-  normalizeTagNames(unwrapObjectPayload(postResponse)?.tagNames);
+  normalizeTagNames(
+    unwrapObjectPayload(postResponse)?.tagNames ??
+      unwrapObjectPayload(postResponse)?.artworkTagNames ??
+      unwrapObjectPayload(postResponse)?.artworkTagName,
+  );
 
 // 백엔드 응답 래퍼(data/result) 유무와 무관하게 실제 payload 객체를 꺼냅니다.
 const unwrapObjectPayload = (response) => {
@@ -386,6 +390,15 @@ const normalizeRouteOption = (rawRoute, overrides = {}) => {
     };
   });
 
+  // route 응답이 artworkTagNames/artworkTagName을 직접 내려주면 그것을 우선 사용하고,
+  // 아직 백엔드가 과도기라면 각 spot의 artworkTitle을 묶어서 route 태그 목록으로 복원합니다.
+  // 이렇게 두면 작성 페이지가 별도 수동 태그 입력 없이도 route 기반 tagNames를 안정적으로 만들 수 있습니다.
+  const artworkTagNames = normalizeTagNames(
+    rawRoute.artworkTagNames ??
+      rawRoute.artworkTagName ??
+      spots.map((spot) => spot.artworkTitle),
+  );
+
   return {
     id: String(routeId),
     routeId,
@@ -397,6 +410,9 @@ const normalizeRouteOption = (rawRoute, overrides = {}) => {
       rawRoute.ownerDisplayName ?? rawRoute.userNickname ?? rawRoute.userId ?? overrides.ownerDisplayName ?? '익명',
     bookmarkName: overrides.bookmarkName ?? rawRoute.bookmarkName ?? null,
     bookmarkedPostTitle: overrides.bookmarkedPostTitle ?? rawRoute.bookmarkedPostTitle ?? null,
+    artworkTagName: artworkTagNames[0] ?? null,
+    artworkTagNames,
+    tagNames: artworkTagNames,
     spots,
   };
 };
@@ -438,6 +454,11 @@ const dedupeRoutes = (routes) =>
 // - 이미지는 사전 업로드 후 반환받은 URL만 전송합니다.
 // - entries 배열을 함께 보내면 상세 화면이 spot 단위로 복원됩니다.
 const buildRouteCreatePayload = ({ selectedRoute, title, selectedTags = [], entries }) => {
+  const routeTagNames = normalizeTagNames(
+    selectedRoute?.artworkTagNames ?? selectedRoute?.tagNames ?? selectedRoute?.artworkTagName,
+  );
+  const resolvedTagNames = normalizeTagNames(selectedTags).length > 0 ? normalizeTagNames(selectedTags) : routeTagNames;
+
   const payloadEntries = entries.map((entry, index) => {
     const representativePhoto = entry.experiencePhotos?.[0] ?? null;
 
@@ -491,7 +512,9 @@ const buildRouteCreatePayload = ({ selectedRoute, title, selectedTags = [], entr
     title: title.trim(),
     content: content || title.trim(),
     status: 'PUBLIC',
-    tagNames: normalizeTagNames(selectedTags),
+    // 작성 페이지는 수동 태그 UI를 제거했으므로,
+    // explicit selectedTags가 비어 있으면 route 자체가 들고 있던 작품 태그를 그대로 tagNames에 사용합니다.
+    tagNames: resolvedTagNames,
     thumbnailUrl,
     images: payloadImages,
     imageUrl: payloadImages.map((image) => image.imageUrl),

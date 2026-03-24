@@ -1,12 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { AlertCircle, Camera, Hash, PlusCircle, Sparkles } from 'lucide-react';
+import { AlertCircle, Camera, PlusCircle, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import MainLayout from '@/components/layout/MainLayout';
 import PostEditorFields from '@/components/post/create/PostEditorFields';
 import PostRoutePicker from '@/components/post/create/PostRoutePicker';
 import PostSceneEntryCard from '@/components/post/create/PostSceneEntryCard';
 import { uploadPostImage } from '@/api/imageUploadApi';
-import SearchInputPanel from '@/components/search/SearchInputPanel';
 import { loadPostCreateRoutes, submitPostCreate } from '@/api/postCreateApi';
 import { createCustomPlaceEntry, createRouteEntries } from '@/data/post/postCreateDraftUtils';
 import { useAuthStore } from '@/stores/useAuthStore';
@@ -14,12 +13,6 @@ import styles from '@/styles/PostCreatePage.module.css';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-const normalizeTag = (value) => value.replace(/^#/, '').trim();
-const parseTagInput = (value) =>
-  value
-    .split(',')
-    .map((item) => normalizeTag(item))
-    .filter(Boolean);
 
 // blob: URL은 로컬 미리보기 전용이라 서버 저장 대상으로 보면 안 됩니다.
 const hasUploadedUrl = (value) =>
@@ -38,8 +31,6 @@ const PostCreatePage = () => {
   const objectUrlsRef = useRef(new Set());
   const [selectedRouteId, setSelectedRouteId] = useState('');
   const [title, setTitle] = useState('');
-  const [tagInputValue, setTagInputValue] = useState('');
-  const [selectedTags, setSelectedTags] = useState([]);
   const [entries, setEntries] = useState([]);
   const [routes, setRoutes] = useState([]);
   const [routeIssues, setRouteIssues] = useState([]);
@@ -116,9 +107,22 @@ const PostCreatePage = () => {
     () => routes.find((route) => route.id === selectedRouteId) ?? null,
     [routes, selectedRouteId],
   );
+  const selectedTags = useMemo(() => {
+    const rawTags = selectedRoute?.artworkTagNames ?? selectedRoute?.tagNames ?? selectedRoute?.artworkTagName ?? [];
+    const nextTags = Array.isArray(rawTags) ? rawTags : [rawTags];
 
-  // 이번 작업에서는 "선택 작품" 개념을 제거하고 태그만 수동 관리합니다.
-  // 따라서 등록 가능 여부도 selectedArtwork 없이 루트/제목/사진 유무만 기준으로 계산합니다.
+    return Array.from(
+      new Set(
+        nextTags
+          .map((tag) => String(tag ?? '').replace(/^#/, '').trim())
+          .filter(Boolean),
+      ),
+    );
+  }, [selectedRoute]);
+
+  // 작성 페이지에서는 태그를 직접 입력하지 않고,
+  // 선택한 루트가 이미 들고 있는 태그만 읽어와 게시글 payload에 반영합니다.
+  // 따라서 등록 가능 여부도 별도 태그 입력 없이 루트/제목/사진 유무만 기준으로 계산합니다.
   const totalPhotos = entries.reduce((count, entry) => count + entry.experiencePhotos.length, 0);
   const filledEntries = entries.filter((entry) =>
     entry.experiencePhotos.some((photo) => photo.previewUrl || photo.note.trim().length > 0),
@@ -364,25 +368,6 @@ const PostCreatePage = () => {
     });
   };
 
-  const handleAddTags = (rawValue) => {
-    const nextTags = parseTagInput(rawValue);
-    if (nextTags.length === 0) return;
-
-    // 작성 페이지는 추천/자동완성 없이 수동 태그 입력만 담당합니다.
-    // 같은 태그가 반복 추가되지 않도록 여기서 중복을 제거합니다.
-    setSelectedTags((prev) => Array.from(new Set([...prev, ...nextTags])));
-    setTagInputValue('');
-  };
-
-  const handleRemoveTag = (tag) => {
-    setSelectedTags((prev) => prev.filter((item) => item !== tag));
-  };
-
-  const handleResetTags = () => {
-    setSelectedTags([]);
-    setTagInputValue('');
-  };
-
   const handleSubmit = async () => {
     if (!canSubmit || !selectedRoute || isSubmitting) return;
 
@@ -467,35 +452,17 @@ const PostCreatePage = () => {
           loading={isLoadingRoutes}
         />
 
+        <section className={styles.formSection}>
+          <label className={styles.sectionLabel}>태그 안내</label>
+          <p className={styles.tagInputHint}>게시물의 태그는 루트 안에 저장된 태그로 고정됩니다.</p>
+        </section>
+
         <PostEditorFields
           title={title}
           onChangeTitle={setTitle}
           titleLabel="제목"
           titlePlaceholder="예: 너의 이름은 루트를 따라 걸으며 남긴 실제 촬영 기록"
         />
-
-        <section className={styles.formSection}>
-          <label htmlFor="post-artwork-tag-input" className={styles.sectionLabel}>
-            작품 태그 검색
-          </label>
-          <p className={styles.tagInputHint}>
-            TMDB import 없이 태그만 수동으로 추가합니다. Enter 또는 버튼으로 넣고, 칩을 눌러 삭제할 수
-            있습니다.
-          </p>
-          <SearchInputPanel
-            inputId="post-artwork-tag-input"
-            value={tagInputValue}
-            onChange={setTagInputValue}
-            onSubmit={handleAddTags}
-            placeholder="예: 너의 이름은, 도쿄, 아키하바라"
-            helperText="쉼표로 여러 태그를 한 번에 넣을 수 있습니다."
-            submitLabel="태그 추가"
-            selectedItems={selectedTags}
-            onRemoveItem={handleRemoveTag}
-            onReset={selectedTags.length > 0 ? handleResetTags : undefined}
-            leadingIcon={Hash}
-          />
-        </section>
 
         <section className={styles.overviewCard}>
           <div className={styles.overviewLead}>
