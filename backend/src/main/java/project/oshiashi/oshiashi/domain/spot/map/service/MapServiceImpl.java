@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import project.oshiashi.oshiashi.domain.artwork.repository.ArtworkRepository;
+import project.oshiashi.oshiashi.domain.spot.map.dto.MapAutocompleteResponse;
 import project.oshiashi.oshiashi.domain.spot.map.dto.MapPlaceResponse;
 import project.oshiashi.oshiashi.domain.post.repository.PostRepository;
 import project.oshiashi.oshiashi.domain.spot.entity.SpotEntity;
@@ -147,7 +148,7 @@ public class MapServiceImpl implements MapService {
                 .toList();
     }
 
-    @Override
+    /*@Override
     public List<String> autocompletePlaces(String keyword) {
         if (keyword == null || keyword.isBlank()) {
             return List.of();
@@ -163,7 +164,26 @@ public class MapServiceImpl implements MapService {
                 .distinct()
                 .limit(10)
                 .toList();
+    }*/
+
+    @Override
+    public List<MapAutocompleteResponse> autocompletePlaces(String keyword) {
+        if (keyword == null || keyword.isBlank()) {
+            return List.of();
+        }
+
+        String trimmedKeyword = keyword.trim();
+
+        return artworkRepository.findByTitleContainingIgnoreCase(trimmedKeyword).stream()
+                .limit(10)
+                .map(artwork -> MapAutocompleteResponse.builder()
+                        .artworkId(artwork.getArtworkId())
+                        .title(artwork.getTitle())
+                        .mediaType(artwork.getArtworkType().getArtworkTypeName())
+                        .build())
+                .toList();
     }
+
 
     /**
      * 태그명 기준 장소 조회

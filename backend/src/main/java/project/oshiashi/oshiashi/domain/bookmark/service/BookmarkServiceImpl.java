@@ -37,6 +37,8 @@ public class BookmarkServiceImpl implements BookmarkService {
     private final RouteRepository routeRepository;
 
     @Transactional
+    // userId는 컨트롤러에서 전달한 인증 사용자 기준입니다.
+    // request body의 userId는 사용하지 않습니다.
     public BookmarkResponse createBookmark(String userId, BookmarkCreateRequest request) {
         // 1. 유효성 체크: 최소 하나 이상의 대상(Post, Image, Route)이 있어야 함
         // 게시글, 이미지, 루트 중 참조 대상이 하나도 없으면 에러 발생
@@ -47,7 +49,7 @@ public class BookmarkServiceImpl implements BookmarkService {
 
         // 2. 중복 체크: 동일 유저가 이미 동일한 콘텐츠를 북마크했는지 확인
         boolean isDuplicate = bookmarkRepository.existsCustom(
-                request.getUserId(), request.getPostId(), request.getPostImageId(), request.getRouteId()
+                userId, request.getPostId(), request.getPostImageId(), request.getRouteId()
         );
 
         if (isDuplicate) {
@@ -63,12 +65,20 @@ public class BookmarkServiceImpl implements BookmarkService {
         }
 
         // 3. 저장
+        // 북마크는 post / postImage / route 중 하나만 참조하는 구조입니다.
+        // null이 아닌 대상만 참조하도록 조건부로 getReferenceById를 호출합니다.
         BookmarkEntity bookmark = BookmarkEntity.builder()
                 .bookmarkName(request.getBookmarkName())
-                .user(userRepository.getReferenceById(request.getUserId()))
-                .post(postRepository.getReferenceById(request.getPostId()))
-                .postImage(postImageRepository.getReferenceById(request.getPostImageId()))
-                .route(routeRepository.getReferenceById(request.getRouteId()))
+                .user(userRepository.getReferenceById(userId))
+                .post(request.getPostId() != null
+                        ? postRepository.getReferenceById(request.getPostId())
+                        : null)
+                .postImage(request.getPostImageId() != null
+                        ? postImageRepository.getReferenceById(request.getPostImageId())
+                        : null)
+                .route(request.getRouteId() != null
+                        ? routeRepository.getReferenceById(request.getRouteId())
+                        : null)
                 .build();
 
         BookmarkEntity savedBookmark = bookmarkRepository.save(bookmark);
