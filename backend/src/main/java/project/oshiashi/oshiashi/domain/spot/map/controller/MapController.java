@@ -2,6 +2,7 @@ package project.oshiashi.oshiashi.domain.spot.map.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import project.oshiashi.oshiashi.domain.spot.map.dto.MapAutocompleteResponse;
 import project.oshiashi.oshiashi.domain.spot.map.dto.MapPlaceResponse;
 import project.oshiashi.oshiashi.domain.spot.map.service.MapService;
 
@@ -50,10 +51,15 @@ public class MapController {
     }
 
     // 검색창 자동완성 — /{placeId} 보다 먼저 등록 (문자 경로 충돌 방지)
-    @GetMapping("/autocomplete")
+    /*@GetMapping("/autocomplete")
     public List<String> autocompletePlaces(@RequestParam String keyword) {
         return mapService.autocompletePlaces(keyword);
+    }*/
+    @GetMapping("/autocomplete")
+    public List<MapAutocompleteResponse> autocompletePlaces(@RequestParam String keyword) {
+        return mapService.autocompletePlaces(keyword);
     }
+
 
     // 태그명으로 장소(Spot) 목록 조회
     // 현재 태그는 작품 제목 태그이므로, 내부적으로는 tagName -> artworkId를 찾은 뒤

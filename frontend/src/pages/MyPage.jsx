@@ -2,12 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Bookmark, FileText, MapPinned, Trophy } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { FetchJson } from '@/api/FetchClient';
-import { getMyRoutes } from '@/api/mapApi';
-import {
-  fetchBookmarksWithFallback,
-  formatDateLabel,
-  normalizeTagNames,
-} from '@/api/postApiShared';
+import { getMyRoutesAPI } from '@/api/user';
+import { fetchBookmarksWithFallback, formatDateLabel, normalizeTagNames } from '@/api/postApiShared';
 import MyPageContentSection from '@/components/mypage/MyPageContentSection';
 import MyPageHeroCard from '@/components/mypage/MyPageHeroCard';
 import MyPageTabList from '@/components/mypage/MyPageTabList';
@@ -89,7 +85,7 @@ const toPostPreview = (post, displayName) => {
     tagNames: normalizeTagNames(post?.tagNames),
     viewCount: Number(post?.viewCount ?? 0),
     likeCount: Number(post?.likeCount ?? 0),
-    imageUrl: Array.isArray(post?.imageUrl) ? post.imageUrl[0] ?? '' : '',
+    imageUrl: Array.isArray(post?.imageUrl) ? (post.imageUrl[0] ?? '') : '',
     category: routeId != null ? '루트 게시글' : '커뮤니티',
     path: routeId != null ? `/posts/${postId}` : `/community/${postId}`,
   };
@@ -98,21 +94,14 @@ const toPostPreview = (post, displayName) => {
 const loadMyPageData = async (userId, displayName) => {
   const issues = [];
 
-  const [routesResult, postsResult] = await Promise.allSettled([
-    getMyRoutes(),
-    FetchJson('/api/v1/user/posts'),
-  ]);
+  const [routesResult, postsResult] = await Promise.allSettled([getMyRoutes(), FetchJson('/api/v1/user/posts')]);
 
-  const myRoutes =
-    routesResult.status === 'fulfilled' ? routesResult.value.map((route) => toRoutePreview(route)) : [];
+  const myRoutes = routesResult.status === 'fulfilled' ? routesResult.value.map((route) => toRoutePreview(route)) : [];
   if (routesResult.status === 'rejected') {
     issues.push('내가 만든 루트 목록을 가져오지 못했습니다.');
   }
 
-  const myPosts =
-    postsResult.status === 'fulfilled'
-      ? postsResult.value.map((post) => toPostPreview(post, displayName))
-      : [];
+  const myPosts = postsResult.status === 'fulfilled' ? postsResult.value.map((post) => toPostPreview(post, displayName)) : [];
   if (postsResult.status === 'rejected') {
     issues.push('내가 작성한 게시물 목록을 가져오지 못했습니다.');
   }
@@ -199,21 +188,12 @@ const MyPage = () => {
   ];
 
   const copy = CONTENT_COPY[activeTab];
-  const activeItems =
-    activeTab === 'spots'
-      ? pageData.myRoutes
-      : activeTab === 'posts'
-        ? pageData.myPosts
-        : pageData.bookmarkedRoutes;
+  const activeItems = activeTab === 'spots' ? pageData.myRoutes : activeTab === 'posts' ? pageData.myPosts : pageData.bookmarkedRoutes;
 
   return (
     <MainLayout isMapPage={false} activeMenuKey="mypage">
       <div className={styles.page}>
-        <MyPageHeroCard
-          profile={profile}
-          summaryItems={summaryItems}
-          onShowAchievements={() => setActiveTab('achievements')}
-        />
+        <MyPageHeroCard profile={profile} summaryItems={summaryItems} onShowAchievements={() => setActiveTab('achievements')} />
 
         <MyPageTabList
           tabs={TAB_ITEMS}
