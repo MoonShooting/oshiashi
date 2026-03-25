@@ -64,6 +64,10 @@ public class WebSecurityConfig {
 						.requestMatchers(HttpMethod.GET, "/api/v1/maps/**").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/v1/artworks/**").permitAll()
 						.requestMatchers(HttpMethod.POST, "/api/v1/artworks/import").permitAll()
+						// 작품 탐색/게시글 검색/루트 저장 화면은 로그인 전에도
+						// "작품 선택 -> Tag 확정" 흐름을 타므로 태그 조회/생성 역시 공개해야 합니다.
+						.requestMatchers(HttpMethod.GET, "/api/v1/tags").permitAll()
+						.requestMatchers(HttpMethod.POST, "/api/v1/tags").permitAll()
 						// [추가!] 이미지 조회 경로는 누구나 접근 가능하게 허용
 						.requestMatchers("/uploads/**").permitAll()
 						// 반드시 유효한 토큰이 있어야 하는 경로 (마이페이지 등)
