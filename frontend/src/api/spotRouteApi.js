@@ -134,6 +134,81 @@ const toDetailedSpot = async (routeSpot, index) => {
   };
 };
 
+// 북마크 응답의 pins는 이미 route_spot 순서대로 정렬된 장소 요약입니다.
+// SpotPage에서는 "선택 즉시 지도와 우측 패널에 장소를 그릴 수 있는 최소 정보"만 있으면 되므로,
+// owner-scoped route detail API가 실패해도 이 요약 데이터만으로 편집/복사 진입을 이어갈 수 있습니다.
+// 이 fallback은 북마크 응답을 SpotPage 전용 route 모델로 바꾸는 역할을 합니다.
+const normalizeBookmarkedRouteFromPins = (bookmark) => {
+  const routeId = num(bookmark?.routeId);
+  const rawPins = toArray(bookmark?.pins);
+  if (routeId == null || rawPins.length === 0) return null;
+
+  const routeSpots = rawPins.map((pin, index) => ({
+    routeSpotId: null,
+    spotId: num(pin?.id ?? pin?.spotId),
+    spotName: text(pin?.name ?? pin?.buildingName) || `장소 ${index + 1}`,
+    artworkId: num(pin?.artwork?.id ?? pin?.artworkId),
+    artworkTitle: text(pin?.artwork?.title ?? pin?.artworkTitle),
+    visitOrder: index + 1,
+  }));
+
+  return {
+    key: `BOOKMARKED_ROUTE-${routeId}`,
+    routeId,
+    title: text(bookmark?.bookmarkName) || `북마크 루트 ${routeId}`,
+    count: routeSpots.length,
+    routeSpots,
+    spots: routeSpots,
+    artworkTagName: text(routeSpots[0]?.artworkTitle),
+    artworkTagNames: uniq(routeSpots.map((spot) => spot.artworkTitle)),
+    isPublic: false,
+    sourceType: 'BOOKMARKED_ROUTE',
+    bookmarkId: num(bookmark?.bookmarkId),
+    bookmarkName: text(bookmark?.bookmarkName),
+    canLoadDetail: false,
+    loadIssue: '북마크 응답의 장소 정보로 복원한 루트입니다.',
+    // 선택 시 getPlaceDetail 재호출 없이 바로 쓸 수 있도록 원본 pin도 함께 보관합니다.
+    bookmarkPins: rawPins,
+  };
+};
+
+// 공개 게시물 상세는 소유자 검사가 없고 entries에 장소 정보가 담겨 있으므로,
+// 북마크 route detail이 막힌 경우 "pins보다 풍부한" 두 번째 복구 경로로 사용합니다.
+// pins는 요약 정보지만, entries는 작성자가 남긴 제목/이미지/주소가 더 많이 담길 수 있어
+// 가능한 한 먼저 시도하는 편이 지도/우측 패널 품질이 좋습니다.
+const normalizeBookmarkedRouteFromPost = (postResponse, bookmark) => {
+  const routeId = num(postResponse?.routeId ?? bookmark?.routeId);
+  const entries = toArray(postResponse?.entries);
+  if (routeId == null || entries.length === 0) return null;
+
+  const routeSpots = entries.map((entry, index) => ({
+    routeSpotId: null,
+    spotId: num(entry?.spotId),
+    spotName: text(entry?.name ?? entry?.title) || `장소 ${index + 1}`,
+    artworkId: null,
+    artworkTitle: text(entry?.artworkTitle),
+    visitOrder: index + 1,
+  }));
+
+  return {
+    key: `BOOKMARKED_ROUTE-${routeId}`,
+    routeId,
+    title: text(postResponse?.routeTitle ?? bookmark?.bookmarkName ?? postResponse?.title) || `북마크 루트 ${routeId}`,
+    count: routeSpots.length,
+    routeSpots,
+    spots: routeSpots,
+    artworkTagName: text(routeSpots[0]?.artworkTitle),
+    artworkTagNames: uniq(routeSpots.map((spot) => spot.artworkTitle)),
+    isPublic: false,
+    sourceType: 'BOOKMARKED_ROUTE',
+    bookmarkId: num(bookmark?.bookmarkId),
+    bookmarkName: text(bookmark?.bookmarkName),
+    canLoadDetail: false,
+    loadIssue: '북마크 게시물의 장소 정보로 복원한 루트입니다.',
+    bookmarkEntries: entries,
+  };
+};
+
 const fetchRouteDetail = async (routeId, userId) =>
   unwrapObject(await FetchJson(withUserId(`/api/v1/map/routes/${routeId}`, userId)));
 
@@ -187,6 +262,22 @@ export const loadSpotSidebarRoutes = async ({ userId } = {}) => {
           const detail = await fetchRouteDetail(bookmark.routeId, userId);
           return normalizeRoute(detail, { sourceType: 'BOOKMARKED_ROUTE', bookmark });
         } catch (error) {
+          // 북마크된 route detail이 막히는 가장 흔한 이유는 "남의 루트를 북마크했다"는 점입니다.
+          // 그래서 소유자 검사가 없는 공개 게시물 상세를 먼저 시도하고,
+          // 그것도 실패하면 bookmark.pins로 최소 복원을 시도합니다.
+          try {
+            if (bookmark?.postId != null) {
+              const bookmarkedPost = await FetchJson(`/api/v1/posts/${bookmark.postId}`);
+              const restoredFromPost = normalizeBookmarkedRouteFromPost(bookmarkedPost, bookmark);
+              if (restoredFromPost) return restoredFromPost;
+            }
+          } catch {
+            // 공개 게시물도 복원 실패 시 pins fallback으로 내려갑니다.
+          }
+
+          const restoredFromPins = normalizeBookmarkedRouteFromPins(bookmark);
+          if (restoredFromPins) return restoredFromPins;
+
           return normalizeRoute(
             { routeId: bookmark.routeId, title: bookmark.bookmarkName, spots: [] },
             {
@@ -208,7 +299,65 @@ export const loadSpotSidebarRoutes = async ({ userId } = {}) => {
 
 export const loadSpotSidebarRouteDetail = async ({ route, userId } = {}) => {
   if (!route?.routeId) throw new Error('루트 상세를 확인할 수 없습니다.');
-  if (route.canLoadDetail === false) throw new Error(route.loadIssue || '이 루트는 상세를 불러올 수 없습니다.');
+  if (route.canLoadDetail === false) {
+    // loadSpotSidebarRoutes에서 이미 "복원 가능한 북마크 route"로 판정된 경우입니다.
+    // 이때는 서버를 다시 치지 않고, 그때 보관해 둔 bookmarkPins/bookmarkEntries를
+    // SpotPage가 소비하는 detailedSpots 형식으로만 다시 가공합니다.
+    if (Array.isArray(route.bookmarkPins) && route.bookmarkPins.length > 0) {
+      const detailedSpots = route.bookmarkPins.map((pin, index) => ({
+        id: String(pin?.id ?? `bookmark-pin-${index}`),
+        placeId: String(pin?.id ?? ''),
+        spotId: num(pin?.id ?? pin?.spotId),
+        title: pin?.name ?? pin?.buildingName ?? `장소 ${index + 1}`,
+        name: pin?.name ?? pin?.buildingName ?? `장소 ${index + 1}`,
+        workName: pin?.artwork?.title ?? pin?.artworkTitle ?? '',
+        artworkId: num(pin?.artwork?.id ?? pin?.artworkId),
+        artworkTitle: pin?.artwork?.title ?? pin?.artworkTitle ?? '',
+        address: pin?.address ?? '',
+        position:
+          pin?.latitude != null && pin?.longitude != null
+            ? { lat: Number(pin.latitude), lng: Number(pin.longitude) }
+            : null,
+        latitude: pin?.latitude != null ? Number(pin.latitude) : null,
+        longitude: pin?.longitude != null ? Number(pin.longitude) : null,
+        color: '#374151',
+      }));
+
+      return {
+        ...route,
+        detailedSpots,
+      };
+    }
+
+    if (Array.isArray(route.bookmarkEntries) && route.bookmarkEntries.length > 0) {
+      const detailedSpots = route.bookmarkEntries.map((entry, index) => ({
+        id: String(entry?.spotId ?? `bookmark-entry-${index}`),
+        placeId: String(entry?.spotId ?? ''),
+        spotId: num(entry?.spotId),
+        title: entry?.name ?? entry?.title ?? `장소 ${index + 1}`,
+        name: entry?.name ?? entry?.title ?? `장소 ${index + 1}`,
+        workName: entry?.artworkTitle ?? '',
+        artworkId: null,
+        artworkTitle: entry?.artworkTitle ?? '',
+        address: entry?.address ?? '',
+        position:
+          entry?.latitude != null && entry?.longitude != null
+            ? { lat: Number(entry.latitude), lng: Number(entry.longitude) }
+            : null,
+        latitude: entry?.latitude != null ? Number(entry.latitude) : null,
+        longitude: entry?.longitude != null ? Number(entry.longitude) : null,
+        color: '#374151',
+      }));
+
+      return {
+        ...route,
+        detailedSpots,
+      };
+    }
+
+    // 복원에 쓸 원본 데이터조차 없으면 여기서만 실제 오류로 간주합니다.
+    throw new Error(route.loadIssue || '이 루트는 상세를 불러올 수 없습니다.');
+  }
 
   const detail = normalizeRoute(await fetchRouteDetail(route.routeId, userId), {
     sourceType: route.sourceType ?? 'MY_ROUTE',

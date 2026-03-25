@@ -321,6 +321,50 @@ const toRoutePostDetail = (postResponse, comments = []) => {
   };
 };
 
+// 북마크 대상이 "게시물"일 때는 route detail API가 막혀도
+// 공개 게시물 상세(/api/v1/posts/{postId})에서 routeId와 entries를 읽어 루트를 복원할 수 있습니다.
+// 여기서 중요한 점은:
+// 1) 게시물 상세는 공개 API라서 루트 소유자와 무관하게 접근 가능하고
+// 2) entries 안에 작성 페이지가 바로 소비할 수 있는 장소 정보가 이미 담겨 있다는 것입니다.
+// 즉 "북마크 -> 게시물 상세 -> 작성용 route option"으로 우회해
+// 남의 게시물을 북마크한 경우에도 장소 카드 생성이 끊기지 않게 합니다.
+const normalizeBookmarkedRouteFromPostDetail = (postResponse, bookmark) => {
+  const detail = toRoutePostDetail(postResponse, []);
+  if (!detail?.routeId) {
+    return null;
+  }
+
+  const spots = (detail.entries ?? []).map((entry) => ({
+    spotId: entry?.spotId ?? null,
+    name: entry?.title ?? entry?.name ?? '장소 정보 미정',
+    artworkTitle: entry?.artworkTitle ?? '작품 정보 미정',
+    address: entry?.address ?? '',
+    latitude: parseNumber(entry?.lat ?? entry?.latitude),
+    longitude: parseNumber(entry?.lng ?? entry?.longitude),
+    sceneImageUrl: entry?.referenceImageUrl ?? entry?.sceneImageUrl ?? null,
+  }));
+
+  const artworkTagNames = normalizeTagNames(
+    detail.tagNames?.length > 0 ? detail.tagNames : spots.map((spot) => spot.artworkTitle),
+  );
+
+  return {
+    id: `bookmark-route-${detail.routeId}`,
+    routeId: detail.routeId,
+    sourceType: 'BOOKMARKED_ROUTE',
+    sourceLabel: '북마크한 루트',
+    title: detail.routeTitle ?? detail.title ?? bookmark?.bookmarkName ?? `북마크 루트 ${detail.routeId}`,
+    summary: detail.summary ?? `북마크 게시물에서 복원한 루트입니다. 장소 ${spots.length}개`,
+    ownerDisplayName: detail.author?.name ?? '익명',
+    bookmarkName: bookmark?.bookmarkName ?? null,
+    bookmarkedPostTitle: detail.title ?? null,
+    artworkTagName: artworkTagNames[0] ?? null,
+    artworkTagNames,
+    tagNames: artworkTagNames,
+    spots,
+  };
+};
+
 // 상세 모델을 카드 목록용 요약 모델로 축소합니다.
 const toSummary = (detail) => ({
   id: detail.id,
@@ -410,6 +454,58 @@ const normalizeRouteOption = (rawRoute, overrides = {}) => {
       rawRoute.ownerDisplayName ?? rawRoute.userNickname ?? rawRoute.userId ?? overrides.ownerDisplayName ?? '익명',
     bookmarkName: overrides.bookmarkName ?? rawRoute.bookmarkName ?? null,
     bookmarkedPostTitle: overrides.bookmarkedPostTitle ?? rawRoute.bookmarkedPostTitle ?? null,
+    artworkTagName: artworkTagNames[0] ?? null,
+    artworkTagNames,
+    tagNames: artworkTagNames,
+    spots,
+  };
+};
+
+// 북마크 응답은 post/route 구분 없이 routeId와 pins를 함께 내려줄 수 있습니다.
+// pins는 "북마크 진입 직후 지도에 바로 그릴 수 있게 만든 최소 장소 요약"이라서,
+// route 상세 재조회가 실패하더라도 작성 페이지의 route option 정도는 충분히 복원할 수 있습니다.
+// 이 함수는 가장 마지막 안전망 역할을 합니다.
+// 우선순위는 "route detail -> 공개 게시물 상세 -> 북마크 pins" 이고,
+// 앞 단계가 모두 실패해도 북마크 응답만 남아 있으면 장소 목록을 최대한 살리는 목적입니다.
+const normalizeBookmarkedRouteFromPins = (bookmark) => {
+  const routeId = bookmark?.routeId ?? null;
+  const rawPins = Array.isArray(bookmark?.pins) ? bookmark.pins : [];
+  if (routeId == null || rawPins.length === 0) {
+    return null;
+  }
+
+  const spots = rawPins.map((pin, index) => ({
+    spotId: pin?.id ?? pin?.spotId ?? null,
+    name: pin?.name ?? pin?.buildingName ?? `장소 ${index + 1}`,
+    artworkTitle:
+      pin?.artwork?.title ??
+      pin?.artworkTitle ??
+      pin?.workName ??
+      pin?.artworkName ??
+      '작품 정보 미정',
+    address: pin?.address ?? '',
+    latitude: parseNumber(pin?.latitude ?? pin?.position?.lat),
+    longitude: parseNumber(pin?.longitude ?? pin?.position?.lng),
+    sceneImageUrl:
+      pin?.sceneImageUrl ??
+      pin?.sceneImgUrl ??
+      pin?.artwork?.posterUrl ??
+      null,
+  }));
+
+  const artworkTagNames = normalizeTagNames(spots.map((spot) => spot.artworkTitle));
+  const title = String(bookmark?.bookmarkName ?? '').trim() || `북마크 루트 ${routeId}`;
+
+  return {
+    id: `bookmark-route-${routeId}`,
+    routeId,
+    sourceType: 'BOOKMARKED_ROUTE',
+    sourceLabel: '북마크한 루트',
+    title,
+    summary: `북마크에서 복원한 루트입니다. 장소 ${spots.length}개`,
+    ownerDisplayName: '북마크',
+    bookmarkName: bookmark?.bookmarkName ?? null,
+    bookmarkedPostTitle: null,
     artworkTagName: artworkTagNames[0] ?? null,
     artworkTagNames,
     tagNames: artworkTagNames,
@@ -579,7 +675,7 @@ export const fetchRoutePostById = async (postId) => {
 /*
 [작성 페이지 루트 로딩]
 - 내 루트 목록 endpoint 후보를 순차 시도
-- 북마크 루트는 bookmark -> route detail 조회로 확장
+- 북마크 루트는 bookmark -> post/route 복원 순서로 확장
 - 실패 항목은 issues에 모아 화면에서 배너로 노출
 */
 export const loadPostCreateRoutes = async (userId) => {
@@ -629,6 +725,11 @@ export const loadPostCreateRoutes = async (userId) => {
     for (const bookmark of routeBookmarks) {
       const routeId = bookmark.routeId;
       const routeDetailEndpoints = [
+        // 1순위: 현재 백엔드가 실제로 사용하는 route 상세 계약
+        // 북마크 응답의 routeId를 정식 route payload로 확장할 때 가장 먼저 시도합니다.
+        resolvedUserId ? appendUserIdQuery(`/api/v1/map/routes/${routeId}`, resolvedUserId) : null,
+        // 2, 3순위: 과거/과도기 경로 호환
+        // 환경마다 서버가 다른 버전으로 떠 있을 수 있어 fallback을 남겨 둡니다.
         `/api/v1/routes/${routeId}`,
         resolvedUserId ? appendUserIdQuery(`/api/v1/user/routes/${routeId}`, resolvedUserId) : null,
       ].filter(Boolean);
@@ -651,7 +752,32 @@ export const loadPostCreateRoutes = async (userId) => {
       if (resolved) {
         collected.push(resolved);
       } else {
-        issues.push(`북마크 루트 ${routeId} 상세 조회에 실패했습니다.`);
+        // route detail이 모두 실패하면 "북마크가 게시물을 가리키는지"를 먼저 본다.
+        // 게시물 북마크라면 공개 게시물 상세에서 route entries를 복원할 수 있으므로
+        // pins fallback보다 더 풍부한 데이터를 얻을 가능성이 높다.
+        let fallbackRoute = null;
+
+        if (bookmark?.postId != null) {
+          try {
+            const bookmarkedPost = await FetchJson(`/api/v1/posts/${bookmark.postId}`);
+            fallbackRoute = normalizeBookmarkedRouteFromPostDetail(bookmarkedPost, bookmark);
+          } catch {
+            // 공개 게시물 상세도 실패하면 pins fallback으로 한번 더 시도합니다.
+          }
+        }
+
+        // 공개 게시물 상세에서도 못 살리면, 마지막으로 북마크 응답의 pins를 사용한다.
+        // 이 경우 정보량은 적지만 최소한 "장소 수 / 작품 제목 / 좌표" 수준은 유지할 수 있다.
+        if (!fallbackRoute) {
+          fallbackRoute = normalizeBookmarkedRouteFromPins(bookmark);
+        }
+
+        if (fallbackRoute) {
+          collected.push(fallbackRoute);
+          issues.push(`북마크 루트 ${routeId} 상세 조회는 실패했지만, 북마크 데이터로 복원했습니다.`);
+        } else {
+          issues.push(`북마크 루트 ${routeId} 상세 조회에 실패했습니다.`);
+        }
       }
     }
   } catch {
