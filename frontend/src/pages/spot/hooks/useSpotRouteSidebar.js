@@ -15,7 +15,7 @@ import {
  * - SpotPage에서 목록 로딩/선택/수정/삭제 분기를 분리해 화면 컴포넌트를 단순화한다.
  * - UI 이벤트는 이 훅으로 모으고, 실제 저장 판정은 API/백엔드 응답으로 처리한다.
  */
-export default function useSpotRouteSidebar({ replacePlaces, clearMap, setCenter, showToast }) {
+export default function useSpotRouteSidebar({ replacePlaces, clearMap, setCenter, showToast, openRouteDialog }) {
   // 목록 데이터
   const [myRoutes, setMyRoutes] = useState([]);
   const [bookmarkedRoutes, setBookmarkedRoutes] = useState([]);
@@ -69,6 +69,25 @@ export default function useSpotRouteSidebar({ replacePlaces, clearMap, setCenter
     setRouteSaveContext(null);
   }, []);
 
+  const startMapSearchMode = useCallback(() => {
+    // 읽기 전용으로 보고 있던 기존 루트는 "지도 검색" 진입 시 해제한다.
+    // 그래야 새 루트를 만들기 위해 장소를 추가할 때 우측 패널이 잠금 상태로 남지 않는다.
+    // 단, 이미 수정/복사 컨텍스트로 편집 중이면 현재 route를 유지한 채 계속 추가 가능해야 한다.
+    if (routeSaveContext) {
+      // edit/copy 상태는 "현재 선택된 route를 기반으로 편집 중"이라는 뜻이므로
+      // active route와 selectedPlaces를 유지한 채 잠금만 해제한다.
+      setIsRoutePreviewLocked(false);
+      return;
+    }
+
+    // 단순 조회 상태에서 지도 검색으로 넘어가는 경우는
+    // "기존 루트를 보고 있던 모드"를 끝내고 새 루트 작성 모드로 전환하는 의미입니다.
+    // 따라서 선택 루트, 지도 미리보기, selectedPlaces를 모두 초기화합니다.
+    clearMap();
+    resetRoutePreview();
+    setVisibleRouteSpots([]);
+  }, [clearMap, resetRoutePreview, routeSaveContext]);
+
   const applyLoadedRoute = useCallback(
     (detail, { lock, saveContext = null } = {}) => {
       // "루트 선택"은 곧 지도 핀/경로 미리보기 갱신으로 연결된다.
@@ -96,16 +115,22 @@ export default function useSpotRouteSidebar({ replacePlaces, clearMap, setCenter
         applyLoadedRoute(detail, { lock: true });
       } catch (error) {
         setVisibleRouteSpots([]);
-        alert(error.message || '루트 상세를 불러오지 못했습니다.');
+        await openRouteDialog?.({
+          type: 'alert',
+          title: '루트 불러오기 실패',
+          message: error.message || '루트 상세를 불러오지 못했습니다.',
+          confirmText: '확인',
+        });
       }
     },
-    [applyLoadedRoute],
+    [applyLoadedRoute, openRouteDialog],
   );
 
   const prepareRouteEdit = useCallback(
     async (route, mode) => {
       // 수정 모드 진입 시에는 같은 상세 데이터를 불러오되 lock=false로 내려
       // 사용자가 핀을 추가/삭제하고 다시 저장할 수 있도록 전환한다.
+      // mode === 'copy' 는 북마크 루트를 가져와 "새 루트처럼 편집"하는 시나리오다.
       const detail = await loadSpotSidebarRouteDetail({ route });
       applyLoadedRoute(detail, {
         lock: false,
@@ -133,7 +158,15 @@ export default function useSpotRouteSidebar({ replacePlaces, clearMap, setCenter
         }
 
         if (actionKey === 'rename') {
-          const nextTitle = window.prompt('새 루트 이름을 입력해 주세요.', route.title);
+          const nextTitle = await openRouteDialog?.({
+            type: 'prompt',
+            title: '루트 이름 변경',
+            message: '새 루트 이름을 입력해 주세요.',
+            initialValue: route.title,
+            inputPlaceholder: '루트 이름을 입력하세요',
+            confirmText: '변경',
+            cancelText: '취소',
+          });
           if (nextTitle == null || nextTitle.trim() === '' || nextTitle.trim() === route.title) return;
 
           // sourceType별로 API endpoint가 다르므로 분리 호출한다.
@@ -148,7 +181,13 @@ export default function useSpotRouteSidebar({ replacePlaces, clearMap, setCenter
         }
 
         if (actionKey !== 'delete') return;
-        const confirmed = window.confirm(`'${route.title}' 루트를 삭제할까요?`);
+        const confirmed = await openRouteDialog?.({
+          type: 'confirm',
+          title: '루트 삭제',
+          message: `'${route.title}' 루트를 삭제할까요?`,
+          confirmText: '삭제',
+          cancelText: '취소',
+        });
         if (!confirmed) return;
 
         if (route.sourceType === 'MY_ROUTE') {
@@ -164,10 +203,15 @@ export default function useSpotRouteSidebar({ replacePlaces, clearMap, setCenter
 
         await refreshSidebarRoutes();
       } catch (error) {
-        alert(error.message || '요청을 처리하지 못했습니다.');
+        await openRouteDialog?.({
+          type: 'alert',
+          title: '요청 처리 실패',
+          message: error.message || '요청을 처리하지 못했습니다.',
+          confirmText: '확인',
+        });
       }
     },
-    [activeSidebarRouteKey, clearMap, prepareRouteEdit, refreshSidebarRoutes, resetRoutePreview],
+    [activeSidebarRouteKey, clearMap, openRouteDialog, prepareRouteEdit, refreshSidebarRoutes, resetRoutePreview],
   );
 
   return {
@@ -183,6 +227,7 @@ export default function useSpotRouteSidebar({ replacePlaces, clearMap, setCenter
     refreshSidebarRoutes,
     resetRoutePreview,
     clearRouteSaveContext,
+    startMapSearchMode,
     handleSelectSidebarRoute,
     handleRouteAction,
   };

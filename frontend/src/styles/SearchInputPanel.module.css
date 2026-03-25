@@ -91,6 +91,50 @@
   color: #ff9db0;
 }
 
+.suggestionList {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid #2d2d44;
+  border-radius: 16px;
+  background: rgba(20, 20, 38, 0.98);
+}
+
+.suggestionButton {
+  min-height: 42px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: rgba(107, 70, 193, 0.12);
+  color: #fff;
+  cursor: pointer;
+  text-align: left;
+}
+
+.suggestionButton:hover {
+  background: rgba(107, 70, 193, 0.22);
+}
+
+.suggestionButton:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.suggestionLabel {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.suggestionMeta {
+  color: #c5c7dd;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
 .chipRow {
   display: flex;
   flex-wrap: wrap;

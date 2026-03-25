@@ -4,7 +4,9 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import MainLayout from '@/components/layout/MainLayout';
 import SearchInputPanel from '@/components/search/SearchInputPanel';
 import ArtworkCard from '@/components/post/ArtworkCard';
-import { searchExternalArtworks } from '@/api/artworkApi';
+import { resolveArtworkSelectionToTag } from '@/api/artworkTagApi';
+import { searchArtworkCandidates } from '@/api/artworkApi';
+import { navigateToPostTagSearch } from '@/utils/postTagSearch';
 import styles from '@/styles/ArtworkSearchPage.module.css';
 
 const ArtworkSearchPage = () => {
@@ -13,15 +15,17 @@ const ArtworkSearchPage = () => {
   const [inputValue, setInputValue] = useState(searchParams.get('q') ?? '');
   const [artworks, setArtworks] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isResolvingArtwork, setIsResolvingArtwork] = useState(false);
   const [loadError, setLoadError] = useState('');
 
   const selectedType = searchParams.get('type') ?? '';
   const submittedQuery = searchParams.get('q') ?? '';
 
-  // TMDB 검색은 "작품을 찾아 게시글 태그 검색으로 연결"하는 이 페이지에서만 유지합니다.
-  // 작성/조회 페이지는 이번 작업의 목적이 태그 UI 정리이므로 TMDB 직접 조회를 넣지 않습니다.
+  // 작품 탐색은 "서비스 내부 Artwork/Tag를 우선"으로 맞춘다.
+  // 로컬 검색 결과가 있으면 그것을 먼저 보여주고, 없을 때만 외부 후보를 노출한다.
   const artworkTypes = useMemo(
     () => [
+      { artworkTypeId: 'animation', artworkTypeName: '애니메이션' },
       { artworkTypeId: 'movie', artworkTypeName: '영화' },
       { artworkTypeId: 'tv', artworkTypeName: '드라마' },
     ],
@@ -47,9 +51,7 @@ const ArtworkSearchPage = () => {
       setLoadError('');
 
       try {
-        // 검색 결과는 TMDB 응답 원본을 그대로 쓰지 않고,
-        // 카드 렌더링에 필요한 형태로 정규화된 searchExternalArtworks 결과만 사용합니다.
-        const response = await searchExternalArtworks({
+        const response = await searchArtworkCandidates({
           query: submittedQuery,
           mediaType: selectedType || 'all',
         });
@@ -100,12 +102,25 @@ const ArtworkSearchPage = () => {
     setSearchParams(next);
   };
 
-  const handleArtworkClick = (title) => {
-    // 작품 선택의 목적은 import가 아니라 "작품명 태그로 게시글 탐색"이므로
-    // /posts?tags=작품명 형태로 이동시켜 조회 페이지와 자연스럽게 연결합니다.
-    const next = new URLSearchParams();
-    next.set('tags', title);
-    navigate(`/posts?${next.toString()}`);
+  const handleArtworkClick = async (artwork) => {
+    setIsResolvingArtwork(true);
+    setLoadError('');
+
+    try {
+      // 작품 탐색 페이지의 클릭은 단순 상세 이동이 아니라
+      // "이 작품을 게시글 검색 조건으로 채택한다"는 의미입니다.
+      // 따라서 먼저 로컬 Tag를 보장한 뒤에만 게시글 검색으로 이동합니다.
+      const resolvedTag = await resolveArtworkSelectionToTag(artwork);
+      const tagName = String(resolvedTag?.tagName ?? artwork?.title ?? '').trim();
+      if (!tagName) {
+        throw new Error('게시글 검색에 사용할 작품 태그를 확인하지 못했습니다.');
+      }
+      navigateToPostTagSearch(navigate, tagName);
+    } catch (error) {
+      setLoadError(error.message || '작품을 서비스 태그로 확정하지 못했습니다.');
+    } finally {
+      setIsResolvingArtwork(false);
+    }
   };
 
   return (
@@ -116,8 +131,8 @@ const ArtworkSearchPage = () => {
             <p className={styles.eyebrow}>작품 탐색</p>
             <h1>대표 컨텐츠로 게시글 찾기</h1>
             <p className={styles.description}>
-              TMDB 검색 결과를 바로 보여주고, 작품 카드를 누르면 해당 작품명으로 게시글 태그 검색
-              페이지로 이동합니다.
+              서비스에 등록된 작품을 우선 보여주고, 없으면 외부 후보를 제안합니다. 작품을 선택하면
+              필요한 경우 Artwork와 Tag를 먼저 확정한 뒤 게시글 검색으로 이동합니다.
             </p>
           </div>
 
@@ -127,9 +142,11 @@ const ArtworkSearchPage = () => {
               value={inputValue}
               onChange={setInputValue}
               onSubmit={handleSearch}
-              placeholder="TMDB에서 작품명을 검색하세요"
-              submitLabel="TMDB 검색"
-              helperText="검색 결과에서 작품을 선택하면 해당 제목으로 게시글 태그 검색을 진행합니다."
+              // 이 페이지는 태그 직접 입력이 아니라 "작품 카드 탐색"이 목적이므로
+              // 추천 드롭다운 대신 검색어 제출 -> 결과 카드 표시 구조를 유지합니다.
+              placeholder="작품명을 검색하세요"
+              submitLabel="작품 검색"
+              helperText="로컬 Artwork가 있으면 우선 노출하고, 없을 때만 외부 후보를 보여줍니다."
               leadingIcon={Search}
               submitIcon={Search}
             />
@@ -155,14 +172,16 @@ const ArtworkSearchPage = () => {
 
           {!submittedQuery.trim() ? (
             <div className={styles.stateBlock}>
-              작품명을 입력하고 TMDB 검색을 실행하면 영화/드라마 결과가 이 영역에 표시됩니다.
+              작품명을 입력하면 먼저 서비스 내부 작품을 찾고, 없으면 외부 후보를 이 영역에 표시합니다.
             </div>
           ) : loadError ? (
             <div className={styles.stateBlock}>{loadError}</div>
+          ) : isResolvingArtwork ? (
+            <div className={styles.stateBlock}>선택한 작품을 서비스 태그로 확정하는 중입니다.</div>
           ) : isLoading ? (
-            <div className={styles.stateBlock}>TMDB에서 작품 정보를 불러오는 중입니다.</div>
+            <div className={styles.stateBlock}>작품 정보를 불러오는 중입니다.</div>
           ) : artworks.length === 0 ? (
-            <div className={styles.stateBlock}>검색 조건에 맞는 작품이 없습니다.</div>
+            <div className={styles.stateBlock}>검색 조건에 맞는 서비스 작품이나 외부 후보가 없습니다.</div>
           ) : (
             <div className={styles.grid}>
               {artworks.map((artwork) => (
@@ -172,7 +191,10 @@ const ArtworkSearchPage = () => {
                   artworkTypeName={artwork.artworkTypeName}
                   description={artwork.description}
                   imageUrl={artwork.imageUrl}
-                  onClick={() => handleArtworkClick(artwork.title)}
+                  // 카드 클릭 시점이 "작품 채택" 시점입니다.
+                  // 즉, 여기서 단순 제목 전달이 아니라 작품 객체 전체를 넘겨
+                  // 로컬/외부 여부에 따라 확정 로직을 다르게 수행합니다.
+                  onClick={() => handleArtworkClick(artwork)}
                 />
               ))}
             </div>
