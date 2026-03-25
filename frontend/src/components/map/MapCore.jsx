@@ -81,7 +81,7 @@ export default function MapCore({
         mapId={MAP_ID}
         style={{ width: '100%', height: '100%' }}
         disableDefaultUI={true}
-        clickableIcons={!disableMapClick}
+        clickableIcons={false}
         options={{
           draggableCursor: 'default',
           draggingCursor: 'grabbing',
