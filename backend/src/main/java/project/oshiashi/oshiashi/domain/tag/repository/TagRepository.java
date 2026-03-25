@@ -1,6 +1,7 @@
 package project.oshiashi.oshiashi.domain.tag.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import project.oshiashi.oshiashi.domain.tag.entity.TagEntity;
 
@@ -52,4 +53,12 @@ public interface TagRepository extends JpaRepository<TagEntity, Long> {
 
 	// 존재하는 tag 목록을 조회하여 선택하도록 하기 위한 조회용
 	List<TagEntity> findAllByOrderByTagNameAsc();
+
+	@Query("""
+    select pt.post.postId, t.tagName
+    from PostTagEntity pt
+    join pt.tag t
+    where pt.post.postId in :postIds
+    """)
+	List<Object[]> findTagNamesByPostIds(List<Long> postIds);
 }

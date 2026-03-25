@@ -71,4 +71,27 @@ public class PostResponse {
 						.collect(Collectors.toList()))
 				.build();
 	}
+
+	public static PostResponse fromListData(
+			PostEntity entity,
+			Integer commentCount,
+			List<String> tagNames,
+			List<String> imageUrls
+	) {
+		return PostResponse.builder()
+				.postId(entity.getPostId())
+				.title(entity.getTitle())
+				.content(entity.getContent())
+				.routeId(entity.getRoute() != null ? entity.getRoute().getRouteId() : null)
+				.status(entity.getStatus())
+				.viewCount(entity.getViewCount())
+				.likeCount(entity.getLikeCount())
+				.createdAt(entity.getCreatedAt())
+				.updateAt(entity.getUpdateAt())
+				.commentCount(commentCount != null ? commentCount : 0)
+				.tagNames(tagNames != null ? tagNames : List.of())
+				.imageUrl(imageUrls != null ? imageUrls : List.of())
+				.build();
+	}
+
 }
