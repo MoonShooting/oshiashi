@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import styles from '@/styles/MapFilterPanel.module.css';
-import { autocompletePlaces, importArtwork } from '@/api/mapApi.js';
+// 변경된 API 임포트
+import { searchInternalArtwork, searchExternalArtwork, importArtwork } from '@/api/mapApi';
 import { PIN_COLOR } from '@/constants/mapConstants';
 
-export default function MapFilterPanel({ activeMediaTypes = [], onToggleMediaType, onWorkSearch, serverMediaTypes = [] }) {
+export default function MapFilterPanel({ activeMediaTypes = [], onToggleMediaType, onWorkSearch }) {
   const [collapsed, setCollapsed] = useState(false);
   const [workKeyword, setWorkKeyword] = useState('');
   const [suggestions, setSuggestions] = useState([]);
@@ -12,15 +13,15 @@ export default function MapFilterPanel({ activeMediaTypes = [], onToggleMediaTyp
 
   const debounceRef = useRef(null);
   const wrapperRef = useRef(null);
-  const isComposing = useRef(false); // 한글 입력 조합 상태 관리
+  const isComposing = useRef(false);
 
-  const FIXED_MEDIA_TYPES = ['영화', '드라마', '애니메이션']; //api 호출하지말고 고정값 사용
+  const FIXED_MEDIA_TYPES = ['영화', '드라마', '애니메이션'];
 
-  // 자동완성 호출 로직 (백엔드 ExternalArtworkCandidateResponse 대응)
-  const scheduleAutocomplete = useCallback((val) => {
+  // 자동완성 로직: 내부 DB 검색 -> 결과 없으면 외부 TMDB 검색
+  const scheduleAutocomplete = useCallback((val, currentFilters = []) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     const query = val?.trim();
-    if (!query || query.length <= 1) {
+    if (!query) {
       setSuggestions([]);
       setIsOpen(false);
       return;
@@ -28,40 +29,67 @@ export default function MapFilterPanel({ activeMediaTypes = [], onToggleMediaTyp
 
     debounceRef.current = setTimeout(async () => {
       try {
-        const data = await autocompletePlaces(query);
-        // 백엔드에서 온 데이터가 배열인지 확인하고 상태 업데이트
-        setSuggestions(Array.isArray(data) ? data : []);
+        // 내부 DB 먼저 검색
+        const internalData = await searchInternalArtwork(query);
+        let internalResults = Array.isArray(internalData) ? internalData : [];
+
+        // 선택된 태그가 있다면 내부 검색 결과 필터링
+        if (currentFilters.length > 0) {
+          internalResults = internalResults.filter(
+            (item) => currentFilters.includes(item.artworkTypeName), // 내부 DB는 artworkTypeName 기준
+          );
+        }
+
+        if (internalResults.length > 0) {
+          setSuggestions(internalResults.map((item) => ({ ...item, isExternal: false })));
+          setIsOpen(true);
+          setActiveIdx(-1);
+          return;
+        }
+
+        // 내부 결과가 없으면 외부 TMDB 검색
+        const externalData = await searchExternalArtwork(query);
+        let externalResults = Array.isArray(externalData) ? externalData : [];
+
+        //선택된 태그가 있다면 외부 검색 결과 필터링
+        if (currentFilters.length > 0) {
+          externalResults = externalResults.filter((item) => {
+            const type = item.mediaType?.toLowerCase();
+            // TMDB는 영문(movie, tv 등)으로 올 수 있으므로 한글 태그와 매핑하여 필터링
+            const matchMovie = currentFilters.includes('영화') && type === 'movie';
+            const matchDrama = currentFilters.includes('드라마') && type === 'tv';
+            const matchAnimation = currentFilters.includes('애니메이션') && type === 'animation';
+
+            return currentFilters.includes(item.mediaType) || matchMovie || matchDrama || matchAnimation;
+          });
+        }
+
+        setSuggestions(externalResults.map((item) => ({ ...item, isExternal: true })));
         setIsOpen(true);
         setActiveIdx(-1);
       } catch (err) {
         console.error('[MapFilterPanel] 자동완성 로드 실패:', err);
         setSuggestions([]);
       }
-    }, 300);
+    }, 200);
   }, []);
 
-  // 입력 핸들러 (한글 씹힘 방지 로직 포함)
+  // 한글 입력 중에도 부드럽게 검색되도록 핸들러 개선, 현재 활성화된 태그(activeMediaTypes)를 넘겨줌
   const handleInputChange = (e) => {
     const val = e.target.value;
     setWorkKeyword(val);
-
-    // 한글 조합 중일 때는 API 호출을 하지 않고 기다렸다가, 조합이 끝나면 호출하거나
-    // 타이핑 속도에 맞춰 디바운스만 태웁니다.
-    if (!isComposing.current) {
-      scheduleAutocomplete(val);
-    }
+    scheduleAutocomplete(val, activeMediaTypes);
   };
 
-  // 작품 선택 시 (Import API 연동)
+  // 작품 선택 시 (isExternal 여부에 따라 Import API 연동)
   const handleSelectItem = async (candidate) => {
     if (!candidate) return;
 
-    // 데이터 구조에 따른 제목 추출 (객체면 .title, 문자열이면 그대로)
-    const title = typeof candidate === 'object' ? candidate.title : candidate;
+    const title = candidate.title;
 
     try {
-      // TMDB 객체 데이터가 넘어온 경우 (ExternalArtworkCandidateResponse)
-      if (typeof candidate === 'object' && candidate.mediaType) {
+      if (candidate.isExternal) {
+        // TMDB 외부 데이터인 경우 -> 먼저 DB에 Import
         const saved = await importArtwork({
           title: candidate.title,
           posterPath: candidate.posterPath,
@@ -69,17 +97,20 @@ export default function MapFilterPanel({ activeMediaTypes = [], onToggleMediaTyp
           mediaType: candidate.mediaType,
           genreIds: candidate.genreIds,
         });
-        const finalTitle = saved.title || title;
+
+        // 백엔드에서 반환한 최신 타이틀 혹은 원래 타이틀 사용
+        const finalTitle = saved?.title || title;
         setWorkKeyword(finalTitle);
         onWorkSearch?.(finalTitle);
       } else {
-        // 단순 DB 검색 결과인 경우
+        // 내부 DB 검색 결과인 경우 -> 바로 검색
         setWorkKeyword(title);
         onWorkSearch?.(title);
       }
     } catch (err) {
       console.error('[MapFilterPanel] 작품 연동 실패:', err);
-      // 에러 시에도 일단 검색은 시도
+      // 저장 실패해도 일단 해당 이름으로 검색은 시도해봄
+      setWorkKeyword(title);
       onWorkSearch?.(title);
     } finally {
       setIsOpen(false);
@@ -88,7 +119,7 @@ export default function MapFilterPanel({ activeMediaTypes = [], onToggleMediaTyp
   };
 
   const handleKeyDown = (e) => {
-    if (isComposing.current) return; // 한글 조합 중 엔터로 인한 중복 호출 방지
+    if (isComposing.current) return;
 
     if (e.key === 'ArrowDown' && isOpen) {
       e.preventDefault();
@@ -106,7 +137,6 @@ export default function MapFilterPanel({ activeMediaTypes = [], onToggleMediaTyp
     }
   };
 
-  // 외부 클릭 시 닫기
   useEffect(() => {
     const handleClick = (e) => {
       if (wrapperRef.current && !wrapperRef.current.contains(e.target)) setIsOpen(false);
@@ -137,31 +167,30 @@ export default function MapFilterPanel({ activeMediaTypes = [], onToggleMediaTyp
                   value={workKeyword}
                   onChange={handleInputChange}
                   onCompositionStart={() => {
-                    isComposing.current = true;
+                    isComposing.current = true; // KeyDown에서 엔터 중복을 막기 위한 용도
                   }}
-                  onCompositionEnd={(e) => {
-                    isComposing.current = false;
-                    handleInputChange(e); // 조합 완료 후 최종 값으로 검색
+                  onCompositionEnd={() => {
+                    isComposing.current = false; // KeyDown에서 엔터 중복을 막기 위한 용도
                   }}
                   onKeyDown={handleKeyDown}
-                  placeholder="작품명 검색..."
+                  placeholder="작품명 검색 (예: 너의 이름은)"
                   autoComplete="off"
                 />
               </div>
-
+              {/* 검색어가 있고, 결과가 있을 때만 자동완성 창 표시 */}
               {isOpen && suggestions.length > 0 && (
                 <ul className={styles.autocompleteList}>
-                  {suggestions.map((item, idx) => {
-                    const title = typeof item === 'object' ? item.title : item;
-                    return (
-                      <li
-                        key={idx}
-                        className={`${styles.autocompleteItem} ${idx === activeIdx ? styles.active : ''}`}
-                        onClick={() => handleSelectItem(item)}>
-                        {title}
-                      </li>
-                    );
-                  })}
+                  {suggestions.map((item, idx) => (
+                    <li
+                      key={idx}
+                      className={`${styles.autocompleteItem} ${idx === activeIdx ? styles.active : ''}`}
+                      onClick={() => handleSelectItem(item)}>
+                      <span>{item.title}</span>
+                      <span style={{ fontSize: '11px', color: '#888', marginLeft: '6px' }}>
+                        {item.isExternal ? '[TMDB]' : `[${item.artworkTypeName || 'DB'}]`}
+                      </span>
+                    </li>
+                  ))}
                 </ul>
               )}
             </div>

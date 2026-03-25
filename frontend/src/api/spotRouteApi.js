@@ -1,6 +1,6 @@
 import { FetchJson } from '@/api/FetchClient';
 import { appendUserIdQuery, fetchBookmarksWithFallback, normalizeTagNames } from '@/api/postApiShared';
-import { getPlaceDetail, importArtwork, searchExternalArtworks } from '@/api/mapApi';
+import { getPlaceDetail, importArtwork } from '@/api/mapApi';
 
 /**
  * SpotPage 전용 API 어댑터
@@ -108,11 +108,8 @@ const normalizeRoute = (route, { sourceType = 'MY_ROUTE', bookmark = null, canLo
   const artworkTagNames = explicitTagNames.length > 0 ? explicitTagNames : fallbackTagNames;
   const routeId = num(route?.routeId ?? route?.id ?? bookmark?.routeId);
   const title =
-    text(
-      sourceType === 'BOOKMARKED_ROUTE'
-        ? bookmark?.bookmarkName ?? route?.title ?? route?.routeTitle
-        : route?.title ?? route?.routeTitle,
-    ) || '이름 없는 루트';
+    text(sourceType === 'BOOKMARKED_ROUTE' ? (bookmark?.bookmarkName ?? route?.title ?? route?.routeTitle) : (route?.title ?? route?.routeTitle)) ||
+    '이름 없는 루트';
 
   return {
     key: `${sourceType}-${routeId ?? num(bookmark?.bookmarkId) ?? Date.now()}`,
@@ -163,8 +160,7 @@ const toDetailedSpot = async (routeSpot, index) => {
   };
 };
 
-const fetchRouteDetail = async (routeId, userId) =>
-  unwrapObject(await FetchJson(withUserId(`/api/v1/map/routes/${routeId}`, userId)));
+const fetchRouteDetail = async (routeId, userId) => unwrapObject(await FetchJson(withUserId(`/api/v1/map/routes/${routeId}`, userId)));
 
 const toRouteSaveSpot = (spot, index) => ({
   // 저장 요청 payload는 백엔드 계약(RouteSpotRequest)에 맞춘다.

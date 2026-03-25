@@ -232,6 +232,7 @@ export default function SpotPage() {
                   : ''
               }
               durations={durations}
+              isEditMode={sidebar.activeSidebarRoute != null}
             />
           </div>
         }

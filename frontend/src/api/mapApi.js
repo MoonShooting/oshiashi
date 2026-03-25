@@ -1,31 +1,28 @@
 /**
  * @file mapApi.js
- * @description 지도 관련 API 함수 모음
+ * @description 지도 관련 API 함수 모음 (FetchClient 기반)
  *
- * [엔드포인트 정리]
- * MapController (/api/v1/map):
- *   GET  /api/v1/map                       → 전체 장소 목록
- *   GET  /api/v1/map/nearby?lat=&lng=&radiusKm=&mediaType=&limit= → 근처 장소
- *   GET  /api/v1/map/search?keyword=&mediaType= → 장소 검색
- *   GET  /api/v1/map/{placeId}             → 장소 상세
- *   GET  /api/v1/map/autocomplete?keyword= → 자동완성 작품명 목록 (TMDB)
+ * [주요 엔드포인트 정리]
+ * - GET /api/v1/map : 전체 장소 목록
+ * - GET /api/v1/map/search?keyword=&mediaType= : 장소 검색
+ * - GET /api/v1/map/{placeId} : 장소 상세
+ * - GET /api/v1/map/autocomplete?keyword= : 장소 자동완성
  *
- * ArtworkSearchController (/api/v1/artwork):
- *   GET  /api/v1/artwork/map/search?query= → TMDB 외부 작품 후보 검색
- *   POST /api/v1/artwork/import            → TMDB 작품 DB 저장
- *
- * [MapPlaceResponse — Swagger/DTO와 동일한 camelCase]
- *   placeId, artworkId, artworkTitle, mediaType (DB artwork_type_name; Swagger에 artworkType로 보이는 경우 폴백 처리),
- *   name, latitude, longitude, address, sceneImageUrl,
- *   relatedPostCount, hasAddress, hasSceneImage
+ * [작품 검색 및 태그 관련 엔드포인트]
+ * - GET /api/v1/main/artwork/search?keyword= : 내부 DB 작품 검색 (1순위)
+ * - GET /api/v1/artworks/search/external?query= : TMDB 외부 검색 (2순위)
+ * - POST /api/v1/artworks/import : TMDB 작품 DB 저장
+ * - POST /api/v1/tags : 작품에 태그 매핑/생성
  */
+
 import { FetchClient } from '@/api/FetchClient';
 
 /** Long ID는 문자열로 통일 (표시·비교 시 정밀도 문제 방지) */
 const toIdString = (value) => (value == null ? null : String(value));
 
 /**
- * MapPlaceResponse 정규화. mediaType은 백엔드 값 (PIN_COLOR / CSS 키와 일치).
+ * MapPlaceResponse 정규화.
+ * mediaType은 백엔드 값 (PIN_COLOR / CSS 키와 일치).
  */
 const normalizePlace = (raw) => {
   if (!raw || typeof raw !== 'object') {
@@ -34,8 +31,11 @@ const normalizePlace = (raw) => {
   const placeId = toIdString(raw.placeId);
   const lat = raw.latitude != null ? Number(raw.latitude) : null;
   const lng = raw.longitude != null ? Number(raw.longitude) : null;
-  // SoT는 백엔드 DTO 필드명 mediaType. 일부 Swagger 예시가 artworkType로 표기된 경우 호환
+
+  // SoT는 백엔드 DTO 필드명 mediaType.
+  // 일부 Swagger 예시가 artworkType로 표기된 경우 호환 처리
   const typeNameRaw = raw.mediaType ?? raw.artworkType ?? raw.artworkTypeName;
+
   return {
     id: placeId,
     position: {
@@ -58,70 +58,59 @@ const normalizePlace = (raw) => {
   };
 };
 
-// GET /api/v1/map
+// 전체 장소 목록 가져오기
 export const getPlaces = async () => {
   const raw = await FetchClient('/api/v1/map', { method: 'GET' });
   return Array.isArray(raw) ? raw.map(normalizePlace).filter(Boolean) : [];
 };
 
-/**
- * GET /api/v1/map/nearby
- * @param {number} lat
- * @param {number} lng
- * @param {{ radiusKm?: number, mediaType?: string|null, limit?: number }} [options]
- */
-export const getNearbyPlaces = async (lat, lng, options = {}) => {
-  const { radiusKm = 10, mediaType = null, limit = 10 } = options;
-  const params = new URLSearchParams({
-    lat: String(lat),
-    lng: String(lng),
-    radiusKm: String(radiusKm),
-    limit: String(limit),
-  });
+// 지도 장소 검색 (키워드 및 미디어타입 필터링 적용)
+export const searchPlaces = async (keyword, mediaType = null) => {
+  const params = new URLSearchParams({ keyword });
   if (mediaType && mediaType !== 'ALL') {
     params.append('mediaType', mediaType);
   }
-  const raw = await FetchClient(`/api/v1/map/nearby?${params.toString()}`, { method: 'GET' });
-  return Array.isArray(raw) ? raw.map(normalizePlace).filter(Boolean) : [];
-};
-
-// GET /api/v1/map/search?keyword=&mediaType=
-export const searchPlaces = async (keyword, mediaType = null) => {
-  const params = new URLSearchParams({ keyword });
-  if (mediaType && mediaType !== 'ALL') params.append('mediaType', mediaType);
   const raw = await FetchClient(`/api/v1/map/search?${params.toString()}`, { method: 'GET' });
   return Array.isArray(raw) ? raw.map(normalizePlace).filter(Boolean) : [];
 };
 
-// GET /api/v1/map/{placeId}
+// 특정 장소 상세 정보 조회
 export const getPlaceDetail = async (placeId) => {
   const raw = await FetchClient(`/api/v1/map/${placeId}`, { method: 'GET' });
   return normalizePlace(raw);
 };
 
-// GET /api/v1/map/autocomplete?keyword= → string[]
+// 지도 검색어 자동완성 (주로 장소명 혹은 단순 문자열 반환 시 사용)
 export const autocompletePlaces = async (keyword) => {
   const params = new URLSearchParams({ keyword });
   const raw = await FetchClient(`/api/v1/map/autocomplete?${params.toString()}`, { method: 'GET' });
   return Array.isArray(raw) ? raw.map((s) => String(s)) : [];
 };
 
-// GET /api/v1/artwork/types
-// ArtworkController에 구현된 미디어 타입(태그)
-export const getArtworkTypes = async () => {
-  const raw = await FetchClient('/api/v1/artworks/types', { method: 'GET' });
-  return Array.isArray(raw) ? raw : [];
+// 내부 DB 작품 검색 (자동완성 1순위)
+export const searchInternalArtwork = async (keyword) => {
+  const params = new URLSearchParams({ keyword });
+  return await FetchClient(`/api/v1/main/artwork/search?${params.toString()}`, { method: 'GET' });
 };
 
-// TMDB 검색 (후보군 가져오기) GET /api/v1/artwork/map/search?query=
-export const searchExternalArtworks = async (query) => {
-  return await FetchClient(`/api/v1/artworks/map/search?query=${query}`, { method: 'GET' });
+// 외부 TMDB 작품 검색 (내부 DB에 없을 때 2순위 검색)
+export const searchExternalArtwork = async (query) => {
+  const params = new URLSearchParams({ query }); // TMDB는 파라미터로 'query' 사용
+  return await FetchClient(`/api/v1/artworks/search/external?${params.toString()}`, { method: 'GET' });
 };
 
-// 작품 선택하여 DB에 저장 POST /api/v1/artwork/import
+// 외부 작품을 내부 DB에 저장 (사용자가 TMDB 검색결과를 클릭했을 때) POST /api/v1/artwork/import
 export const importArtwork = async (artworkData) => {
   return await FetchClient('/api/v1/artworks/import', {
     method: 'POST',
     body: JSON.stringify(artworkData), // FetchClient 구현체에 따라 body 전달 방식이 다를 수 있음
+  });
+};
+
+// 특정 작품에 태그 생성/연결하기
+export const createTag = async (artworkId, tagName) => {
+  return await FetchClient('/api/v1/tags', {
+    method: 'POST',
+    body: JSON.stringify({ artworkId, tagName }),
   });
 };

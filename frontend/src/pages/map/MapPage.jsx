@@ -18,9 +18,7 @@ import MapFilterPanel from '@/components/map/MapFilterPanel';
 import MapRightPanel from '@/components/map/MapRightPanel';
 import MapLegend from '@/components/map/MapLegend';
 import styles from '@/styles/MapLayout.module.css';
-
-// 불필요한 getNearbyPlaces, getPlaces 제거
-import { searchPlaces, getPlaceDetail, getArtworkTypes } from '@/api/mapApi';
+import { searchPlaces, getPlaceDetail } from '@/api/mapApi';
 import { DEFAULT_CENTER } from '@/constants/mapConstants';
 import { useMapStore } from '@/stores/useMapStore';
 
@@ -30,8 +28,7 @@ export default function MapPage() {
   // 상태 관리
   const [pins, setPins] = useState([]); // 검색으로 가져온 원본 핀 데이터
   const [hasSearched, setHasSearched] = useState(false); // 검색 수행 여부 (최초 안내 문구 숨김용)
-  const [serverMediaTypes, setServerMediaTypes] = useState([]); // 서버에서 받은 태그 목록
-
+  const [serverMediaTypes] = useState(['영화', '드라마', '애니메이션']); //호출 늦지 않기 위해 기본값 지정
   const [selectedPinId, setSelectedPinId] = useState(null);
   const [selectedPinDetail, setSelectedPinDetail] = useState(null);
   const [center, setCenter] = useState(DEFAULT_CENTER);
@@ -40,19 +37,6 @@ export default function MapPage() {
   // 글로벌 상태 (Zustand 등)
   const activeMediaTypes = useMapStore((s) => s.activeMediaTypes);
   const toggleMediaType = useMapStore((s) => s.toggleMediaType);
-
-  // 초기 태그 목록(미디어 타입)만 가볍게 조회
-  useEffect(() => {
-    const fetchTypes = async () => {
-      try {
-        const types = await getArtworkTypes();
-        setServerMediaTypes(toArray(types));
-      } catch (err) {
-        console.error('[MapPage] 태그 목록 로드 실패:', err);
-      }
-    };
-    fetchTypes();
-  }, []);
 
   // 핀 상세 정보 조회 (마커 클릭 시)
   useEffect(() => {
@@ -79,7 +63,7 @@ export default function MapPage() {
     return pins.filter((p) => activeMediaTypes.includes(p.mediaType));
   }, [pins, activeMediaTypes]);
 
-  // 4. 검색 핸들러 (MapFilterPanel에서 호출)
+  // 검색 핸들러 (MapFilterPanel에서 호출)
   const handleWorkSearchFromPanel = useCallback(
     async (keyword) => {
       const q = keyword?.trim();
