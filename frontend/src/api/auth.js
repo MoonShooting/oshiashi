@@ -2,18 +2,18 @@ import { FetchClient } from './FetchClient.js';
 
 //FetchClient.js에서 설정한 것이 있기 때문에 여기선 양식에 맞추어 엔드포인트, 타입들만 쓰면 됩니다.
 // 1. 이메일 전송 API
-export const sendEmailAPI = (email) => {
+export const sendEmailAPI = (email, type) => {
   return FetchClient('/api/v1/auth/emailSend', {
     method: 'POST',
-    body: JSON.stringify({ email }),
+    body: JSON.stringify({ email, type}),
   });
 };
 
 // 2. 이메일 검증 API
-export const verifyEmailAPI = (email, code) => {
+export const verifyEmailAPI = (email, code, type) => {
   return FetchClient('/api/v1/auth/emailVerify', {
     method: 'POST',
-    body: JSON.stringify({ email, code }),
+    body: JSON.stringify({ email, code, type}),
   });
 };
 
