@@ -194,7 +194,7 @@ export const updateCommunityPost = async ({ postId, title, content, userId }) =>
 
   await FetchJson(endpoint, {
     method: 'PATCH',
-    body: JSON.stringify({ title, content }),
+    body: JSON.stringify({ title, content , userId }),
   });
 
   const updated = await fetchCommunityPostById(postId);

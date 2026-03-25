@@ -115,8 +115,8 @@ public class PostServiceImpl implements PostService {
 				posts = postRepository.findAllByRouteIsNullAndTagNamesInOrderByCreatedAtDesc(tags);
 			} else {
 				posts = switch (normalizedSort) {
-					case "views" -> postRepository.findAllByRouteIsNullOrderByViewCountDescCreatedAtDesc();
-					case "popular" -> postRepository.findAllByRouteIsNullOrderByLikeCountDescCreatedAtDesc();
+					case "view" -> postRepository.findAllByRouteIsNullOrderByViewCountDescCreatedAtDesc();
+					case "like" -> postRepository.findAllByRouteIsNullOrderByLikeCountDescCreatedAtDesc();
 					case "latest" -> postRepository.findAllByRouteIsNullOrderByCreatedAtDesc();
 					default -> throw new IllegalArgumentException("지원하지 않는 정렬 방식입니다. " + sort);
 				};
