@@ -35,7 +35,13 @@ public enum ErrorCode {
     ROUTE_NOT_FOUND(HttpStatus.NOT_FOUND, "ROUTE_404", "루트를 찾을 수 없습니다."),
 
     // Bookmark
-    BOOKMARK_TARGET_INVALID(HttpStatus.BAD_REQUEST, "BOOKMARK_400", "북마크 대상은 하나만 선택해야 합니다.");
+    BOOKMARK_TARGET_INVALID(HttpStatus.BAD_REQUEST, "BOOKMARK_400", "북마크 대상은 하나만 선택해야 합니다."),
+
+	// Achievement
+	ACHIEVEMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "ACHIEVEMENT_404", "해당 업적 정보를 찾을 수 없습니다."),
+	NOT_OWNED_ACHIEVEMENT(HttpStatus.FORBIDDEN, "ACHIEVEMENT_403", "보유하지 않은 업적입니다.");
+
+
 
     private final HttpStatus status;
     private final String code;

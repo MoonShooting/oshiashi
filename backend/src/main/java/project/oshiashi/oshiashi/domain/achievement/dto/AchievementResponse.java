@@ -1,27 +1,28 @@
 package project.oshiashi.oshiashi.domain.achievement.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import project.oshiashi.oshiashi.domain.achievement.entity.AchievementEntity;
+import lombok.*;
+import project.oshiashi.oshiashi.domain.user.entity.UserAchievementEntity;
+import java.time.LocalDateTime;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Getter @NoArgsConstructor @AllArgsConstructor @Builder
 public class AchievementResponse {
 	private Long achievementId;
 	private String name;
 	private String description;
 	private String iconUrl;
-	
-	public static AchievementResponse from(AchievementEntity achievementEntity) {
+	private LocalDateTime achievedAt;
+
+	/**
+	 * [엔티티 -> DTO 변환]
+	 * - 파라미터명을 userAchievement로 사용하여 의미를 명확히 했습니다.
+	 */
+	public static AchievementResponse from(UserAchievementEntity userAchievement) {
 		return AchievementResponse.builder()
-				.achievementId(achievementEntity.getAchievementId())
-				.name(achievementEntity.getName())
-				.description(achievementEntity.getDescription())
-				.iconUrl(achievementEntity.getIconUrl())
+				.achievementId(userAchievement.getAchievement().getAchievementId())
+				.name(userAchievement.getAchievement().getName())
+				.description(userAchievement.getAchievement().getDescription())
+				.iconUrl(userAchievement.getAchievement().getIconUrl())
+				.achievedAt(userAchievement.getAchievedAt())
 				.build();
 	}
 }

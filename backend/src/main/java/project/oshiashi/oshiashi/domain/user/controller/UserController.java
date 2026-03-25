@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import project.oshiashi.oshiashi.domain.achievement.dto.AchievementResponse;
+import project.oshiashi.oshiashi.domain.achievement.service.AchievementService;
 import project.oshiashi.oshiashi.domain.route.dto.RouteResponse;
 import project.oshiashi.oshiashi.domain.user.dto.UserProfileResponse;
 import project.oshiashi.oshiashi.domain.user.dto.UserResponse;
@@ -24,6 +26,7 @@ import java.util.Map;
 public class UserController {
 
 	private final UserService userService;
+	private final AchievementService achievementService;
 
 	// 내 정보 상세 조회: /api/v1/user/me
 	@GetMapping("/me")
@@ -67,11 +70,17 @@ public class UserController {
 		return ResponseEntity.ok(userService.getMyBookmarks());
 	}
 
-	// 보유 칭호 목록 조회: /api/v1/user/achievement
+	/**
+	 * [내 보유 칭호 목록 조회]
+	 * - 경로: /api/v1/user/achievement
+	 * - 서비스 레이어에서 시큐리티를 통해 본인을 식별하므로 파라미터가 없습니다.
+	 */
 	@GetMapping("/achievement")
-	public ResponseEntity<List<?>> getMyAchievements() {
-		log.info("[API] 칭호 목록 조회 호출");
-		return ResponseEntity.ok(userService.getMyAchievements());
+	public ResponseEntity<List<AchievementResponse>> getMyAchievements() {
+		log.info("[API] 내 칭호 목록 조회 호출");
+
+		// userService를 거칠 필요 없이 바로 achievementService를 호출하세요!
+		return ResponseEntity.ok(achievementService.getAchievements());
 	}
 
 	// TODO: 현재는 대표 칭호 변경 API 자리만 있으며, 실제 저장 로직은 미구현 상태
