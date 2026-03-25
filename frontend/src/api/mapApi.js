@@ -15,6 +15,7 @@
  */
 
 import { FetchClient } from '@/api/FetchClient';
+import { extractArrayPayload } from '@/api/postApiShared';
 
 /** Long ID는 문자열로 통일 (표시·비교 시 정밀도 문제 방지) */
 const toIdString = (value) => (value == null ? null : String(value));
@@ -27,9 +28,12 @@ const normalizePlace = (raw) => {
   if (!raw || typeof raw !== 'object') {
     return null;
   }
-  const placeId = toIdString(raw.placeId);
   const lat = raw.latitude != null ? Number(raw.latitude) : null;
   const lng = raw.longitude != null ? Number(raw.longitude) : null;
+  // 백엔드 필드명 혼용 대응: placeId → id → spotId → mapId 순서로 폴백
+  const rawId = raw.placeId ?? raw.id ?? raw.spotId ?? raw.mapId ?? null;
+  // 백엔드 ID가 없으면 좌표 기반 합성 ID 생성 (null 방지 → isSelected 오탐 차단)
+  const placeId = rawId != null ? toIdString(rawId) : lat != null && lng != null ? `local-${lat}-${lng}` : null;
 
   // SoT는 백엔드 DTO 필드명 mediaType.
   // 일부 Swagger 예시가 artworkType로 표기된 경우 호환 처리
@@ -45,6 +49,11 @@ const normalizePlace = (raw) => {
     placeId,
     artworkId: toIdString(raw.artworkId),
     artworkTitle: raw.artworkTitle ?? '',
+    // 백엔드 응답이 중첩 artwork 객체를 내려줄 경우 우선 사용, 없으면 평탄화 필드로 폴백
+    artwork: {
+      title: raw.artwork?.title ?? raw.artworkTitle ?? '',
+      posterUrl: raw.artwork?.posterUrl ?? raw.sceneImageUrl ?? null,
+    },
     mediaType: typeNameRaw != null && String(typeNameRaw).trim() !== '' ? String(typeNameRaw) : '',
     name: raw.name ?? '',
     latitude: lat,
@@ -83,7 +92,24 @@ export const getPlaceDetail = async (placeId) => {
 export const autocompletePlaces = async (keyword) => {
   const params = new URLSearchParams({ keyword });
   const raw = await FetchClient(`/api/v1/maps/autocomplete?${params.toString()}`, { method: 'GET' });
-  return Array.isArray(raw) ? raw.map((s) => String(s)) : [];
+  return Array.isArray(raw) ? raw.map((s) => (typeof s === 'string' ? s : (s?.title ?? s?.name ?? s?.keyword ?? String(s)))) : [];
+};
+
+/**
+ * artworkTitle로 서비스 내부 Artwork 조회 → posterUrl 획득
+ * MapRightPanel에서 place.artwork.posterUrl이 null일 때 폴백으로 사용
+ */
+export const getArtworkPosterByTitle = async (title) => {
+  if (!title) return null;
+  try {
+    const params = new URLSearchParams({ keyword: title });
+    const raw = await FetchClient(`/api/v1/main/artworks/search?${params.toString()}`, { method: 'GET' });
+    const items = extractArrayPayload(raw);
+    const match = items.find((a) => a.title === title) ?? items[0] ?? null;
+    return match?.posterUrl ?? null;
+  } catch {
+    return null;
+  }
 };
 
 /**
