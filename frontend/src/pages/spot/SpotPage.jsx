@@ -18,6 +18,67 @@ import { DEFAULT_CENTER, MAX_SPOT_COUNT, PIN_COLOR } from '@/constants/mapConsta
 import { DUMMY_PILGRIMAGE_SITES, DEFAULT_LOCATION } from '@/data/dummyData';
 import styles from '@/styles/SpotPage.module.css';
 
+function RouteDialogModal({ dialog, onCancel, onConfirm }) {
+  const inputRef = useRef(null);
+  const [draftValue, setDraftValue] = useState('');
+
+  useEffect(() => {
+    if (!dialog) return;
+    setDraftValue(dialog.initialValue ?? '');
+  }, [dialog]);
+
+  useEffect(() => {
+    if (!dialog || dialog.type !== 'prompt') return;
+    inputRef.current?.focus();
+    inputRef.current?.select?.();
+  }, [dialog]);
+
+  if (!dialog) return null;
+
+  return (
+    <div className={styles.saveModal}>
+      <div className={styles.saveModalBackdrop} onClick={onCancel} />
+      <div className={styles.saveModalBox} onClick={(event) => event.stopPropagation()}>
+        <p className={styles.saveModalTitle}>{dialog.title}</p>
+        {dialog.message ? <p className={styles.routeDialogMessage}>{dialog.message}</p> : null}
+
+        {dialog.type === 'prompt' ? (
+          <input
+            ref={inputRef}
+            className={styles.saveModalInput}
+            value={draftValue}
+            onChange={(event) => setDraftValue(event.target.value)}
+            placeholder={dialog.inputPlaceholder ?? '입력해 주세요'}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                onConfirm(draftValue);
+              } else if (event.key === 'Escape') {
+                event.preventDefault();
+                onCancel();
+              }
+            }}
+          />
+        ) : null}
+
+        <div className={styles.saveModalActions}>
+          {dialog.cancelText ? (
+            <button className={styles.saveModalCancel} type="button" onClick={onCancel}>
+              {dialog.cancelText}
+            </button>
+          ) : null}
+          <button
+            className={styles.saveModalConfirm}
+            type="button"
+            onClick={() => onConfirm(dialog.type === 'prompt' ? draftValue : true)}>
+            {dialog.confirmText ?? '확인'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /**
  * 지도 클릭으로 임시 장소를 추가할 수 있는 팝업.
  * Geocoding 대신 Places Service를 사용하여 상호명을 우선적으로 조회합니다.
@@ -189,7 +250,9 @@ export default function SpotPage() {
   const [durations, setDurations] = useState(null);
   const [clickedPos, setClickedPos] = useState(null);
   const [toastMessage, setToastMessage] = useState('');
+  const [routeDialog, setRouteDialog] = useState(null);
   const toastTimerRef = useRef(null);
+  const routeDialogResolverRef = useRef(null);
 
   const { selectedPlaces, addPlace, clearMap, replacePlaces } = useMapStore();
   const selectedIds = useMemo(() => new Set(selectedPlaces.map((place) => place.id)), [selectedPlaces]);
@@ -206,12 +269,29 @@ export default function SpotPage() {
     }, 3000);
   }, []);
 
+  const closeRouteDialog = useCallback((result) => {
+    const resolver = routeDialogResolverRef.current;
+    routeDialogResolverRef.current = null;
+    setRouteDialog(null);
+    resolver?.(result);
+  }, []);
+
+  const openRouteDialog = useCallback((dialogConfig) => {
+    return new Promise((resolve) => {
+      // 브라우저 기본 alert/confirm/prompt 대신 Spot 페이지의 기존 저장 모달 스타일을 재사용한다.
+      // 동작 의미는 그대로 두고, 시각적 경험만 프로젝트 공통 톤으로 통일하는 목적이다.
+      routeDialogResolverRef.current = resolve;
+      setRouteDialog(dialogConfig);
+    });
+  }, []);
+
   // 사이드패널/루트 목록 액션은 전용 훅으로 분리하여 SpotPage를 "조립 컴포넌트"로 유지한다.
   const sidebar = useSpotRouteSidebar({
     replacePlaces,
     clearMap,
     setCenter,
     showToast,
+    openRouteDialog,
   });
 
   const saveModal = useSpotRouteSaveModal({
@@ -238,11 +318,24 @@ export default function SpotPage() {
   const handleAddToRoute = useCallback(
     (spot) => {
       if (sidebar.isRoutePreviewLocked) {
-        alert('저장된 루트는 읽기 전용입니다. 수정 버튼을 눌러 편집해 주세요.');
+        // 저장된 route를 그냥 보고 있는 상태에서는
+        // selectedPlaces를 수정해 버리면 "조회용 미리보기"와 "편집 중 route"가 섞여 버립니다.
+        // 그래서 수정 모드로 전환하기 전에는 추가를 막습니다.
+        void openRouteDialog({
+          type: 'alert',
+          title: '읽기 전용 루트',
+          message: '저장된 루트는 읽기 전용입니다. 수정 버튼을 눌러 편집해 주세요.',
+          confirmText: '확인',
+        });
         return;
       }
       if (selectedPlaces.length >= MAX_SPOT_COUNT) {
-        alert(`최대 ${MAX_SPOT_COUNT}개까지 추가할 수 있습니다.`);
+        void openRouteDialog({
+          type: 'alert',
+          title: '추가 제한',
+          message: `최대 ${MAX_SPOT_COUNT}개까지 추가할 수 있습니다.`,
+          confirmText: '확인',
+        });
         return;
       }
       // 동일 spot 중복 추가는 막고, 나머지 저장 가능 판정은 백엔드에 위임한다.
@@ -305,6 +398,7 @@ export default function SpotPage() {
             onAddToRoute={handleAddToRoute}
             onPreview={handlePreview}
             center={center}
+            onEnterMapSearch={sidebar.startMapSearchMode}
           />
         }
         mapComponent={
@@ -348,6 +442,8 @@ export default function SpotPage() {
             <RouteListSelector
               onSave={saveModal.openSaveModal}
               onReset={() => {
+                // 우측 패널 초기화는 "현재 편집 컨텍스트 종료" 의미이므로
+                // routeSaveContext와 route preview를 함께 해제한다.
                 sidebar.clearRouteSaveContext();
                 sidebar.resetRoutePreview();
               }}
@@ -461,6 +557,8 @@ export default function SpotPage() {
           </div>
         </div>
       ) : null}
+
+      <RouteDialogModal dialog={routeDialog} onCancel={() => closeRouteDialog(null)} onConfirm={closeRouteDialog} />
 
       {toastMessage ? <div className={styles.toast}>{toastMessage}</div> : null}
     </APIProvider>

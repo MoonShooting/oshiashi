@@ -1,9 +1,10 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, Hash, Search, SearchX } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import MainLayout from '@/components/layout/MainLayout';
 import PostCard from '@/components/post/PostCard';
 import SearchInputPanel from '@/components/search/SearchInputPanel';
+import { ensureLocalArtworkTag, searchArtworkTagOptions } from '@/api/artworkTagApi';
 import { fetchRoutePosts, routePostsUpdatedEvent } from '@/api/routePostApi';
 import usePostListLoader from '@/pages/post/hooks/usePostListLoader';
 import styles from '@/styles/PostSearchPage.module.css';
@@ -11,11 +12,7 @@ import styles from '@/styles/PostSearchPage.module.css';
 // 사용자가 "#도쿄", "도쿄", " 도쿄 "처럼 입력해도
 // 내부 비교는 항상 같은 기준으로 처리되도록 정규화합니다.
 const normalizeKeyword = (value) => value.replace(/^#/, '').trim();
-const parseTagInput = (value) =>
-  value
-    .split(',')
-    .map((item) => normalizeKeyword(item))
-    .filter(Boolean);
+const resolveCandidateLabel = (candidate) => normalizeKeyword(candidate?.tagName ?? candidate?.title ?? candidate?.label ?? '');
 
 /*
 [PostSearchPage]
@@ -28,6 +25,14 @@ const PostSearchPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [sortBy, setSortBy] = useState('views');
   const [inputValue, setInputValue] = useState('');
+  const [tagSuggestions, setTagSuggestions] = useState([]);
+  const [isSearchingTags, setIsSearchingTags] = useState(false);
+  const [tagSearchError, setTagSearchError] = useState('');
+  const [isSuggestionOpen, setIsSuggestionOpen] = useState(false);
+
+  const tagSearchDebounceRef = useRef(null);
+  const isComposing = useRef(false);
+  const panelRef = useRef(null);
 
   /**
    * 화면 흐름
@@ -61,7 +66,62 @@ const PostSearchPage = () => {
     fallbackErrorMessage: '게시글 목록을 불러오지 못했습니다.',
   });
 
-  const updateTags = (tags) => {
+  useEffect(() => {
+    const closeSuggestionsOnOutside = (event) => {
+      if (panelRef.current && !panelRef.current.contains(event.target)) {
+        setIsSuggestionOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', closeSuggestionsOnOutside);
+    return () => document.removeEventListener('mousedown', closeSuggestionsOnOutside);
+  }, []);
+
+  useEffect(() => {
+    const query = normalizeKeyword(inputValue);
+
+    if (tagSearchDebounceRef.current) {
+      clearTimeout(tagSearchDebounceRef.current);
+    }
+
+    if (!query) {
+      setTagSuggestions([]);
+      setIsSuggestionOpen(false);
+      setTagSearchError('');
+      setIsSearchingTags(false);
+      return undefined;
+    }
+
+    if (isComposing.current) return undefined;
+
+    tagSearchDebounceRef.current = setTimeout(async () => {
+      // 입력 중에는 "검색을 실제로 실행"하기보다
+      // 사용자가 선택할 수 있는 태그 후보를 계속 갱신합니다.
+      // 실제 URL 검색 상태는 후보를 선택하거나 제출한 뒤에만 변경합니다.
+      setIsSearchingTags(true);
+      setTagSearchError('');
+
+      try {
+        const result = await searchArtworkTagOptions(query);
+        setTagSuggestions((result.items ?? []).slice(0, 6));
+        setIsSuggestionOpen((result.items ?? []).length > 0);
+      } catch (error) {
+        setTagSuggestions([]);
+        setIsSuggestionOpen(false);
+        setTagSearchError(error.message || '작품 태그 추천을 불러오지 못했습니다.');
+      } finally {
+        setIsSearchingTags(false);
+      }
+    }, 250);
+
+    return () => {
+      if (tagSearchDebounceRef.current) {
+        clearTimeout(tagSearchDebounceRef.current);
+      }
+    };
+  }, [inputValue]);
+
+  const updateTags = useCallback((tags) => {
     // 조회 페이지는 TMDB를 직접 조회하지 않고 tags query만 상태의 기준으로 삼습니다.
     // 이렇게 두면 작품 탐색 페이지에서 넘어온 검색 조건을 URL만으로 복원할 수 있습니다.
     const next = new URLSearchParams(searchParams);
@@ -73,17 +133,64 @@ const PostSearchPage = () => {
     }
 
     setSearchParams(next);
-  };
+  }, [searchParams, setSearchParams]);
 
-  const handleAddTag = () => {
-    const nextTags = parseTagInput(inputValue);
-    if (nextTags.length === 0) return;
+  const applyResolvedTag = useCallback(
+    async (candidate) => {
+      // 게시글 검색 페이지는 자유 문자열이 아니라
+      // "실제 서비스에 존재하는 tagName"만 검색 조건으로 사용해야 합니다.
+      // 그래서 후보를 선택하면 먼저 로컬 Tag 확정을 거친 뒤 URL을 갱신합니다.
+      const resolved = await ensureLocalArtworkTag(candidate);
+      const normalizedTag = normalizeKeyword(resolved?.tagName ?? candidate?.tagName ?? candidate?.title ?? '');
+      if (!normalizedTag) {
+        throw new Error('검색에 사용할 작품 태그를 확인하지 못했습니다.');
+      }
 
-    // 입력창은 쉼표 단위 다중 입력을 허용하지만,
-    // 실제 검색 상태는 중복 없는 태그 집합처럼 유지합니다.
-    updateTags(Array.from(new Set([...selectedTags, ...nextTags])));
-    setInputValue('');
-  };
+      updateTags(Array.from(new Set([...selectedTags, normalizedTag])));
+      setInputValue('');
+      setTagSuggestions([]);
+      setIsSuggestionOpen(false);
+      setTagSearchError('');
+    },
+    [selectedTags, updateTags],
+  );
+
+  const handleAddTag = useCallback(async () => {
+    const query = normalizeKeyword(inputValue);
+    if (!query) return;
+
+    // 제출 버튼 Enter/클릭은 "현재 입력을 바로 태그로 쓸 수 있는가?"를 확인하는 단계입니다.
+    // 정확히 하나로 확정되면 즉시 적용하고,
+    // 여러 후보가 있으면 사용자가 목록에서 정확한 작품을 고르게 합니다.
+    setIsSearchingTags(true);
+    setTagSearchError('');
+
+    try {
+      const result = await searchArtworkTagOptions(query);
+      const candidates = result.items ?? [];
+      const exact = candidates.find((candidate) => resolveCandidateLabel(candidate).toLowerCase() === query.toLowerCase());
+      const matched = exact ?? (candidates.length === 1 ? candidates[0] : null);
+
+      if (!matched) {
+        // 같은 제목/비슷한 제목의 작품이 여러 개인 상황에서는
+        // 잘못된 tagName으로 검색해 버리지 않도록 자동 선택을 피합니다.
+        setTagSuggestions(candidates.slice(0, 6));
+        setIsSuggestionOpen(candidates.length > 0);
+        setTagSearchError(
+          candidates.length > 0
+            ? '여러 작품 후보가 있습니다. 아래 목록에서 정확한 태그를 선택해 주세요.'
+            : '일치하는 작품 태그를 찾지 못했습니다.',
+        );
+        return;
+      }
+
+      await applyResolvedTag(matched);
+    } catch (error) {
+      setTagSearchError(error.message || '작품 태그를 추가하지 못했습니다.');
+    } finally {
+      setIsSearchingTags(false);
+    }
+  }, [applyResolvedTag, inputValue]);
 
   const handleRemoveTag = (tag) => {
     updateTags(selectedTags.filter((item) => item !== tag));
@@ -93,6 +200,9 @@ const PostSearchPage = () => {
     // 필터 초기화는 검색 결과 페이지를 "태그가 없는 기본 상태"로 되돌리는 역할입니다.
     updateTags([]);
     setInputValue('');
+    setTagSuggestions([]);
+    setIsSuggestionOpen(false);
+    setTagSearchError('');
   };
 
   const title = selectedTags.length > 0 ? `#${selectedTags.join(' #')} 검색 결과` : '게시글 검색 결과';
@@ -107,20 +217,35 @@ const PostSearchPage = () => {
           </header>
 
           <div className={styles.controlRow}>
-            <div className={styles.controlLeft}>
+            <div className={styles.controlLeft} ref={panelRef}>
               <SearchInputPanel
                 inputId="post-search-tag-input"
                 value={inputValue}
                 onChange={setInputValue}
                 onSubmit={handleAddTag}
-                placeholder="#도쿄, #토라도라, #아키하바라"
-                helperText="태그를 직접 추가해 게시글 목록을 다시 조회합니다."
-                submitLabel="태그 추가"
+                placeholder="작품 태그를 검색하세요"
+                helperText="로컬 태그를 우선 찾고, 없으면 외부 작품을 로컬 태그로 확정해 검색에 사용합니다."
+                errorText={tagSearchError}
+                submitLabel={isSearchingTags ? '찾는 중...' : '태그 추가'}
                 selectedItems={selectedTags}
                 onRemoveItem={handleRemoveTag}
                 onReset={selectedTags.length > 0 ? handleReset : undefined}
                 leadingIcon={Hash}
                 submitIcon={Search}
+                disabled={isSearchingTags}
+                suggestionItems={isSuggestionOpen ? tagSuggestions : []}
+                // 추천 목록도 같은 공통 확정 로직을 타게 해서
+                // 버튼 제출과 추천 클릭이 같은 결과를 내도록 맞춥니다.
+                onSelectSuggestion={applyResolvedTag}
+                formatSuggestionLabel={(item) => `#${resolveCandidateLabel(item)}`}
+                getSuggestionMeta={(item) => (item?.source === 'TMDB' ? '외부 후보' : '로컬 태그')}
+                onInputCompositionStart={() => {
+                  isComposing.current = true;
+                }}
+                onInputCompositionEnd={(event) => {
+                  isComposing.current = false;
+                  setInputValue(event.target.value);
+                }}
               />
             </div>
 

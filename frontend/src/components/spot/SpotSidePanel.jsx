@@ -26,6 +26,7 @@ export default function SpotSidePanel({
   onAddToRoute,
   onPreview,
   center,
+  onEnterMapSearch,
 }) {
   const [activeTab, setActiveTab] = useState('route');
   const [openMenuKey, setOpenMenuKey] = useState('');
@@ -87,13 +88,26 @@ export default function SpotSidePanel({
     [onPreview, onAddToRoute],
   );
 
+  const handleTabChange = useCallback(
+    (tabKey) => {
+      setActiveTab(tabKey);
+      if (tabKey === 'search') {
+        // 탭 전환은 단순 UI 표시 변경이 아니라,
+        // SpotPage 전체의 "현재 작업 모드"를 바꾸는 이벤트이기도 합니다.
+        // 그래서 지도 검색 탭 진입 시 상위 컴포넌트에 잠금 전환을 알립니다.
+        onEnterMapSearch?.();
+      }
+    },
+    [onEnterMapSearch],
+  );
+
   return (
     <div className={styles.panel}>
       <div className={styles.tabs}>
-        <button className={`${styles.tab} ${activeTab === 'route' ? styles.tabActive : ''}`} onClick={() => setActiveTab('route')}>
+        <button className={`${styles.tab} ${activeTab === 'route' ? styles.tabActive : ''}`} onClick={() => handleTabChange('route')}>
           루트
         </button>
-        <button className={`${styles.tab} ${activeTab === 'search' ? styles.tabActive : ''}`} onClick={() => setActiveTab('search')}>
+        <button className={`${styles.tab} ${activeTab === 'search' ? styles.tabActive : ''}`} onClick={() => handleTabChange('search')}>
           지도 검색
         </button>
       </div>

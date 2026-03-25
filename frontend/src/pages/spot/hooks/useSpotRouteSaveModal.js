@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { createRouteWithArtworkTag, ensureLocalArtworkTag, loadArtworkTags, searchArtworkTagOptions } from '@/api/spotRouteApi';
+import { loadArtworkTags, searchArtworkTagOptions, ensureLocalArtworkTag } from '@/api/artworkTagApi';
+import { createRouteWithArtworkTag } from '@/api/spotRouteApi';
 
 const normalizeTag = (value) => String(value ?? '').replace(/^#/, '').trim();
 
@@ -163,6 +164,8 @@ export default function useSpotRouteSaveModal({
     try {
       // TMDB 후보를 직접 저장하지 않고, 로컬 DB 태그로 확정한 결과만 저장에 사용한다.
       // 게시물 태그 자동 확정 흐름은 로컬 artworkId를 필요로 하므로 이 단계가 반드시 선행되어야 한다.
+      // 이 규칙을 게시글 검색/작품 탐색/지도 검색과 공통으로 맞추기 위해
+      // artworkTagApi의 ensureLocalArtworkTag를 재사용한다.
       const resolvedTag = await ensureLocalArtworkTag(candidate);
       setSelectedArtworkTag(resolvedTag);
       setRouteTagQuery(resolvedTag.tagName);

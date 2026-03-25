@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { CalendarDays, Flame, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { fetchPopularArtworks } from '@/api/artworkApi';
+import { navigateToPostTagSearch } from '@/utils/postTagSearch';
 import styles from '../../styles/Home.module.css';
 
 const PopularArtworksSection = () => {
@@ -44,11 +45,7 @@ const PopularArtworksSection = () => {
   }, []);
 
   const handleOpenPosts = (title) => {
-    // 홈 카드도 작품 탐색 페이지와 같은 흐름을 따르도록
-    // 작품명을 tags query로 넘겨 게시글 검색으로 바로 이어집니다.
-    const next = new URLSearchParams();
-    next.set('tags', title);
-    navigate(`/posts?${next.toString()}`);
+    navigateToPostTagSearch(navigate, title);
   };
 
   const renderCardBody = () => {

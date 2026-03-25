@@ -191,6 +191,14 @@
   color: #ff9db0;
 }
 
+.routeDialogMessage {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 14px;
+  line-height: 1.7;
+  word-break: keep-all;
+}
+
 .selectedTagBox {
   min-height: 44px;
   padding: 12px 14px;
