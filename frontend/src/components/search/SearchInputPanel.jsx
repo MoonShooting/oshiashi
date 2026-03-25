@@ -2,9 +2,17 @@ import React from 'react';
 import { Hash, RotateCcw, Search, X } from 'lucide-react';
 import styles from '@/styles/SearchInputPanel.module.css';
 
-// 세 페이지(작품 탐색 / 게시글 작성 / 게시글 조회)가 같은 검색 입력 UI를 공유하도록 만든 패널입니다.
-// 각 페이지는 "입력값, 제출 시 동작, 선택된 칩 목록"만 주입하고,
-// 실제 필드/버튼/칩 레이아웃은 이 컴포넌트에서 통일해 중복을 줄입니다.
+/*
+[SearchInputPanel]
+- 작품 탐색, 게시글 검색 등 여러 페이지가 같은 입력 패턴을 공유하도록 만든 공통 UI입니다.
+- 이 컴포넌트는 "입력창 + 제출 버튼 + 선택된 칩 + 추천 목록"까지만 책임집니다.
+- 어떤 데이터를 검색할지, 추천 항목을 어떻게 가져올지, 선택 후 무엇을 할지는
+  모두 상위 페이지가 주입합니다.
+
+[즉]
+- 이 컴포넌트는 상태를 소유하지 않습니다.
+- 화면 구조만 공통화하고, 도메인 규칙은 페이지가 소유합니다.
+*/
 const SearchInputPanel = ({
   inputId,
   value,
@@ -22,9 +30,20 @@ const SearchInputPanel = ({
   submitIcon: SubmitIcon = Search,
   formatItemLabel,
   getItemKey,
+  suggestionItems = [],
+  onSelectSuggestion,
+  formatSuggestionLabel,
+  getSuggestionKey,
+  getSuggestionMeta,
+  onInputCompositionStart,
+  onInputCompositionEnd,
 }) => {
   const resolvedFormatter = formatItemLabel ?? ((item) => `#${item}`);
   const resolvedKeyGetter = getItemKey ?? ((item) => String(item));
+  const resolvedSuggestionFormatter =
+    formatSuggestionLabel ?? ((item) => String(item?.label ?? item?.title ?? item?.tagName ?? item ?? ''));
+  const resolvedSuggestionKeyGetter =
+    getSuggestionKey ?? ((item, index) => String(item?.id ?? item?.tagId ?? item?.artworkId ?? item?.title ?? index));
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -32,6 +51,8 @@ const SearchInputPanel = ({
     const normalizedValue = value.trim();
     if (!normalizedValue || disabled) return;
 
+    // 제출 시 실제 해석(태그 추가, 작품 검색, 필터 적용 등)은
+    // 상위 페이지의 onSubmit이 담당합니다.
     onSubmit?.(normalizedValue);
   };
 
@@ -44,6 +65,8 @@ const SearchInputPanel = ({
             id={inputId}
             value={value}
             onChange={(event) => onChange?.(event.target.value)}
+            onCompositionStart={onInputCompositionStart}
+            onCompositionEnd={onInputCompositionEnd}
             className={styles.input}
             placeholder={placeholder}
             disabled={disabled}
@@ -57,6 +80,24 @@ const SearchInputPanel = ({
 
       {helperText ? <p className={styles.helperText}>{helperText}</p> : null}
       {errorText ? <p className={styles.errorText}>{errorText}</p> : null}
+
+      {suggestionItems.length > 0 ? (
+        <div className={styles.suggestionList}>
+          {suggestionItems.map((item, index) => (
+            <button
+              key={resolvedSuggestionKeyGetter(item, index)}
+              type="button"
+              className={styles.suggestionButton}
+              // 추천 항목 클릭 처리도 UI 컴포넌트가 직접 판단하지 않고
+              // 상위 페이지의 도메인 로직에 위임합니다.
+              onClick={() => onSelectSuggestion?.(item)}
+              disabled={!onSelectSuggestion}>
+              <span className={styles.suggestionLabel}>{resolvedSuggestionFormatter(item)}</span>
+              {getSuggestionMeta ? <span className={styles.suggestionMeta}>{getSuggestionMeta(item)}</span> : null}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       {selectedItems.length > 0 ? (
         <div className={styles.chipRow}>

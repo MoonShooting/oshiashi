@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import styles from '@/styles/MapFilterPanel.module.css';
-import { autocompletePlaces, importArtwork } from '@/api/mapApi.js';
+import { ensureLocalArtworkTag, searchArtworkTagOptions } from '@/api/artworkTagApi';
 import { PIN_COLOR } from '@/constants/mapConstants';
 
 export default function MapFilterPanel({ activeMediaTypes = [], onToggleMediaType, onWorkSearch, serverMediaTypes = [] }) {
@@ -15,8 +15,14 @@ export default function MapFilterPanel({ activeMediaTypes = [], onToggleMediaTyp
   const isComposing = useRef(false); // 한글 입력 조합 상태 관리
 
   const FIXED_MEDIA_TYPES = ['영화', '드라마', '애니메이션']; //api 호출하지말고 고정값 사용
+  const resolveCandidateTitle = (candidate) => {
+    if (typeof candidate === 'string') return candidate;
+    return candidate?.tagName ?? candidate?.title ?? candidate?.label ?? '';
+  };
 
-  // 자동완성 호출 로직 (백엔드 ExternalArtworkCandidateResponse 대응)
+  // 지도 화면도 작품 검색 규칙 자체는 다른 페이지와 동일하게 맞춘다.
+  // 즉, 장소를 찾기 위한 "작품 기준 검색어" 역시 로컬 태그를 우선 사용하고,
+  // 없으면 외부 후보를 로컬 태그로 확정한 뒤 검색어로 사용한다.
   const scheduleAutocomplete = useCallback((val) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     const query = val?.trim();
@@ -28,10 +34,10 @@ export default function MapFilterPanel({ activeMediaTypes = [], onToggleMediaTyp
 
     debounceRef.current = setTimeout(async () => {
       try {
-        const data = await autocompletePlaces(query);
-        // 백엔드에서 온 데이터가 배열인지 확인하고 상태 업데이트
-        setSuggestions(Array.isArray(data) ? data : []);
-        setIsOpen(true);
+        const result = await searchArtworkTagOptions(query);
+        const items = Array.isArray(result?.items) ? result.items.slice(0, 6) : [];
+        setSuggestions(items);
+        setIsOpen(items.length > 0);
         setActiveIdx(-1);
       } catch (err) {
         console.error('[MapFilterPanel] 자동완성 로드 실패:', err);
@@ -56,27 +62,17 @@ export default function MapFilterPanel({ activeMediaTypes = [], onToggleMediaTyp
   const handleSelectItem = async (candidate) => {
     if (!candidate) return;
 
-    // 데이터 구조에 따른 제목 추출 (객체면 .title, 문자열이면 그대로)
-    const title = typeof candidate === 'object' ? candidate.title : candidate;
+    const title = resolveCandidateTitle(candidate);
 
     try {
-      // TMDB 객체 데이터가 넘어온 경우 (ExternalArtworkCandidateResponse)
-      if (typeof candidate === 'object' && candidate.mediaType) {
-        const saved = await importArtwork({
-          title: candidate.title,
-          posterPath: candidate.posterPath,
-          overview: candidate.overview,
-          mediaType: candidate.mediaType,
-          genreIds: candidate.genreIds,
-        });
-        const finalTitle = saved.title || title;
-        setWorkKeyword(finalTitle);
-        onWorkSearch?.(finalTitle);
-      } else {
-        // 단순 DB 검색 결과인 경우
-        setWorkKeyword(title);
-        onWorkSearch?.(title);
-      }
+      // 지도 페이지의 목적은 결국 Spot 검색이지만,
+      // 사용자가 작품을 선택하는 입력 경험은 다른 화면과 동일해야 합니다.
+      // 그래서 여기서도 candidate를 공통 태그 확정 로직으로 통과시킵니다.
+      const resolvedTag =
+        typeof candidate === 'object' && candidate.source ? await ensureLocalArtworkTag(candidate) : { tagName: title };
+      const finalTitle = resolvedTag?.tagName || title;
+      setWorkKeyword(finalTitle);
+      onWorkSearch?.(finalTitle);
     } catch (err) {
       console.error('[MapFilterPanel] 작품 연동 실패:', err);
       // 에러 시에도 일단 검색은 시도
@@ -96,13 +92,16 @@ export default function MapFilterPanel({ activeMediaTypes = [], onToggleMediaTyp
     } else if (e.key === 'ArrowUp' && isOpen) {
       e.preventDefault();
       setActiveIdx((prev) => Math.max(prev - 1, 0));
-    } else if (e.key === 'Enter') {
-      if (isOpen && activeIdx >= 0) {
-        handleSelectItem(suggestions[activeIdx]);
-      } else if (workKeyword.trim()) {
-        onWorkSearch?.(workKeyword.trim());
-        setIsOpen(false);
-      }
+      } else if (e.key === 'Enter') {
+        if (isOpen && activeIdx >= 0) {
+          handleSelectItem(suggestions[activeIdx]);
+        } else if (workKeyword.trim()) {
+          // 추천을 고르지 않고 바로 Enter한 경우에는
+          // 현재 문자열을 그대로 작품명 검색어로 사용합니다.
+          // 지도 쪽은 최종적으로 spot 검색 결과가 있는지가 더 중요하기 때문입니다.
+          onWorkSearch?.(workKeyword.trim());
+          setIsOpen(false);
+        }
     }
   };
 
@@ -152,7 +151,7 @@ export default function MapFilterPanel({ activeMediaTypes = [], onToggleMediaTyp
               {isOpen && suggestions.length > 0 && (
                 <ul className={styles.autocompleteList}>
                   {suggestions.map((item, idx) => {
-                    const title = typeof item === 'object' ? item.title : item;
+                    const title = resolveCandidateTitle(item);
                     return (
                       <li
                         key={idx}

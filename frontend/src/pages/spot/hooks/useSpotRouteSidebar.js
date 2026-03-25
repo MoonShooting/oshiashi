@@ -69,6 +69,25 @@ export default function useSpotRouteSidebar({ replacePlaces, clearMap, setCenter
     setRouteSaveContext(null);
   }, []);
 
+  const startMapSearchMode = useCallback(() => {
+    // 읽기 전용으로 보고 있던 기존 루트는 "지도 검색" 진입 시 해제한다.
+    // 그래야 새 루트를 만들기 위해 장소를 추가할 때 우측 패널이 잠금 상태로 남지 않는다.
+    // 단, 이미 수정/복사 컨텍스트로 편집 중이면 현재 route를 유지한 채 계속 추가 가능해야 한다.
+    if (routeSaveContext) {
+      // edit/copy 상태는 "현재 선택된 route를 기반으로 편집 중"이라는 뜻이므로
+      // active route와 selectedPlaces를 유지한 채 잠금만 해제한다.
+      setIsRoutePreviewLocked(false);
+      return;
+    }
+
+    // 단순 조회 상태에서 지도 검색으로 넘어가는 경우는
+    // "기존 루트를 보고 있던 모드"를 끝내고 새 루트 작성 모드로 전환하는 의미입니다.
+    // 따라서 선택 루트, 지도 미리보기, selectedPlaces를 모두 초기화합니다.
+    clearMap();
+    resetRoutePreview();
+    setVisibleRouteSpots([]);
+  }, [clearMap, resetRoutePreview, routeSaveContext]);
+
   const applyLoadedRoute = useCallback(
     (detail, { lock, saveContext = null } = {}) => {
       // "루트 선택"은 곧 지도 핀/경로 미리보기 갱신으로 연결된다.
@@ -106,6 +125,7 @@ export default function useSpotRouteSidebar({ replacePlaces, clearMap, setCenter
     async (route, mode) => {
       // 수정 모드 진입 시에는 같은 상세 데이터를 불러오되 lock=false로 내려
       // 사용자가 핀을 추가/삭제하고 다시 저장할 수 있도록 전환한다.
+      // mode === 'copy' 는 북마크 루트를 가져와 "새 루트처럼 편집"하는 시나리오다.
       const detail = await loadSpotSidebarRouteDetail({ route });
       applyLoadedRoute(detail, {
         lock: false,
@@ -183,6 +203,7 @@ export default function useSpotRouteSidebar({ replacePlaces, clearMap, setCenter
     refreshSidebarRoutes,
     resetRoutePreview,
     clearRouteSaveContext,
+    startMapSearchMode,
     handleSelectSidebarRoute,
     handleRouteAction,
   };
