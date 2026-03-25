@@ -12,7 +12,7 @@ import java.util.List;
 // Spot 자체를 생성/수정하는 역할이 아니라,
 // 지도에 표시할 장소 목록, 검색 결과, 마커, 상세 정보를 내려주는 역할을 합니다.
 @RestController
-@RequestMapping("/api/v1/map")
+@RequestMapping("/api/v1/maps")
 @RequiredArgsConstructor
 public class MapController {
 
