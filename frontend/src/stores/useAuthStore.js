@@ -259,6 +259,8 @@ export const useAuthStore = create((set) => ({
   },
 }));
 
+// 저장된 토큰이 있으면 카운트다운 타이머를 즉시 시작 (fetchMe 완료 전에도 NavBar가 올바른 시간 표시)
+// fetchMe()도 setupTokenLifecycle을 호출하지만 내부에서 clearTokenTimers()로 이전 타이머를 정리함
 if (initialTokenSession.token) {
   setupTokenLifecycle(initialTokenSession.token, useAuthStore.setState);
 }

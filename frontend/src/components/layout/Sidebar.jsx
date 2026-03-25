@@ -34,7 +34,7 @@ const guestBottomItems = [
 ];
 
 const Sidebar = ({ isOpen = false, onClose, activeKey = 'home' }) => {
-  const { isLoggedIn } = useAuthStore();
+  const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const navigate = useNavigate();
 
   // 사이드바 버튼 클릭 시, 이동은 여기서 담당.
