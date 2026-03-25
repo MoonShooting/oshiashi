@@ -76,13 +76,28 @@ public class AuthController {
 	@PostMapping("/emailSend")
 	public ResponseEntity<String> sendEmail(@RequestBody Map<String, String> request) {
 		String email = request.get("email");
-
+/*
 		// [수정] 프론트엔드에서 보낸 "SIGNUP", "FIND_ID" 등을 Enum으로 변환
 		String typeStr = request.get("type");
 		EmailAuthType type = EmailAuthType.valueOf(typeStr);
 
 		log.info("[API] 인증 메일 발송 요청: {}, 목적: {}", email, type.name());
 		// [수정] 서비스 호출 시 type 전달
+		authService.sendVerificationCode(email, type);
+		return ResponseEntity.ok("인증번호가 발송되었습니다.");*/
+
+		String typeStr = request.get("type");
+		if (typeStr == null || typeStr.isBlank()) {
+			return ResponseEntity.badRequest().body("type 값은 필수입니다.");
+		}
+
+		EmailAuthType type;
+		try {
+			type = EmailAuthType.valueOf(typeStr.trim().toUpperCase());
+		} catch (IllegalArgumentException e) {
+			return ResponseEntity.badRequest().body("올바르지 않은 이메일 인증 타입입니다.");
+		}
+		log.info("[API] 인증 메일 발송 요청: {}, 목적: {}", email, type.name());
 		authService.sendVerificationCode(email, type);
 		return ResponseEntity.ok("인증번호가 발송되었습니다.");
 	}
@@ -93,9 +108,20 @@ public class AuthController {
 		String email = request.get("email");
 		String code = request.get("code");
 
-		// [수정] 프론트엔드에서 보낸 문자열을 Enum으로 변환
+/*		// [수정] 프론트엔드에서 보낸 문자열을 Enum으로 변환
 		String typeStr = request.get("type");
-		EmailAuthType type = EmailAuthType.valueOf(typeStr);
+		EmailAuthType type = EmailAuthType.valueOf(typeStr);*/
+		String typeStr = request.get("type");
+		if (typeStr == null || typeStr.isBlank()) {
+			return ResponseEntity.badRequest().body("type 값은 필수입니다.");
+		}
+
+		EmailAuthType type;
+		try {
+			type = EmailAuthType.valueOf(typeStr.trim().toUpperCase());
+		} catch (IllegalArgumentException e) {
+			return ResponseEntity.badRequest().body("올바르지 않은 이메일 인증 타입입니다.");
+		}
 
 		log.info("[API] 인증 코드 검증 시도: {}, 목적: {}", email, type.name());
 		// [수정] 서비스 호출 시 type 전달
