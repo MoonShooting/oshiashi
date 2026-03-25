@@ -112,6 +112,9 @@ export default function SpotPage() {
   const handleAddToRoute = useCallback(
     (spot) => {
       if (sidebar.isRoutePreviewLocked) {
+        // 저장된 route를 그냥 보고 있는 상태에서는
+        // selectedPlaces를 수정해 버리면 "조회용 미리보기"와 "편집 중 route"가 섞여 버립니다.
+        // 그래서 수정 모드로 전환하기 전에는 추가를 막습니다.
         alert('저장된 루트는 읽기 전용입니다. 수정 버튼을 눌러 편집해 주세요.');
         return;
       }
@@ -179,6 +182,7 @@ export default function SpotPage() {
             onAddToRoute={handleAddToRoute}
             onPreview={handlePreview}
             center={center}
+            onEnterMapSearch={sidebar.startMapSearchMode}
           />
         }
         mapComponent={
@@ -222,6 +226,8 @@ export default function SpotPage() {
             <RouteListSelector
               onSave={saveModal.openSaveModal}
               onReset={() => {
+                // 우측 패널 초기화는 "현재 편집 컨텍스트 종료" 의미이므로
+                // routeSaveContext와 route preview를 함께 해제한다.
                 sidebar.clearRouteSaveContext();
                 sidebar.resetRoutePreview();
               }}

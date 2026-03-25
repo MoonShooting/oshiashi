@@ -1,6 +1,6 @@
 import { FetchJson } from '@/api/FetchClient';
 import { appendUserIdQuery, fetchBookmarksWithFallback, normalizeTagNames } from '@/api/postApiShared';
-import { getPlaceDetail, importArtwork } from '@/api/mapApi';
+import { getPlaceDetail } from '@/api/mapApi';
 
 /**
  * SpotPage 전용 API 어댑터
@@ -60,35 +60,6 @@ const resolveUserId = (userId) => {
 
 const withUserId = (endpoint, userId) => appendUserIdQuery(endpoint, resolveUserId(userId));
 
-const normalizeLocalTag = (tag) => {
-  const tagName = text(tag?.tagName);
-  if (!tagName) return null;
-
-  return {
-    source: 'LOCAL_DB',
-    tagId: String(tag?.tagId ?? tag?.id ?? ''),
-    artworkId: tag?.artworkId ?? null,
-    tagName,
-    title: tagName,
-    label: tagName,
-  };
-};
-
-const normalizeExternalCandidate = (candidate) => {
-  const title = text(candidate?.title);
-  if (!title) return null;
-
-  return {
-    source: 'TMDB',
-    title,
-    overview: candidate?.overview ?? '',
-    posterPath: candidate?.posterPath ?? '',
-    posterUrl: candidate?.posterUrl ?? '',
-    mediaType: candidate?.mediaType ?? '',
-    genreIds: Array.isArray(candidate?.genreIds) ? candidate.genreIds : [],
-  };
-};
-
 const normalizeRouteSpots = (route) =>
   // route 상세/목록 응답에서 `spots`/`routeSpots`가 혼재해도 UI 모델을 한 번에 통일한다.
   // 이 정규화가 있어야 SpotPage/SidePanel 훅이 백엔드 필드명 변경에 직접 영향받지 않는다.
@@ -108,8 +79,11 @@ const normalizeRoute = (route, { sourceType = 'MY_ROUTE', bookmark = null, canLo
   const artworkTagNames = explicitTagNames.length > 0 ? explicitTagNames : fallbackTagNames;
   const routeId = num(route?.routeId ?? route?.id ?? bookmark?.routeId);
   const title =
-    text(sourceType === 'BOOKMARKED_ROUTE' ? (bookmark?.bookmarkName ?? route?.title ?? route?.routeTitle) : (route?.title ?? route?.routeTitle)) ||
-    '이름 없는 루트';
+    text(
+      sourceType === 'BOOKMARKED_ROUTE'
+        ? bookmark?.bookmarkName ?? route?.title ?? route?.routeTitle
+        : route?.title ?? route?.routeTitle,
+    ) || '이름 없는 루트';
 
   return {
     key: `${sourceType}-${routeId ?? num(bookmark?.bookmarkId) ?? Date.now()}`,
@@ -160,7 +134,8 @@ const toDetailedSpot = async (routeSpot, index) => {
   };
 };
 
-const fetchRouteDetail = async (routeId, userId) => unwrapObject(await FetchJson(withUserId(`/api/v1/map/routes/${routeId}`, userId)));
+const fetchRouteDetail = async (routeId, userId) =>
+  unwrapObject(await FetchJson(withUserId(`/api/v1/map/routes/${routeId}`, userId)));
 
 const toRouteSaveSpot = (spot, index) => ({
   // 저장 요청 payload는 백엔드 계약(RouteSpotRequest)에 맞춘다.
@@ -174,78 +149,6 @@ const toRouteSaveSpot = (spot, index) => ({
   sceneImgUrl: text(spot?.sceneImgUrl ?? spot?.sceneImageUrl),
   visitOrder: index + 1,
 });
-
-export const loadArtworkTags = async () =>
-  // 로컬 DB 기준 태그 목록.
-  // 저장 가능한 태그의 "정답 집합"이며, UI 추천 기본값으로 사용한다.
-  toArray(await FetchJson('/api/v1/tags'))
-    .map(normalizeLocalTag)
-    .filter(Boolean)
-    .sort((left, right) => left.tagName.localeCompare(right.tagName, 'ko'));
-
-export const searchArtworkTagOptions = async (query) => {
-  const normalizedQuery = text(query);
-  if (!normalizedQuery) return { source: 'LOCAL_DB', items: [] };
-
-  // 정책: 로컬 DB 우선 추천, 없을 때만 TMDB 후보를 사용한다.
-  // 즉시 TMDB로 가지 않는 이유는 사용자가 이미 확정 가능한 태그를 먼저 보게 하기 위함이다.
-  const localTags = await loadArtworkTags();
-  const localMatches = localTags.filter((tag) => tag.tagName.toLowerCase().includes(normalizedQuery.toLowerCase()));
-  if (localMatches.length > 0) return { source: 'LOCAL_DB', items: localMatches };
-
-  return {
-    source: 'TMDB',
-    items: toArray(await searchExternalArtworks(normalizedQuery))
-      .map(normalizeExternalCandidate)
-      .filter(Boolean),
-  };
-};
-
-export const ensureLocalArtworkTag = async (candidate) => {
-  if (!candidate) throw new Error('선택한 작품 태그 정보가 없습니다.');
-  if (candidate.source === 'LOCAL_DB') return candidate;
-
-  // TMDB 후보는 곧바로 route에 쓰지 않고, import -> tag 생성을 거쳐
-  // "로컬 DB 태그"로 승격한 뒤에만 저장에 사용한다.
-  // 이유: route 저장/게시물 태그 자동 확정 흐름이 로컬 DB artworkId를 기준으로 동작하기 때문.
-  const imported = unwrapObject(
-    await importArtwork({
-      title: candidate.title,
-      overview: candidate.overview,
-      posterPath: candidate.posterPath,
-      mediaType: candidate.mediaType,
-      genreIds: candidate.genreIds,
-    }),
-  );
-
-  const artworkId = imported?.artworkId ?? imported?.id ?? null;
-  if (artworkId == null) throw new Error('작품 import 응답에서 artworkId를 확인하지 못했습니다.');
-
-  try {
-    return (
-      normalizeLocalTag(
-        unwrapObject(
-          await FetchJson('/api/v1/tags', {
-            method: 'POST',
-            body: JSON.stringify({ artworkId }),
-          }),
-        ),
-      ) ?? {
-        source: 'LOCAL_DB',
-        tagId: '',
-        artworkId,
-        tagName: imported?.title ?? candidate.title,
-        title: imported?.title ?? candidate.title,
-        label: imported?.title ?? candidate.title,
-      }
-    );
-  } catch (error) {
-    // 동시 요청 경합 등으로 이미 생성된 경우를 허용해 idempotent하게 동작시킨다.
-    const existing = (await loadArtworkTags()).find((tag) => String(tag.artworkId) === String(artworkId));
-    if (existing) return existing;
-    throw error;
-  }
-};
 
 export const createRouteWithArtworkTag = async ({ userId, routeId, title, selectedTag, spots = [] }) =>
   unwrapObject(
