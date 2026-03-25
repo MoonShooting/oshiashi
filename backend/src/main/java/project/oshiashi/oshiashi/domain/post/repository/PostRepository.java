@@ -46,4 +46,27 @@ public interface PostRepository extends JpaRepository<PostEntity, Long> {
 
 	// 루트가 없는 게시글을 좋아요순으로 조회
 	List<PostEntity> findAllByRouteIsNullOrderByLikeCountDescCreatedAtDesc();
+
+	@Query("""
+    select distinct p
+    from PostEntity p
+    join p.postTags pt
+    join pt.tag t
+    where p.route is not null
+      and t.tagName in :tagNames
+    order by p.createdAt desc
+    """)
+	List<PostEntity> findAllByRouteIsNotNullAndTagNamesInOrderByCreatedAtDesc(List<String> tagNames);
+
+	@Query("""
+    select distinct p
+    from PostEntity p
+    join p.postTags pt
+    join pt.tag t
+    where p.route is null
+      and t.tagName in :tagNames
+    order by p.createdAt desc
+    """)
+	List<PostEntity> findAllByRouteIsNullAndTagNamesInOrderByCreatedAtDesc(List<String> tagNames);
+
 }

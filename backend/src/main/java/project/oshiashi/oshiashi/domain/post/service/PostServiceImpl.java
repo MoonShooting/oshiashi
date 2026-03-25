@@ -6,14 +6,17 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import project.oshiashi.oshiashi.domain.comment.repository.CommentRepository;
 import project.oshiashi.oshiashi.domain.post.dto.PostRequest;
 import project.oshiashi.oshiashi.domain.post.dto.PostResponse;
 import project.oshiashi.oshiashi.domain.post.entity.PostEntity;
 import project.oshiashi.oshiashi.domain.post.entity.PostImageEntity;
 import project.oshiashi.oshiashi.domain.post.entity.PostLikeEntity;
 import project.oshiashi.oshiashi.domain.post.entity.PostTagEntity;
+import project.oshiashi.oshiashi.domain.post.repository.PostImageRepository;
 import project.oshiashi.oshiashi.domain.post.repository.PostLikeRepository;
 import project.oshiashi.oshiashi.domain.post.repository.PostRepository;
+import project.oshiashi.oshiashi.domain.post.repository.PostTagRepository;
 import project.oshiashi.oshiashi.domain.route.entity.RouteEntity;
 import project.oshiashi.oshiashi.domain.route.repository.RouteRepository;
 import project.oshiashi.oshiashi.domain.tag.entity.TagEntity;
@@ -24,7 +27,9 @@ import project.oshiashi.oshiashi.global.exception.BusinessException;
 import project.oshiashi.oshiashi.global.exception.ErrorCode;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -40,12 +45,18 @@ public class PostServiceImpl implements PostService {
 	private final TagRepository tagRepository;
 	private final PostLikeRepository postLikeRepository;
 
+	private final CommentRepository commentRepository;
+	private final PostTagRepository postTagRepository;
+	private final PostImageRepository postImageRepository;
+
+
 	/**
 	 * 1. 게시글 전체 조회 ( 루트가 있는 게시물)
 	 * @return List<PostResponse>
 	 * - 필수 반환: 모든 필드 (postId, title, content, status, viewCount, likeCount, tagNames, createdAt, updateAt)
 	 * - 특징: 데이터가 없으면 빈 리스트 [] 반환
 	 */
+	/*
 	@Override // 2026-03-22 이상학 : 작업한 최신순, 조회수 순, 좋아요 순 날아간거 복구했습니다.
 	@Transactional(readOnly = true)
 	public List<PostResponse> getAllPost(Boolean routeIdIsNull, String sort, String search, List<String> tags) {
@@ -85,7 +96,86 @@ public class PostServiceImpl implements PostService {
 						.anyMatch(pt -> tags.contains(pt.getTag().getTagName())))
 				.map(PostResponse::fromEntity)
 				.collect(Collectors.toUnmodifiableList());
+	}*/
+	@Override
+	@Transactional(readOnly = true)
+	public List<PostResponse> getAllPost(Boolean routeIdIsNull, String sort, String search, List<String> tags) {
+		log.debug("[Service] 게시글 전체 조회 요청 발생 - routeIdIsNull: {}, sort: {}", routeIdIsNull, sort);
+
+		String normalizedSort = (sort == null || sort.isBlank()) ? "latest" : sort.trim().toLowerCase();
+		List<PostEntity> posts;
+
+		boolean hasTags = tags != null && !tags.isEmpty();
+		boolean routeOnlyNull = Boolean.TRUE.equals(routeIdIsNull);
+
+		if (routeOnlyNull) {
+			if (hasTags) {
+				posts = postRepository.findAllByRouteIsNullAndTagNamesInOrderByCreatedAtDesc(tags);
+			} else {
+				posts = switch (normalizedSort) {
+					case "views" -> postRepository.findAllByRouteIsNullOrderByViewCountDescCreatedAtDesc();
+					case "popular" -> postRepository.findAllByRouteIsNullOrderByLikeCountDescCreatedAtDesc();
+					case "latest" -> postRepository.findAllByRouteIsNullOrderByCreatedAtDesc();
+					default -> throw new IllegalArgumentException("지원하지 않는 정렬 방식입니다. " + sort);
+				};
+			}
+		} else {
+			if (hasTags) {
+				posts = postRepository.findAllByRouteIsNotNullAndTagNamesInOrderByCreatedAtDesc(tags);
+			} else {
+				posts = switch (normalizedSort) {
+					case "views" -> postRepository.findAllByRouteIsNotNullOrderByViewCountDescCreatedAtDesc();
+					case "popular" -> postRepository.findAllByRouteIsNotNullOrderByLikeCountDescCreatedAtDesc();
+					case "latest" -> postRepository.findAllByRouteIsNotNullOrderByCreatedAtDesc();
+					default -> throw new IllegalArgumentException("지원하지 않는 정렬 방식입니다. " + sort);
+				};
+			}
+		}
+
+		// search는 우선 기존처럼 메모리 필터 유지
+		List<PostEntity> filteredPosts = posts.stream()
+				.filter(post -> (search == null || search.isBlank())
+						|| post.getTitle().contains(search)
+						|| post.getContent().contains(search))
+				.toList();
+
+		if (filteredPosts.isEmpty()) {
+			return List.of();
+		}
+
+		List<Long> postIds = filteredPosts.stream()
+				.map(PostEntity::getPostId)
+				.toList();
+
+		Map<Long, Integer> commentCountMap = commentRepository.countByPostIds(postIds).stream()
+				.collect(Collectors.toMap(
+						row -> (Long) row[0],
+						row -> ((Long) row[1]).intValue()
+				));
+
+		Map<Long, List<String>> tagMap = postTagRepository.findTagNamesByPostIds(postIds).stream()
+				.collect(Collectors.groupingBy(
+						row -> (Long) row[0],
+						Collectors.mapping(row -> (String) row[1], Collectors.toList())
+				));
+
+		Map<Long, List<String>> imageMap = postImageRepository.findImagesByPostIds(postIds).stream()
+				.sorted(Comparator.comparing(row -> (Integer) row[2]))
+				.collect(Collectors.groupingBy(
+						row -> (Long) row[0],
+						Collectors.mapping(row -> (String) row[1], Collectors.toList())
+				));
+
+		return filteredPosts.stream()
+				.map(post -> PostResponse.fromListData(
+						post,
+						commentCountMap.getOrDefault(post.getPostId(), 0),
+						tagMap.getOrDefault(post.getPostId(), List.of()),
+						imageMap.getOrDefault(post.getPostId(), List.of())
+				))
+				.toList();
 	}
+
 
 	/**
 	 * 2. 게시글 단건 조회
