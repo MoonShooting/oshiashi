@@ -4,8 +4,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import project.oshiashi.oshiashi.domain.bookmark.dto.BookmarkResponse;
+import project.oshiashi.oshiashi.domain.comment.dto.CommentResponse;
+import project.oshiashi.oshiashi.domain.post.dto.PostResponse;
 import project.oshiashi.oshiashi.domain.route.dto.RouteResponse;
 import project.oshiashi.oshiashi.domain.user.dto.UserAchievementRequest;
+import project.oshiashi.oshiashi.domain.user.dto.UserAchievementResponse;
 import project.oshiashi.oshiashi.domain.user.dto.UserProfileResponse;
 import project.oshiashi.oshiashi.domain.user.dto.UserResponse;
 import project.oshiashi.oshiashi.domain.user.service.UserService;
@@ -49,28 +53,28 @@ public class UserController {
 
 	// 내가 쓴 글 목록 조회: /api/v1/user/posts
 	@GetMapping("/posts")
-	public ResponseEntity<List<?>> getMyPosts() {
+	public ResponseEntity<List<PostResponse>> getMyPosts() {
 		log.info("[API] 내가 쓴 글 조회 호출");
 		return ResponseEntity.ok(userService.getMyPosts());
 	}
 
 	// 내가 쓴 댓글 목록 조회: /api/v1/user/comments
 	@GetMapping("/comments")
-	public ResponseEntity<List<?>> getMyComments() {
+	public ResponseEntity<List<CommentResponse>> getMyComments() {
 		log.info("[API] 내가 쓴 댓글 조회 호출");
 		return ResponseEntity.ok(userService.getMyComments());
 	}
 
 	// 북마크 목록 조회: /api/v1/user/myBookmarks
 	@GetMapping("/myBookmarks")
-	public ResponseEntity<List<?>> getMyBookmarks() {
+	public ResponseEntity<List<BookmarkResponse>> getMyBookmarks() {
 		log.info("[API] 북마크 조회 호출");
 		return ResponseEntity.ok(userService.getMyBookmarks());
 	}
 
 	// 보유 칭호 목록 조회: /api/v1/user/achievement
 	@GetMapping("/achievement")
-	public ResponseEntity<List<?>> getMyAchievements() {
+	public ResponseEntity<List<UserAchievementResponse>> getMyAchievements() {
 		log.info("[API] 칭호 목록 조회 호출");
 		return ResponseEntity.ok(userService.getMyAchievements());
 	}

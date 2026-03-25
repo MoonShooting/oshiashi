@@ -11,8 +11,7 @@ let tokenCountdownIntervalId = null;
 - rememberMe=false -> sessionStorage (탭/브라우저 종료 시 정리)
 - 읽기 시에는 두 저장소를 모두 확인해 기존 로그인 정책을 흡수
 */
-const getStoredToken = () =>
-  localStorage.getItem('accessToken') ?? sessionStorage.getItem('accessToken');
+const getStoredToken = () => localStorage.getItem('accessToken') ?? sessionStorage.getItem('accessToken');
 
 // /me 호출이 일시 실패해도 userId 최소값을 유지하기 위한 JWT payload 해석 유틸
 const decodeBase64Url = (value) => {
@@ -24,7 +23,9 @@ const decodeBase64Url = (value) => {
 const parseTokenPayload = (rawToken) => {
   if (!rawToken) return null;
 
-  const token = String(rawToken).replace(/^Bearer\s+/i, '').trim();
+  const token = String(rawToken)
+    .replace(/^Bearer\s+/i, '')
+    .trim();
   const payloadPart = token.split('.')[1];
   if (!payloadPart) return null;
 
@@ -200,6 +201,8 @@ export const useAuthStore = create((set) => ({
 
   // 브라우저에서 사이트가 처음 로드될 때 호출하여 로그인 상태 복구
   fetchMe: async () => {
+    const { isInitialized } = useAuthStore.getState();
+    if (isInitialized) return; // 중복 방지
     const token = getStoredToken();
 
     // 저장된 토큰이 없으면 복구 요청을 보내지 않고 초기화만 완료합니다.
@@ -229,10 +232,7 @@ export const useAuthStore = create((set) => ({
     } catch (error) {
       // 인증 실패(만료/위조 토큰)는 토큰을 제거하고 로그아웃 처리합니다.
       // 네트워크 일시 오류는 토큰을 유지해 재시도 여지를 남깁니다.
-      const authFailed =
-        error?.status === 401 ||
-        error?.status === 403 ||
-        /unauthorized|forbidden|토큰|인증/i.test(String(error?.message ?? ''));
+      const authFailed = error?.status === 401 || error?.status === 403 || /unauthorized|forbidden|토큰|인증/i.test(String(error?.message ?? ''));
 
       if (authFailed) {
         // 토큰이 이미 무효하므로 즉시 정리하고 비로그인 상태로 확정합니다.
