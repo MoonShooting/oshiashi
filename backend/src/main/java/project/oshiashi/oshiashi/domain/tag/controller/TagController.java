@@ -32,7 +32,7 @@ public class TagController {
 	
 	// 특정 작품의 태그 삭제 (또는 작품 삭제 API 호출 시 내부적으로 사용)
 	// tagName 기준 태그 삭제
-	@DeleteMapping("/artwork/{artworkId}")
+	@DeleteMapping("/artworks/{artworkId}")
 	public ResponseEntity<Void> deleteTagByArtwork(@PathVariable Long artworkId) {
 		tagService.deleteTagByArtwork(artworkId);
 		return ResponseEntity.noContent().build();

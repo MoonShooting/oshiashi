@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import project.oshiashi.oshiashi.domain.post.dto.PostEntryResponse;
 import project.oshiashi.oshiashi.domain.comment.repository.CommentRepository;
 import project.oshiashi.oshiashi.domain.post.dto.PostRequest;
 import project.oshiashi.oshiashi.domain.post.dto.PostResponse;
@@ -27,6 +28,7 @@ import project.oshiashi.oshiashi.global.exception.BusinessException;
 import project.oshiashi.oshiashi.global.exception.ErrorCode;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -176,7 +178,6 @@ public class PostServiceImpl implements PostService {
 				.toList();
 	}
 
-
 	/**
 	 * 2. 게시글 단건 조회
 	 * @param postId (필수) 조회할 게시글 고유 ID
@@ -255,24 +256,48 @@ public class PostServiceImpl implements PostService {
 		//먼저 저장하여 postId 받기
 		postEntity = postRepository.save(postEntity);
 		
-		// 1-1 이미지 넣기
-		if (request.getImageUrl() != null && !request.getImageUrl().isEmpty()) {
-			log.debug("[Service] 이미지 매핑 처리 시작: {}개", request.getImageUrl().size());
-			
-			for (int i = 0; i < request.getImageUrl().size(); i++) {
-				String url = request.getImageUrl().get(i);
+		// 1. 기본 이미지 리스트 가져오기
+		List<String> allImages = new ArrayList<>();
+		
+		// 2. 프론트가 보낸 'entries'를 최우선으로 가져옵니다. (여기에 원본과 내 사진이 다 있음)
+		if (request.getEntries() != null && !request.getEntries().isEmpty()) {
+			for (PostEntryResponse entry : request.getEntries()) {
 				
-				PostImageEntity imageEntity = PostImageEntity.builder()
-						.post(postEntity) // 게시글 연결
-						.imageUrl(url)
-						.sortOrder(i)    // 리스트에 들어온 순서대로 0, 1, 2... 부여
-						.createdAt(LocalDateTime.now())
-						.build();
+				// 1. [짝수 라인] 애니메이션 원본 장면 (Reference)
+				if (entry.getReferenceImageUrl() != null && !entry.getReferenceImageUrl().isEmpty()) {
+					allImages.add(entry.getReferenceImageUrl());
+				} else {
+					// 만약 원본이 없다면 순서가 밀리지 않게 빈 문자열이라도 넣어주는 게 안전할 수 있습니다.
+					// (프론트와 협의 필요, 보통은 기본 이미지 URL을 넣습니다.)
+					allImages.add("");
+				}
 				
-				// PostEntity의 이미지 리스트에 추가 (Cascade 설정)
-				// postEntity에 이미지를 추가함과 동시에 연관관계 설정
-				postEntity.addPostImage(imageEntity);
+				// 2. [홀수 라인] 내가 직접 찍은 사진 (User)
+				if (entry.getUserImageUrl() != null && !entry.getUserImageUrl().isEmpty()) {
+					allImages.add(entry.getUserImageUrl());
+				} else {
+					allImages.add("");
+				}
 			}
+		}
+		
+		
+		// 3. 만약 위에서 아무것도 안 담겼다면 기본 imageUrl 사용
+		if (allImages.isEmpty() && request.getImageUrl() != null) {
+			allImages.addAll(request.getImageUrl());
+		}
+		// [검거 로그] 여기서 주소가 서로 다른지 꼭 확인하세요!
+		log.debug("최종 리스트 내용: {}", allImages);
+		
+		// 3. 이제 합쳐진 allImages로 DB에 저장 (sortOrder i 적용)
+		for (int i = 0; i < allImages.size(); i++) {
+			PostImageEntity imageEntity = PostImageEntity.builder()
+					.post(postEntity)
+					.imageUrl(allImages.get(i))
+					.sortOrder(i)
+					.createdAt(LocalDateTime.now())
+					.build();
+			postEntity.addPostImage(imageEntity);
 		}
 		
 		// 2. 태그 처리: 요청 DTO에 태그 이름 리스트가 포함되어 있다면 매핑 진행
@@ -340,12 +365,7 @@ public class PostServiceImpl implements PostService {
 			log.debug("본인꺼만 수정 가능합니다");
 			throw new BusinessException(ErrorCode.ACCESS_DENIED, "본인이 작성한 글만 수정할 수 있습니다.");
 		}
-		// 2. 엔티티 데이터 업데이트
-		// 실제로는 route 객체도 새로 찾아와서 수정하는거 고려
-		postEntity.setTitle(request.getTitle());
-		postEntity.setContent(request.getContent());
-		postEntity.setStatus(request.getStatus());
-		postEntity.setUpdateAt(LocalDateTime.now());
+		
 		
 		// 2. 기본 정보 업데이트 (JPA Dirty Checking 활용)
 		// 따로 save()를 호출하지 않아도 트랜잭션 종료 시점에 변경 사항이 DB에 반영됩니다.
