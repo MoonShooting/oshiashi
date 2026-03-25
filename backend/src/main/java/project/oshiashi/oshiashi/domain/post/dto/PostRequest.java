@@ -57,4 +57,7 @@ public class PostRequest {
 	 */
 	private String userId;
 	private Long routeId;
+	
+	
+	private List<PostEntryResponse> entries;
 }

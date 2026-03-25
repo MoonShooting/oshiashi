@@ -64,6 +64,10 @@ public class WebSecurityConfig {
 						.requestMatchers(HttpMethod.GET, "/api/v1/map/**").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/v1/artwork/**").permitAll()
 						.requestMatchers(HttpMethod.POST, "/api/v1/artwork/import").permitAll()
+						
+						// [추가!] 이미지 조회 경로는 누구나 접근 가능하게 허용
+						.requestMatchers("/uploads/**").permitAll()
+						
 						// 반드시 유효한 토큰이 있어야 하는 경로 (마이페이지 등)
 						.requestMatchers("/api/v1/user/**").authenticated()
 						.requestMatchers(HttpMethod.POST, "/api/v1/posts/**", "/api/v1/comments/**").authenticated()
