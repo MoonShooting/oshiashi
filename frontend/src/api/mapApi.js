@@ -3,14 +3,13 @@
  * @description 지도 관련 API 함수 모음 (FetchClient 기반)
  *
  * [주요 엔드포인트 정리]
- * - GET /api/v1/map : 전체 장소 목록
- * - GET /api/v1/map/search?keyword=&mediaType= : 장소 검색
- * - GET /api/v1/map/{placeId} : 장소 상세
- * - GET /api/v1/map/autocomplete?keyword= : 장소 자동완성
+ * - GET /api/v1/maps : 전체 장소 목록
+ * - GET /api/v1/maps/search?keyword=&mediaType= : 장소 검색
+ * - GET /api/v1/maps/{placeId} : 장소 상세
+ * - GET /api/v1/maps/autocomplete?keyword= : 장소 자동완성
  *
  * [작품 검색 및 태그 관련 엔드포인트]
- * - GET /api/v1/main/artwork/search?keyword= : 내부 DB 작품 검색 (1순위)
- * - GET /api/v1/artworks/search/external?query= : TMDB 외부 검색 (2순위)
+ * - GET /api/v1/artworks/maps/search?query= : 지도용 작품 검색 (TMDB 등 포함)
  * - POST /api/v1/artworks/import : TMDB 작품 DB 저장
  * - POST /api/v1/tags : 작품에 태그 매핑/생성
  */
@@ -60,7 +59,7 @@ const normalizePlace = (raw) => {
 
 // 전체 장소 목록 가져오기
 export const getPlaces = async () => {
-  const raw = await FetchClient('/api/v1/map', { method: 'GET' });
+  const raw = await FetchClient('/api/v1/maps', { method: 'GET' });
   return Array.isArray(raw) ? raw.map(normalizePlace).filter(Boolean) : [];
 };
 
@@ -70,33 +69,33 @@ export const searchPlaces = async (keyword, mediaType = null) => {
   if (mediaType && mediaType !== 'ALL') {
     params.append('mediaType', mediaType);
   }
-  const raw = await FetchClient(`/api/v1/map/search?${params.toString()}`, { method: 'GET' });
+  const raw = await FetchClient(`/api/v1/maps/search?${params.toString()}`, { method: 'GET' });
   return Array.isArray(raw) ? raw.map(normalizePlace).filter(Boolean) : [];
 };
 
 // 특정 장소 상세 정보 조회
 export const getPlaceDetail = async (placeId) => {
-  const raw = await FetchClient(`/api/v1/map/${placeId}`, { method: 'GET' });
+  const raw = await FetchClient(`/api/v1/maps/${placeId}`, { method: 'GET' });
   return normalizePlace(raw);
 };
 
 // 지도 검색어 자동완성 (주로 장소명 혹은 단순 문자열 반환 시 사용)
 export const autocompletePlaces = async (keyword) => {
   const params = new URLSearchParams({ keyword });
-  const raw = await FetchClient(`/api/v1/map/autocomplete?${params.toString()}`, { method: 'GET' });
+  const raw = await FetchClient(`/api/v1/maps/autocomplete?${params.toString()}`, { method: 'GET' });
   return Array.isArray(raw) ? raw.map((s) => String(s)) : [];
 };
 
-// 내부 DB 작품 검색 (자동완성 1순위)
-export const searchInternalArtwork = async (keyword) => {
-  const params = new URLSearchParams({ keyword });
-  return await FetchClient(`/api/v1/main/artwork/search?${params.toString()}`, { method: 'GET' });
-};
-
-// 외부 TMDB 작품 검색 (내부 DB에 없을 때 2순위 검색)
-export const searchExternalArtwork = async (query) => {
-  const params = new URLSearchParams({ query }); // TMDB는 파라미터로 'query' 사용
-  return await FetchClient(`/api/v1/artworks/search/external?${params.toString()}`, { method: 'GET' });
+/**
+ * 지도용 작품 검색 API (자동완성용)
+ * 백엔드 통합 엔드포인트 대응: GET /api/v1/artworks/map/search?query=
+ * * @param {string} keyword 검색할 작품명
+ * @returns {Array} 작품 정보 배열 (title, overview, posterPath, mediaType 등 포함)
+ */
+export const searchMapArtworks = async (keyword) => {
+  const params = new URLSearchParams({ query: keyword });
+  const raw = await FetchClient(`/api/v1/artworks/maps/search?${params.toString()}`, { method: 'GET' });
+  return Array.isArray(raw) ? raw : [];
 };
 
 // 외부 작품을 내부 DB에 저장 (사용자가 TMDB 검색결과를 클릭했을 때) POST /api/v1/artwork/import

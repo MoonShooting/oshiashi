@@ -20,36 +20,162 @@ import styles from '@/styles/SpotPage.module.css';
 
 /**
  * 지도 클릭으로 임시 장소를 추가할 수 있는 팝업.
- * 실제 저장 가능 여부는 백엔드 route 저장 API가 최종 판정한다.
+ * Geocoding 대신 Places Service를 사용하여 상호명을 우선적으로 조회합니다.
  */
 function ClickPopup({ pos, onAdd, onClose }) {
+  const placesLib = useMapsLibrary('places');
   const geocodingLib = useMapsLibrary('geocoding');
   const [address, setAddress] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!geocodingLib || !pos) return;
+    if (!placesLib || !geocodingLib || !pos) return;
 
     setAddress('');
     setLoading(true);
 
+    const dummyElement = document.createElement('div');
+    const placesService = new placesLib.PlacesService(dummyElement);
     const geocoder = new geocodingLib.Geocoder();
-    geocoder.geocode({ location: pos }, (results, status) => {
-      setLoading(false);
-      setAddress(status === 'OK' && results[0] ? results[0].formatted_address : `${pos.lat.toFixed(5)}, ${pos.lng.toFixed(5)}`);
+
+    geocoder.geocode({ location: pos }, (geoResults, geoStatus) => {
+      let fullAddress = `${pos.lat.toFixed(5)}, ${pos.lng.toFixed(5)}`;
+      let placeId = null;
+      let meaningfulName = null;
+
+      if (geoStatus === 'OK' && geoResults[0]) {
+        const result = geoResults[0];
+
+        fullAddress = result.formatted_address.replace(/^(대한민국\s|일본\s)/, '').trim();
+
+        placeId = result.place_id;
+
+        // ✅ 타입 기반 의미있는 이름 추출
+        for (const r of geoResults) {
+          if (
+            r.types.includes('premise') || // 건물
+            r.types.includes('point_of_interest') || // 랜드마크
+            r.types.includes('establishment')
+          ) {
+            meaningfulName = r.address_components?.[0]?.long_name;
+            break;
+          }
+        }
+      }
+
+      // -----------------------------
+      // 1️⃣ place_id 기반 상세 조회
+      // -----------------------------
+      if (placeId) {
+        placesService.getDetails(
+          {
+            placeId,
+            fields: ['name', 'types'],
+          },
+          (placeResult, status) => {
+            if (status === placesLib.PlacesServiceStatus.OK && placeResult?.name && !isTooBroad(placeResult.name)) {
+              setAddress(placeResult.name);
+              setLoading(false);
+            } else {
+              fallback();
+            }
+          },
+        );
+      } else {
+        fallback();
+      }
+
+      // -----------------------------
+      // 2️⃣ fallback 처리
+      // -----------------------------
+      function fallback() {
+        // ✅ geocoding에서 의미있는 이름 있으면 사용
+        if (meaningfulName && !isTooBroad(meaningfulName)) {
+          setAddress(meaningfulName);
+          setLoading(false);
+          return;
+        }
+
+        // -----------------------------
+        // 3️⃣ nearbySearch (보조)
+        // -----------------------------
+        const request = {
+          location: pos,
+          radius: 50,
+        };
+
+        placesService.nearbySearch(request, (results, status) => {
+          if (status === placesLib.PlacesServiceStatus.OK && results.length > 0 && !isTooBroad(results[0].name)) {
+            setAddress(results[0].name);
+          } else {
+            // -----------------------------
+            // 4️⃣ 행정구역 fallback
+            // -----------------------------
+            const area = extractArea(geoResults);
+            if (area) {
+              setAddress(area);
+            } else {
+              // -----------------------------
+              // 5️⃣ 최종 fallback
+              // -----------------------------
+              setAddress(fullAddress);
+            }
+          }
+          setLoading(false);
+        });
+      }
+
+      // -----------------------------
+      // 유틸 함수
+      // -----------------------------
+      function isTooBroad(name) {
+        return name.includes('대한민국') || name.includes('한국') || name.includes('일본') || name.length < 2;
+      }
+
+      function extractArea(results) {
+        if (!results) return null;
+
+        for (const r of results) {
+          for (const comp of r.address_components || []) {
+            if (
+              comp.types.includes('sublocality') || // 동
+              comp.types.includes('locality') || // 시
+              comp.types.includes('administrative_area_level_2')
+            ) {
+              return comp.long_name;
+            }
+          }
+        }
+        return null;
+      }
     });
-  }, [geocodingLib, pos]);
+  }, [placesLib, geocodingLib, pos]);
 
   if (!pos) return null;
 
   return (
     <AdvancedMarker position={pos} zIndex={200}>
       <div className={styles.clickPopup}>
-        <button className={styles.clickPopupClose} onClick={onClose}>
+        {/* X 버튼 클릭 이벤트 버블링 방지 유지 */}
+        <button
+          className={styles.clickPopupClose}
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose();
+          }}>
           ×
         </button>
-        <p className={styles.clickPopupAddr}>{loading ? '주소 조회 중...' : address}</p>
-        <button className={styles.clickPopupAdd} disabled={loading} onClick={() => onAdd({ pos, address })}>
+
+        {/* 상세 풀 주소가 텍스트로 나타납니다 */}
+        <p className={styles.clickPopupAddr}>{loading ? '상세 위치 확인 중...' : address}</p>
+
+        <button
+          className={styles.clickPopupAdd}
+          disabled={loading}
+          onClick={(e) => {
+            e.stopPropagation();
+            onAdd({ pos, address });
+          }}>
           + 루트에 추가
         </button>
       </div>
@@ -162,7 +288,7 @@ export default function SpotPage() {
   );
 
   return (
-    <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}>
+    <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY} libraries={['places']}>
       <MapLayout
         isMapPage={true}
         activeMenuKey="spot"
@@ -209,7 +335,7 @@ export default function SpotPage() {
                     <AdvancedMarker key={place.id} position={place.position} zIndex={100 + idx}>
                       <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                         <div className={styles.pinLabel}>{place.title || place.name}</div>
-                        <OrderPin num={idx + 1} colors={PIN_COLOR.SELECTED} isSelected={true} />
+                        <OrderPin num={idx + 1} mediaType={place.mediaType} isSelected={true} />
                       </div>
                     </AdvancedMarker>
                   ))}
