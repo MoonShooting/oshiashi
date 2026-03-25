@@ -61,9 +61,9 @@ public class WebSecurityConfig {
 						// 게시글/댓글 조회(GET)는 비로그인 사용자도 가능
 						.requestMatchers(HttpMethod.GET, "/api/v1/posts/**", "/api/v1/comments/**").permitAll()
 						// 지도/작품 조회 API는 비로그인 사용자도 조회 가능
-						.requestMatchers(HttpMethod.GET, "/api/v1/map/**").permitAll()
-						.requestMatchers(HttpMethod.GET, "/api/v1/artwork/**").permitAll()
-						.requestMatchers(HttpMethod.POST, "/api/v1/artwork/import").permitAll()
+						.requestMatchers(HttpMethod.GET, "/api/v1/maps/**").permitAll()
+						.requestMatchers(HttpMethod.GET, "/api/v1/artworks/**").permitAll()
+						.requestMatchers(HttpMethod.POST, "/api/v1/artworks/import").permitAll()
 						// 반드시 유효한 토큰이 있어야 하는 경로 (마이페이지 등)
 						.requestMatchers("/api/v1/user/**").authenticated()
 						.requestMatchers(HttpMethod.POST, "/api/v1/posts/**", "/api/v1/comments/**").authenticated()
