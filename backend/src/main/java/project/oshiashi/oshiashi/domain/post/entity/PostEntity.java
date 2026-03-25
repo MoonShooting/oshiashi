@@ -65,6 +65,7 @@ public class PostEntity {
 //	@OneToMany(mappedBy = "post")
 //	private List<PostImageEntity> images = new ArrayList<>();
 	@OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+	@OrderBy("sortOrder ASC")
 	@Builder.Default
 	private List<PostImageEntity> images = new ArrayList<>();
 	
