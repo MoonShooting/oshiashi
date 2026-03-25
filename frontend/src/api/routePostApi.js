@@ -705,10 +705,10 @@ export const createRoutePost = async ({ selectedRoute, title, selectedTags = [],
 };
 
 // 수정/삭제 후 목록 반영을 위해 route-posts-changed 이벤트를 발행합니다.
-export const updateRoutePost = async ({ postId, title, content }) => {
+export const updateRoutePost = async ({ postId, title, content ,userId }) => {
   await FetchJson(`/api/v1/posts/${postId}`, {
     method: 'PATCH',
-    body: JSON.stringify({ title, content }),
+    body: JSON.stringify({ title, content , userId}),
   });
 
   const refreshed = await fetchRoutePostById(postId);
@@ -716,8 +716,8 @@ export const updateRoutePost = async ({ postId, title, content }) => {
   return refreshed;
 };
 
-export const deleteRoutePost = async ({ postId }) => {
-  await FetchJson(`/api/v1/posts/${postId}`, {
+export const deleteRoutePost = async ({ postId,userId}) => {
+  await FetchJson(`/api/v1/posts/${postId}?userId=${userId}`, {
     method: 'DELETE',
   });
 
