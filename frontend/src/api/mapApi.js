@@ -16,6 +16,9 @@
 
 import { FetchClient } from '@/api/FetchClient';
 
+const placeDetailCache = new Map();
+const placeDetailInFlight = new Map();
+
 /** Long ID는 문자열로 통일 (표시·비교 시 정밀도 문제 방지) */
 const toIdString = (value) => (value == null ? null : String(value));
 
@@ -75,8 +78,36 @@ export const searchPlaces = async (keyword, mediaType = null) => {
 
 // 특정 장소 상세 정보 조회
 export const getPlaceDetail = async (placeId) => {
-  const raw = await FetchClient(`/api/v1/maps/${placeId}`, { method: 'GET' });
-  return normalizePlace(raw);
+  const key = toIdString(placeId);
+  if (!key) return null;
+
+  // 지도 화면은 같은 placeId를 여러 route/북마크에서 반복해서 요구할 수 있습니다.
+  // 한 번 본 place detail은 메모리에 캐시해 두고 재사용하면
+  // 루트 전환 시 "핀 수만큼 상세 API를 다시 기다리는" 체감을 크게 줄일 수 있습니다.
+  if (placeDetailCache.has(key)) {
+    return placeDetailCache.get(key);
+  }
+
+  // 같은 시점에 동일 placeId 요청이 겹치면 in-flight promise를 공유해
+  // 불필요한 중복 네트워크 호출을 막습니다.
+  if (placeDetailInFlight.has(key)) {
+    return placeDetailInFlight.get(key);
+  }
+
+  const request = FetchClient(`/api/v1/maps/${key}`, { method: 'GET' })
+    .then((raw) => {
+      const normalized = normalizePlace(raw);
+      placeDetailCache.set(key, normalized);
+      placeDetailInFlight.delete(key);
+      return normalized;
+    })
+    .catch((error) => {
+      placeDetailInFlight.delete(key);
+      throw error;
+    });
+
+  placeDetailInFlight.set(key, request);
+  return request;
 };
 
 // 지도 검색어 자동완성 (주로 장소명 혹은 단순 문자열 반환 시 사용)

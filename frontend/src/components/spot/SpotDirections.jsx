@@ -14,6 +14,17 @@ const REQUEST_PROFILES = [
   { key: 'TRANSIT_BUS', mode: 'TRANSIT', transitMode: 'BUS' },
 ];
 
+// 캐릭터 핀은 마젠타/코랄/오렌지/블루가 섞여 있으므로,
+// 경로선은 그중 가장 공통분모가 되는 베리-플럼 계열로 맞춘다.
+// 너무 밝은 보라는 지도 위에서 혼자 떠 보이기 쉬워서,
+// 핀보다 한 단계 어둡고 탁한 색으로 눌러 "핀을 잇는 선"처럼 보이게 한다.
+const ROUTE_LINE_STYLE = {
+  strokeColor: '#b05895',
+  strokeWeight: 6,
+  strokeOpacity: 0.84,
+  clickable: false,
+};
+
 export default function SpotDirections({ onDurationsChange }) {
   const map = useMap();
   const routesLib = useMapsLibrary('routes');
@@ -25,7 +36,7 @@ export default function SpotDirections({ onDurationsChange }) {
     const r = new routesLib.DirectionsRenderer({
       map,
       suppressMarkers: true,
-      polylineOptions: { strokeColor: '#d846ef', strokeWeight: 7, strokeOpacity: 0.9, clickable: false },
+      polylineOptions: ROUTE_LINE_STYLE,
     });
     setRenderer(r);
     return () => r.setMap(null);
