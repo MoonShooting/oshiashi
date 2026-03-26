@@ -150,10 +150,7 @@ const PostCreatePage = () => {
     selectedRoute &&
       title.trim() &&
       totalPhotos > 0 &&
-      !isSubmitting &&
-      !hasPendingUploads &&
-      !hasFailedUploads &&
-      !hasMissingUploadedPhotos,
+      !isSubmitting
   );
 
   const registerObjectUrl = (url) => {
@@ -204,9 +201,7 @@ const PostCreatePage = () => {
     previewUrl: registerObjectUrl(URL.createObjectURL(file)),
     note: '',
     file,
-    // 파일을 고른 직후에는 미리보기는 가능하지만 서버 URL은 아직 없으므로
-    // 업로드 상태를 함께 들고 다니며 UI와 제출 가능 여부를 제어합니다.
-    uploadStatus: 'uploading',
+    uploadStatus: 'idle',
     uploadError: '',
     uploadedUrl: '',
     uploadedImageId: null,
@@ -238,49 +233,7 @@ const PostCreatePage = () => {
 
     setSubmitState({ status: 'idle', message: '' });
 
-    try {
-      // 대표 사진은 선택 즉시 서버에 올려 URL을 확보합니다.
-      // 이후 게시글 생성은 file이 아니라 uploadedUrl을 사용합니다.
-      const uploadedImage = await uploadPostImage(nextFile, {
-        purpose: 'post-user-image',
-      });
 
-      updateEntry(entryId, (entry) => ({
-        ...entry,
-        experiencePhotos: entry.experiencePhotos.map((photo) =>
-          photo.id === nextPhoto.id
-            ? {
-                ...photo,
-                uploadStatus: 'uploaded',
-                uploadError: '',
-                uploadedUrl: uploadedImage.url,
-                uploadedImageId: uploadedImage.imageId,
-              }
-            : photo,
-        ),
-      }));
-    } catch (error) {
-      // 실패한 사진은 미리보기는 유지하되, 업로드 실패 상태를 남겨
-      // 사용자가 다시 올리거나 삭제하도록 유도합니다.
-      updateEntry(entryId, (entry) => ({
-        ...entry,
-        experiencePhotos: entry.experiencePhotos.map((photo) =>
-          photo.id === nextPhoto.id
-            ? {
-                ...photo,
-                uploadStatus: 'error',
-                uploadError: error.message || '대표 사진 업로드에 실패했습니다.',
-                uploadedUrl: '',
-                uploadedImageId: null,
-              }
-            : photo,
-        ),
-      }));
-      setSubmitState({
-        status: 'error',
-        message: error.message || '대표 사진 업로드에 실패했습니다.',
-      });
-    }
   };
 
   const handleRemovePhoto = (entryId, photoId) => {
@@ -316,40 +269,15 @@ const PostCreatePage = () => {
 
       return {
         ...entry,
-        // 참고 이미지는 업로드 완료 전에도 비교 UI에서 미리 볼 수 있게
-        // preview URL과 실제 저장 URL을 분리해서 들고 갑니다.
         referenceImagePreviewUrl: previewUrl,
-        referenceImageUploadStatus: 'uploading',
+        referenceImageFile: file,
+        referenceImageUploadStatus: 'idle',
         referenceImageUploadError: '',
         referenceImageFileName: file.name,
+        referenceImageUrl: '',
       };
     });
-
-    try {
-      // 참고 이미지는 상세 비교 뷰의 좌측 이미지로 바로 재사용되므로
-      // sceneImageUrl을 덮어쓰지 않고 별도 referenceImageUrl로 저장합니다.
-      const uploadedImage = await uploadPostImage(file, {
-        purpose: 'post-reference-image',
-      });
-
-      updateEntry(entryId, (entry) => ({
-        ...entry,
-        referenceImageUrl: uploadedImage.url,
-        referenceImageUploadStatus: 'uploaded',
-        referenceImageUploadError: '',
-        referenceImageFileName: uploadedImage.originalName,
-      }));
-    } catch (error) {
-      updateEntry(entryId, (entry) => ({
-        ...entry,
-        referenceImageUploadStatus: 'error',
-        referenceImageUploadError: error.message || '참고 이미지 업로드에 실패했습니다.',
-      }));
-      setSubmitState({
-        status: 'error',
-        message: error.message || '참고 이미지 업로드에 실패했습니다.',
-      });
-    }
+    setSubmitState({ status: 'idle', message: '' });
   };
 
   const handleAddExtraPlace = () => {
@@ -368,6 +296,53 @@ const PostCreatePage = () => {
     });
   };
 
+const uploadEntriesBeforeSubmit = async (entries) => {
+  return Promise.all(
+    entries.map(async (entry) => {
+      let nextEntry = { ...entry };
+
+      if (entry.referenceImageFile) {
+        const uploadedReference = await uploadPostImage(entry.referenceImageFile, {
+          purpose: 'post-reference-image',
+        });
+
+        nextEntry = {
+          ...nextEntry,
+          referenceImageUrl: uploadedReference.url,
+          referenceImageUploadStatus: 'uploaded',
+          referenceImageUploadError: '',
+          referenceImageFileName: uploadedReference.originalName,
+        };
+      }
+
+      const uploadedPhotos = await Promise.all(
+        entry.experiencePhotos.map(async (photo) => {
+          if (!photo.file || photo.uploadedUrl) {
+            return photo;
+          }
+
+          const uploaded = await uploadPostImage(photo.file, {
+            purpose: 'post-user-image',
+          });
+
+          return {
+            ...photo,
+            uploadStatus: 'uploaded',
+            uploadError: '',
+            uploadedUrl: uploaded.url,
+            uploadedImageId: uploaded.imageId,
+          };
+        }),
+      );
+
+      return {
+        ...nextEntry,
+        experiencePhotos: uploadedPhotos,
+      };
+    }),
+  );
+};
+
   const handleSubmit = async () => {
     if (!canSubmit || !selectedRoute || isSubmitting) return;
 
@@ -377,11 +352,13 @@ const PostCreatePage = () => {
     setIsSubmitting(true);
 
     try {
+      const uploadedEntries = await uploadEntriesBeforeSubmit(entries);
+
       const created = await submitPostCreate({
         selectedRoute,
         title,
         selectedTags,
-        entries,
+        entries: uploadedEntries,
       });
 
       if (!created?.id) {
@@ -534,7 +511,7 @@ const PostCreatePage = () => {
         ) : (
           <div className={styles.emptyState}>
             <Camera size={28} />
-            <strong className={styles.emptyTitle}>루트를 선택하면 장면 카드가 생성됩니다</strong>
+            <strong className={styles.emptyTitle}>루트를 선택하면 장면 카드가 생성됩니다.</strong>
             <p className={styles.emptyText}>
               루트를 먼저 선택하면 해당 장소 수만큼 입력 카드가 자동 생성됩니다.
             </p>
@@ -545,7 +522,7 @@ const PostCreatePage = () => {
       <div className={styles.bottomBar}>
         <div className={styles.bottomBarInner}>
           <div className={styles.bottomSummary}>
-            <strong className={styles.bottomSummaryTitle}>게시 즉시 공개됩니다</strong>
+            <strong className={styles.bottomSummaryTitle}>게시 즉시 공개됩니다.</strong>
             <p className={styles.bottomSummaryText}>
               총 {entries.length}개 장소 중 {incompleteEntries}개 장소가 아직 대표 사진을 기다리고 있습니다.
               장소별 대표 사진은 1장, 파일 용량은 10MB 이하(jpg/png/webp)로 제한되며, 업로드가 완료된

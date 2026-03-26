@@ -26,6 +26,7 @@ public class BookmarkResponse {
 	private Long postId;
 	private Long postImageId;
 	private Long routeId;
+	private String routeTitle;
 	
 	private LocalDateTime createdAt;
 
@@ -59,6 +60,7 @@ public class BookmarkResponse {
 				// routeId도 직접 북마크된 route뿐 아니라,
 				// post / postImage가 참조하는 route까지 포함해 일관된 기준으로 내려줍니다.
 				.routeId(route != null ? route.getRouteId() : null)
+				.routeTitle(route != null ? route.getTitle() : null)
 				.createdAt(bookmarkEntity.getCreatedAt())
 				.pinCount(pins.size())
 				.pins(pins)

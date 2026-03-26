@@ -494,7 +494,10 @@ const normalizeBookmarkedRouteFromPins = (bookmark) => {
   }));
 
   const artworkTagNames = normalizeTagNames(spots.map((spot) => spot.artworkTitle));
-  const title = String(bookmark?.bookmarkName ?? '').trim() || `북마크 루트 ${routeId}`;
+  const title =
+    String(bookmark?.routeTitle ?? '').trim() ||
+    String(bookmark?.bookmarkName ?? '').trim() ||
+    `북마크 루트 ${routeId}`;
 
   return {
     id: `bookmark-route-${routeId}`,
@@ -684,6 +687,7 @@ export const loadPostCreateRoutes = async (userId) => {
   const collected = [];
 
   const routeListEndpoints = [
+    resolvedUserId ? appendUserIdQuery('/api/v1/map/routes', resolvedUserId) : null,
     '/api/v1/routes/my',
     resolvedUserId ? appendUserIdQuery('/api/v1/user/routes', resolvedUserId) : null,
     '/api/v1/user/myRoute',
@@ -724,6 +728,13 @@ export const loadPostCreateRoutes = async (userId) => {
 
     for (const bookmark of routeBookmarks) {
       const routeId = bookmark.routeId;
+      const fastResolved = normalizeBookmarkedRouteFromPins(bookmark);
+
+      if (fastResolved) {
+        collected.push(fastResolved);
+        continue;
+      }
+
       const routeDetailEndpoints = [
         // 1순위: 현재 백엔드가 실제로 사용하는 route 상세 계약
         // 북마크 응답의 routeId를 정식 route payload로 확장할 때 가장 먼저 시도합니다.
@@ -820,11 +831,9 @@ export const createRoutePost = async ({ selectedRoute, title, selectedTags = [],
 
   const createdPostId = resolvePostId(payload);
   if (createdPostId) {
-    try {
-      return await fetchRoutePostById(createdPostId);
-    } catch {
-      return toRoutePostDetail(payload, []);
-    }
+    // 생성 직후에는 백엔드가 이미 필요한 기본 응답을 내려주므로
+    // 무거운 상세/댓글 재조회 없이 바로 화면 모델로 변환합니다.
+    return toRoutePostDetail(payload, []);
   }
 
   return toRoutePostDetail(payload, []);
