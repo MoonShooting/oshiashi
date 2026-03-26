@@ -20,6 +20,7 @@ const normalizeRecommendedPost = (post) => ({
   views: Number(post.viewCount ?? 0),
   likes: Number(post.likeCount ?? 0),
   comments: Number(post.commentCount ?? 0),
+  imageUrl: post.imageUrl ?? '',
 });
 
 const RecommendedRoutesSection = () => {
@@ -99,8 +100,10 @@ const RecommendedRoutesSection = () => {
           {items.map((post) => (
             <Link key={post.id} to={`/posts/${post.id}`} className={`${styles.routeCard} ${styles.routeCardLink}`}>
               <div className={styles.routeThumb}>
+                {post.imageUrl ? <img src={post.imageUrl} alt="" className={styles.routeThumbImage} /> : null}
+                <div className={styles.routeThumbOverlay} aria-hidden="true" />
                 <span className={styles.routeThumbBadge}>{post.category}</span>
-                <ScrollText className={styles.routeThumbIcon} strokeWidth={2} />
+                {!post.imageUrl ? <ScrollText className={styles.routeThumbIcon} strokeWidth={2} /> : null}
               </div>
               <h3>{post.title}</h3>
               <div className={styles.routeTags}>
