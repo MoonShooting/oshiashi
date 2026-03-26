@@ -602,7 +602,7 @@ const buildRouteCreatePayload = ({ selectedRoute, title, selectedTags = [], entr
       experience: entry.note,
     }))
     .filter((entry) => entry.experience)
-    .map((entry) => `${entry.placeName || '장소'}: ${entry.experience}`)
+    .map((entry) => `${entry.experience}`)
     .join('\n\n')
     .trim();
 

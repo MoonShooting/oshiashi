@@ -91,9 +91,9 @@ public class PostResponse {
 				int spotIdx = i / 2; // 몇 번째 장소인지 (0, 1, 2...)
 				
 				// 기본값 설정
-				String realArtworkTitle = "작품 정보 없음";
-				String realName = "장소 정보 없음";
-				String realAddress = "주소 정보 없음";
+				String realArtworkTitle = "";
+				//String realName = "장소 정보 없음";
+				//String realAddress = "주소 정보 없음";
 				BigDecimal lat = BigDecimal.ZERO;
 				BigDecimal lng = BigDecimal.ZERO;
 				
@@ -103,8 +103,8 @@ public class PostResponse {
 					var spot = routeSpots.get(spotIdx).getSpot();
 					
 					if (spot != null) {
-						realName = spot.getName();       // "도쿄 타워", "도쿄 돔" 등
-						realAddress = spot.getAddress(); // 실제 주소
+						//realName = spot.getName();       // "도쿄 타워", "도쿄 돔" 등
+						//realAddress = spot.getAddress(); // 실제 주소
 						lat = spot.getLatitude();        // DB의 위도
 						lng = spot.getLongitude();       // DB의 경도
 						if (spot.getArtwork() != null) {
@@ -120,12 +120,12 @@ public class PostResponse {
 				entryResponses.add(PostEntryResponse.builder()
 						.referenceImageUrl(referenceUrl)
 						.userImageUrl(userUrl)
-						.name(realName)//(i / 2 + 1) + "번째 성지 장소") // 장소 1, 장소 2... 순서
-						.address(realAddress) // 추후 엔티티에 address 필드가 있다면 img.getAddress() 등으로 교체
+						//.name(realName)//(i / 2 + 1) + "번째 성지 장소") // 장소 1, 장소 2... 순서
+						//.address(realAddress) // 추후 엔티티에 address 필드가 있다면 img.getAddress() 등으로 교체
 						.artworkTitle(realArtworkTitle)
 						.latitude(lat)
 						.longitude(lng)
-						.note(userImg != null ? "직접 촬영한 기록입니다." : "비교용 원본 이미지입니다.")
+						.note(entity.getContent())
 						.sortOrder(i / 2) // 화면 리스트 인덱스 (0, 1, 2...)
 						.build());
 			}
