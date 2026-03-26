@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import styles from '@/styles/MapFilterPanel.module.css';
-import { autocompletePlaces, importArtwork } from '@/api/mapApi.js';
+import { searchMapArtworks } from '@/api/mapApi';
 import { PIN_COLOR } from '@/constants/mapConstants';
 
-export default function MapFilterPanel({ activeMediaTypes = [], onToggleMediaType, onWorkSearch, serverMediaTypes = [] }) {
+export default function MapFilterPanel({ activeMediaTypes = [], onToggleMediaType, onWorkSearch }) {
   const [collapsed, setCollapsed] = useState(false);
   const [workKeyword, setWorkKeyword] = useState('');
   const [suggestions, setSuggestions] = useState([]);
@@ -12,15 +12,15 @@ export default function MapFilterPanel({ activeMediaTypes = [], onToggleMediaTyp
 
   const debounceRef = useRef(null);
   const wrapperRef = useRef(null);
-  const isComposing = useRef(false); // 한글 입력 조합 상태 관리
+  const isComposing = useRef(false);
 
-  const FIXED_MEDIA_TYPES = ['영화', '드라마', '애니메이션']; //api 호출하지말고 고정값 사용
+  const FIXED_MEDIA_TYPES = ['영화', '드라마', '애니메이션'];
 
-  // 자동완성 호출 로직 (백엔드 ExternalArtworkCandidateResponse 대응)
+  // /api/v1/maps/autocomplete?keyword= 호출 (debounce 유지)
   const scheduleAutocomplete = useCallback((val) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     const query = val?.trim();
-    if (!query || query.length <= 1) {
+    if (!query) {
       setSuggestions([]);
       setIsOpen(false);
       return;
@@ -28,67 +28,48 @@ export default function MapFilterPanel({ activeMediaTypes = [], onToggleMediaTyp
 
     debounceRef.current = setTimeout(async () => {
       try {
-        const data = await autocompletePlaces(query);
-        // 백엔드에서 온 데이터가 배열인지 확인하고 상태 업데이트
-        setSuggestions(Array.isArray(data) ? data : []);
+        const data = await searchMapArtworks(query);
+        const results = Array.isArray(data)
+          ? data.map((s) =>
+              typeof s === 'string'
+                ? { title: s, mediaType: null }
+                : { title: s.title ?? s.name ?? String(s), mediaType: s.mediaType ?? null }
+            )
+          : [];
+        setSuggestions(results);
         setIsOpen(true);
         setActiveIdx(-1);
       } catch (err) {
         console.error('[MapFilterPanel] 자동완성 로드 실패:', err);
         setSuggestions([]);
       }
-    }, 300);
+    }, 150);
   }, []);
 
-  // 입력 핸들러 (한글 씹힘 방지 로직 포함)
   const handleInputChange = (e) => {
     const val = e.target.value;
     setWorkKeyword(val);
 
-    // 한글 조합 중일 때는 API 호출을 하지 않고 기다렸다가, 조합이 끝나면 호출하거나
-    // 타이핑 속도에 맞춰 디바운스만 태웁니다.
+    // 한글 조합 중이어도 디바운스 검색은 실행되도록
     if (!isComposing.current) {
       scheduleAutocomplete(val);
     }
   };
 
-  // 작품 선택 시 (Import API 연동)
-  const handleSelectItem = async (candidate) => {
+  // 작품 선택 시 바로 onWorkSearch 호출
+  const handleSelectItem = (candidate) => {
     if (!candidate) return;
-
-    // 데이터 구조에 따른 제목 추출 (객체면 .title, 문자열이면 그대로)
-    const title = typeof candidate === 'object' ? candidate.title : candidate;
-
-    try {
-      // TMDB 객체 데이터가 넘어온 경우 (ExternalArtworkCandidateResponse)
-      if (typeof candidate === 'object' && candidate.mediaType) {
-        const saved = await importArtwork({
-          title: candidate.title,
-          posterPath: candidate.posterPath,
-          overview: candidate.overview,
-          mediaType: candidate.mediaType,
-          genreIds: candidate.genreIds,
-        });
-        const finalTitle = saved.title || title;
-        setWorkKeyword(finalTitle);
-        onWorkSearch?.(finalTitle);
-      } else {
-        // 단순 DB 검색 결과인 경우
-        setWorkKeyword(title);
-        onWorkSearch?.(title);
-      }
-    } catch (err) {
-      console.error('[MapFilterPanel] 작품 연동 실패:', err);
-      // 에러 시에도 일단 검색은 시도
-      onWorkSearch?.(title);
-    } finally {
-      setIsOpen(false);
-      setSuggestions([]);
-    }
+    const title = candidate.title;
+    // 선택 시 pending 자동완성 타이머 제거
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    setWorkKeyword(title);
+    onWorkSearch?.(title);
+    setIsOpen(false);
+    setSuggestions([]);
   };
 
   const handleKeyDown = (e) => {
-    if (isComposing.current) return; // 한글 조합 중 엔터로 인한 중복 호출 방지
+    if (isComposing.current) return;
 
     if (e.key === 'ArrowDown' && isOpen) {
       e.preventDefault();
@@ -97,16 +78,18 @@ export default function MapFilterPanel({ activeMediaTypes = [], onToggleMediaTyp
       e.preventDefault();
       setActiveIdx((prev) => Math.max(prev - 1, 0));
     } else if (e.key === 'Enter') {
-      if (isOpen && activeIdx >= 0) {
+      if (isOpen && activeIdx >= 0 && suggestions[activeIdx]) {
         handleSelectItem(suggestions[activeIdx]);
       } else if (workKeyword.trim()) {
+        // Enter 직접 검색 허용 — pending 자동완성 타이머 제거
+        if (debounceRef.current) clearTimeout(debounceRef.current);
         onWorkSearch?.(workKeyword.trim());
         setIsOpen(false);
+        setSuggestions([]);
       }
     }
   };
 
-  // 외부 클릭 시 닫기
   useEffect(() => {
     const handleClick = (e) => {
       if (wrapperRef.current && !wrapperRef.current.contains(e.target)) setIsOpen(false);
@@ -141,27 +124,27 @@ export default function MapFilterPanel({ activeMediaTypes = [], onToggleMediaTyp
                   }}
                   onCompositionEnd={(e) => {
                     isComposing.current = false;
-                    handleInputChange(e); // 조합 완료 후 최종 값으로 검색
+                    scheduleAutocomplete(e.target.value);
                   }}
                   onKeyDown={handleKeyDown}
-                  placeholder="작품명 검색..."
+                  placeholder="작품명 검색 (예: 너의 이름은)"
                   autoComplete="off"
                 />
               </div>
 
               {isOpen && suggestions.length > 0 && (
                 <ul className={styles.autocompleteList}>
-                  {suggestions.map((item, idx) => {
-                    const title = typeof item === 'object' ? item.title : item;
-                    return (
-                      <li
-                        key={idx}
-                        className={`${styles.autocompleteItem} ${idx === activeIdx ? styles.active : ''}`}
-                        onClick={() => handleSelectItem(item)}>
-                        {title}
-                      </li>
-                    );
-                  })}
+                  {suggestions.map((item, idx) => (
+                    <li
+                      key={idx}
+                      className={`${styles.autocompleteItem} ${idx === activeIdx ? styles.active : ''}`}
+                      onClick={() => handleSelectItem(item)}>
+                      <span className={styles.autocompleteTitle}>{item.title}</span>
+                      {item.mediaType && (
+                        <span className={styles.mediaTypeBadge}>[{item.mediaType}]</span>
+                      )}
+                    </li>
+                  ))}
                 </ul>
               )}
             </div>
@@ -188,7 +171,11 @@ export default function MapFilterPanel({ activeMediaTypes = [], onToggleMediaTyp
                           }
                         : {}
                     }
-                    onClick={() => onToggleMediaType?.(type)}>
+                    onClick={() => {
+                      onToggleMediaType?.(type);
+                      // 칩 선택 시 현재 검색어로 재검색 → MapPage에서 API 필터 위임
+                      if (workKeyword.trim()) onWorkSearch?.(workKeyword.trim());
+                    }}>
                     <span className={styles.chipIcon}>{config.icon}</span>
                     {type}
                   </button>

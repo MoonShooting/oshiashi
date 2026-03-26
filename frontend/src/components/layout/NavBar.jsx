@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ChevronDown, LogIn, Menu, Upload } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import BrandLogo from '@/components/layout/BrandLogo';
 import { SidebarTrigger } from '@/components/layout/SidebarContext';
 import { useAuthStore } from '@/stores/useAuthStore';
 import styles from '@/styles/Navbar.module.css';
@@ -62,20 +63,9 @@ const NavBar = () => {
         <SidebarTrigger className={styles.menuBtn}>
           <Menu size={20} strokeWidth={2.2} />
         </SidebarTrigger>
-        <h1
-          className={styles.logo}
-          lang="ja"
-          role="button"
-          tabIndex={0}
-          onClick={() => navigate('/')}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-              event.preventDefault();
-              navigate('/');
-            }
-          }}>
-          推し足 (Oshiashi)
-        </h1>
+        <button type="button" className={styles.logoButton} aria-label="홈으로 이동" onClick={() => navigate('/')}>
+          <BrandLogo className={styles.logoGraphic} />
+        </button>
       </div>
 
       <div className={styles.navRight}>

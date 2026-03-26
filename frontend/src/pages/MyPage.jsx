@@ -72,6 +72,26 @@ const toRoutePreview = (route, bookmarkName = '') => {
   };
 };
 
+const toRoutePreviewFromPins = (bookmark) => {
+  // 마이페이지 북마크 탭은 "상세 편집"보다 "미리보기"가 중요하므로,
+  // route detail API가 실패해도 bookmark.pins만 있으면 카드 목록은 복원할 수 있습니다.
+  // 여기서는 장소 이름 목록과 개수만 재구성해 카드가 비지 않게 하는 데 집중합니다.
+  const spotNames = (bookmark?.pins ?? [])
+    .map((spot, index) => spot?.name ?? spot?.buildingName ?? `장소 ${index + 1}`)
+    .filter(Boolean);
+
+  return {
+    id: String(bookmark?.routeId ?? bookmark?.bookmarkId ?? ''),
+    title: bookmark?.bookmarkName ?? `북마크 루트 ${bookmark?.routeId ?? ''}`,
+    publishedAt: formatDateLabel(bookmark?.createdAt),
+    visibilityLabel: '북마크 루트',
+    ownerId: '',
+    spotCount: spotNames.length,
+    spotNames,
+    bookmarkName: bookmark?.bookmarkName ?? '',
+  };
+};
+
 const toPostPreview = (post, displayName) => {
   const postId = String(post?.postId ?? post?.id ?? '');
   const routeId = post?.routeId ?? null;
@@ -94,7 +114,7 @@ const toPostPreview = (post, displayName) => {
 const loadMyPageData = async (userId, displayName) => {
   const issues = [];
 
-  const [routesResult, postsResult] = await Promise.allSettled([getMyRoutes(), FetchJson('/api/v1/user/posts')]);
+  const [routesResult, postsResult] = await Promise.allSettled([getMyRoutesAPI(), FetchJson('/api/v1/user/posts')]);
 
   const myRoutes = routesResult.status === 'fulfilled' ? routesResult.value.map((route) => toRoutePreview(route)) : [];
   if (routesResult.status === 'rejected') {
@@ -118,9 +138,17 @@ const loadMyPageData = async (userId, displayName) => {
     const routes = await Promise.all(
       routeBookmarks.map(async (bookmark) => {
         try {
-          const route = await FetchJson(`/api/v1/routes/${bookmark.routeId}`);
+          // 마이페이지도 실제 백엔드 계약인 /api/v1/map/routes/{id}?userId= 를 우선 사용합니다.
+          // 예전 /api/v1/routes/{id} 경로는 환경에 따라 없을 수 있어 여기서는 쓰지 않습니다.
+          const route = await FetchJson(`/api/v1/map/routes/${bookmark.routeId}?userId=${encodeURIComponent(userId ?? '')}`);
           return toRoutePreview(route, bookmark?.bookmarkName ?? '');
         } catch {
+          // 북마크 카드에서는 spot 이름만 보여줘도 UX가 크게 좋아지므로
+          // route 상세 실패를 바로 치명 오류로 보지 않고 pins 기반 미리보기로 한 번 더 복원합니다.
+          if (Array.isArray(bookmark?.pins) && bookmark.pins.length > 0) {
+            issues.push(`북마크한 루트 ${bookmark.routeId} 상세 조회는 실패했지만, 북마크 장소 정보로 복원했습니다.`);
+            return toRoutePreviewFromPins(bookmark);
+          }
           issues.push(`북마크한 루트 ${bookmark.routeId} 상세 조회에 실패했습니다.`);
           return null;
         }

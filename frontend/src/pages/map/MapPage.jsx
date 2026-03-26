@@ -2,12 +2,10 @@
  * @file MapPage.jsx
  * @description 성지 탐색 지도 페이지 (/map)
  *
- * [수정 내용] 초기 더미 로딩 및 자동 근처 검색 제거
- * 1. 마운트 시 핀 데이터 호출 안 함 (깨끗한 지도 유지)
- * 2. 지도 이동(idle) 시 자동 호출 제거
- * 3. 오직 좌측 패널(MapFilterPanel)에서 작품 검색 시에만 searchPlaces 호출
- * 4. 미디어 타입 칩: 검색된 결과 내에서 클라이언트 사이드 필터링 수행
- * 5. 서버로부터 미디어 타입 목록을 받아 MapFilterPanel에 전달
+ * 지도 이동(idle) 시 자동 호출 제거
+ * 오직 좌측 패널(MapFilterPanel)에서 작품 검색 시에만 searchPlaces 호출
+ * 미디어 타입 칩: 검색된 결과 내에서 클라이언트 사이드 필터링 수행
+ * 서버로부터 미디어 타입 목록을 받아 MapFilterPanel에 전달
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
@@ -18,20 +16,16 @@ import MapFilterPanel from '@/components/map/MapFilterPanel';
 import MapRightPanel from '@/components/map/MapRightPanel';
 import MapLegend from '@/components/map/MapLegend';
 import styles from '@/styles/MapLayout.module.css';
-
-// 불필요한 getNearbyPlaces, getPlaces 제거
-import { searchPlaces, getPlaceDetail, getArtworkTypes } from '@/api/mapApi';
+import { searchPlaces, getPlaceDetail, getPlaces } from '@/api/mapApi';
 import { DEFAULT_CENTER } from '@/constants/mapConstants';
 import { useMapStore } from '@/stores/useMapStore';
 
 const toArray = (data) => (Array.isArray(data) ? data : []);
 
 export default function MapPage() {
-  // 상태 관리
   const [pins, setPins] = useState([]); // 검색으로 가져온 원본 핀 데이터
   const [hasSearched, setHasSearched] = useState(false); // 검색 수행 여부 (최초 안내 문구 숨김용)
-  const [serverMediaTypes, setServerMediaTypes] = useState([]); // 서버에서 받은 태그 목록
-
+  const [serverMediaTypes] = useState(['영화', '드라마', '애니메이션']); //호출 늦지 않기 위해 기본값 지정
   const [selectedPinId, setSelectedPinId] = useState(null);
   const [selectedPinDetail, setSelectedPinDetail] = useState(null);
   const [center, setCenter] = useState(DEFAULT_CENTER);
@@ -41,36 +35,31 @@ export default function MapPage() {
   const activeMediaTypes = useMapStore((s) => s.activeMediaTypes);
   const toggleMediaType = useMapStore((s) => s.toggleMediaType);
 
-  // 초기 태그 목록(미디어 타입)만 가볍게 조회
-  useEffect(() => {
-    const fetchTypes = async () => {
-      try {
-        const types = await getArtworkTypes();
-        setServerMediaTypes(toArray(types));
-      } catch (err) {
-        console.error('[MapPage] 태그 목록 로드 실패:', err);
-      }
-    };
-    fetchTypes();
-  }, []);
-
-  // 핀 상세 정보 조회 (마커 클릭 시)
+  // 핀 상세 정보 조회 (마커 클릭 / 자동 선택 시)
   useEffect(() => {
     if (!selectedPinId) {
       setSelectedPinDetail(null);
       return;
     }
     const fetchPlaceDetail = async () => {
+      // local- 합성 ID는 실제 API가 없으므로 목록 데이터를 직접 사용
+      if (selectedPinId.startsWith('local-')) {
+        const fallback = pins.find((p) => p.placeId === selectedPinId) ?? null;
+        setSelectedPinDetail(fallback);
+        return;
+      }
       try {
         const detail = await getPlaceDetail(selectedPinId);
         setSelectedPinDetail(detail || null);
       } catch (error) {
         console.error('[MapPage] 장소 상세 로드 실패:', error);
-        setSelectedPinDetail(null);
+        // detail API 실패 시 목록 데이터로 패널 표시
+        const fallback = pins.find((p) => p.placeId === selectedPinId) ?? null;
+        setSelectedPinDetail(fallback);
       }
     };
     fetchPlaceDetail();
-  }, [selectedPinId]);
+  }, [selectedPinId]); // pins는 의도적으로 deps 제외 (fallback 전용)
 
   // 클라이언트 사이드 필터링
   // 검색된 원본(pins)에서 활성화된 태그(activeMediaTypes)만 걸러서 지도에 표시
@@ -79,45 +68,63 @@ export default function MapPage() {
     return pins.filter((p) => activeMediaTypes.includes(p.mediaType));
   }, [pins, activeMediaTypes]);
 
-  // 4. 검색 핸들러 (MapFilterPanel에서 호출)
-  const handleWorkSearchFromPanel = useCallback(
-    async (keyword) => {
-      const q = keyword?.trim();
-      if (!q) {
-        // 검색어가 지워지면 지도도 초기화
-        setPins([]);
-        setHasSearched(false);
-        setSelectedPinId(null);
-        return;
-      }
+  // 검색 핸들러 (MapFilterPanel에서 호출)
+  // useMapStore.getState()로 즉시 읽어 칩 토글 직후 재검색 시 스테일 클로저 방지
+  const handleWorkSearchFromPanel = useCallback(async (keyword) => {
+    const q = keyword?.trim();
+    if (!q) {
+      // 검색어가 지워지면 지도도 초기화
+      setPins([]);
+      setHasSearched(false);
+      setSelectedPinId(null);
+      return;
+    }
 
+    try {
+      setLoadingPins(true);
+      setHasSearched(true); // 결과 없음 메시지 노출 가능
+      setSelectedPinId(null); // 기존 선택된 핀 초기화
+
+      // 칩 토글과 동시에 호출되는 경우 최신 값을 보장하기 위해 store에서 직접 읽음
+      const currentMediaTypes = useMapStore.getState().activeMediaTypes;
+      const mediaParam = currentMediaTypes.length === 1 ? currentMediaTypes[0] : null;
+      const data = await searchPlaces(q, mediaParam);
+      const results = toArray(data);
+
+      setPins(results);
+
+      // 키워드 검색 결과가 있으면 첫 번째 핀 자동 선택 → PinOverlay + 우측 패널 자동 오픈
+      if (results.length > 0 && results[0].latitude != null && results[0].longitude != null) {
+        setCenter({
+          lat: Number(results[0].latitude),
+          lng: Number(results[0].longitude),
+        });
+        setSelectedPinId(results[0].placeId); // synthetic ID라도 항상 non-null
+      }
+    } catch (err) {
+      console.error('[MapPage] 작품 검색 실패:', err);
+    } finally {
+      setLoadingPins(false);
+    }
+  }, []);
+
+  // 태그 토글 핸들러 — 검색 없이 태그만 클릭한 경우 전체 핀을 불러와 클라이언트 필터링
+  const handleToggleMediaType = useCallback(async (type) => {
+    toggleMediaType(type);
+    setSelectedPinId(null); // 태그 모드에서는 선택 초기화 (팝업 닫기)
+    if (pins.length === 0) {
       try {
         setLoadingPins(true);
-        setHasSearched(true); // 결과 없음 메시지 노출 가능
-        setSelectedPinId(null); // 기존 선택된 핀 초기화
-
-        // 선택된 태그가 딱 1개라면 검색 API에 필터 파라미터로 전달
-        const mediaParam = activeMediaTypes.length === 1 ? activeMediaTypes[0] : null;
-        const data = await searchPlaces(q, mediaParam);
-        const results = toArray(data);
-
+        setHasSearched(true);
+        const results = await getPlaces();
         setPins(results);
-
-        // 검색 결과가 있으면 첫 번째 핀 위치로 카메라 이동
-        if (results.length > 0 && results[0].latitude != null && results[0].longitude != null) {
-          setCenter({
-            lat: Number(results[0].latitude),
-            lng: Number(results[0].longitude),
-          });
-        }
       } catch (err) {
-        console.error('[MapPage] 작품 검색 실패:', err);
+        console.error('[MapPage] 전체 장소 로드 실패:', err);
       } finally {
         setLoadingPins(false);
       }
-    },
-    [activeMediaTypes],
-  );
+    }
+  }, [pins.length, toggleMediaType]);
 
   // 핀 클릭 핸들러
   const handlePinClick = useCallback((pin) => {
@@ -125,7 +132,7 @@ export default function MapPage() {
       setSelectedPinId(null);
       return;
     }
-    setSelectedPinId(pin.placeId);
+    setSelectedPinId(pin.placeId); // synthetic ID 포함 항상 non-null
     if (pin.latitude != null && pin.longitude != null) {
       setCenter({ lat: Number(pin.latitude), lng: Number(pin.longitude) });
     }
@@ -144,7 +151,7 @@ export default function MapPage() {
         leftSidebar={
           <MapFilterPanel
             activeMediaTypes={activeMediaTypes}
-            onToggleMediaType={toggleMediaType}
+            onToggleMediaType={handleToggleMediaType}
             onWorkSearch={handleWorkSearchFromPanel}
             serverMediaTypes={serverMediaTypes} // 서버에서 받아온 태그 전달
           />
@@ -172,7 +179,6 @@ export default function MapPage() {
               center={center}
               onPinClick={handlePinClick}
               disableMapClick={true}
-              // onCameraIdle 제거: 지도 이동 시마다 재검색하지 않음
             />
 
             <MapRightPanel pin={selectedPinDetail} onClose={() => setSelectedPinId(null)} />

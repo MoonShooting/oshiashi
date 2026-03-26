@@ -8,10 +8,9 @@ import project.oshiashi.oshiashi.domain.user.entity.UserAchievementId;
 import project.oshiashi.oshiashi.domain.user.entity.UserEntity;
 
 import java.util.List;
+import java.util.Optional;
 
-@Repository
 public interface UserAchievementRepository extends JpaRepository<UserAchievementEntity, UserAchievementId> {
-
 	/**
 	 * [사용자별 모든 업적 조회]
 	 */

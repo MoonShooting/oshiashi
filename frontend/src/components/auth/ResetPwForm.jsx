@@ -31,7 +31,7 @@ const ResetPwForm = () => {
   const handleSendResetEmail = async () => {
     if (!formData.email) return alert('이메일을 입력해주세요.');
     try {
-      await passwordResetEmailAPI(formData.email);
+      await passwordResetEmailAPI(formData.email, formData.authCode);
       alert('비밀번호 재설정 인증번호가 발송되었습니다.');
       setIsEmailSent(true);
     } catch (error) {
@@ -44,7 +44,7 @@ const ResetPwForm = () => {
     if (!formData.authCode) return alert('인증번호를 입력해주세요.');
     try {
       // 서버에서 이메일과 코드를 대조하여 인증 상태를 완료 처리함
-      await verifyEmailAPI(formData.email, formData.authCode);
+      await verifyEmailAPI(formData.email, formData.authCode, 'FIND_PW');
       alert('인증에 성공했습니다.');
       setIsEmailVerified(true);
     } catch (error) {

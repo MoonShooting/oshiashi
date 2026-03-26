@@ -75,7 +75,7 @@ public class ArtworkController {
      * 반환
      * - 해당 작품의 상세 정보 (ArtworkResponse)
      */
-    @GetMapping("/artwork/{artworkId}")
+    @GetMapping("/artworks/{artworkId}")
     public ArtworkResponse getArtwork(@PathVariable Long artworkId) {
         return artworkService.getArtwork(artworkId);
     }
@@ -94,7 +94,7 @@ public class ArtworkController {
      * 반환
      * - SpotResponse 리스트
      */
-    @GetMapping("/artwork/{artworkId}/spots")
+    @GetMapping("/artworks/{artworkId}/spots")
     public List<SpotResponse> getSpotsByArtwork(@PathVariable Long artworkId) {
         return artworkService.getSpotsByArtwork(artworkId);
     }
@@ -115,13 +115,13 @@ public class ArtworkController {
      * 반환
      * - ArtworkTypeResponse 리스트
      */
-    @GetMapping("/artwork/types")
+    @GetMapping("/artworks/types")
     public List<ArtworkTypeResponse> getArtworkTypes() {
         return artworkService.getArtworkTypes();
     }
 
     // 사용자가 입력한 작품명이 이미 내부 Artwork 테이블에 있는지 먼저 확인하는 API
-    @GetMapping("/artwork/search")
+    @GetMapping("/artworks/search")
     public List<ArtworkResponse> searchArtworks(@RequestParam String keyword) {
         return artworkService.searchArtworks(keyword);
     }

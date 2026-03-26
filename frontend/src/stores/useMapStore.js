@@ -12,6 +12,8 @@ import { create } from 'zustand';
 import { FetchClient } from '@/api/FetchClient.js';
 import { getPlaces, searchPlaces } from '@/api/mapApi.js';
 
+const resolvePlaceKey = (place) => place?.placeId ?? place?.spotId ?? place?.id ?? null;
+
 export const useMapStore = create((set, get) => ({
   displayPlaces: [], // 지도에 표시할 MapPlaceResponse[] 목록
   selectedPlaces: [], // 사용자가 경로에 담은 장소들
@@ -34,17 +36,26 @@ export const useMapStore = create((set, get) => ({
   //  장소 담기 (placeId 기준 중복 방지)
   addPlace: (place) =>
     set((state) => {
-      if (state.selectedPlaces.some((p) => p.placeId === place.placeId)) return state;
+      const nextPlaceKey = resolvePlaceKey(place);
+      if (nextPlaceKey != null && state.selectedPlaces.some((p) => resolvePlaceKey(p) === nextPlaceKey)) return state;
       return { selectedPlaces: [...state.selectedPlaces, place] };
     }),
 
   // 순서 변경 (드래그 앤 드롭)
   reorderPlaces: (newList) => set({ selectedPlaces: newList }),
 
+  // 기존 route를 그대로 편집하거나 북마크 route를 복사 편집할 때는
+  // 현재 선택 장소 배열을 한 번에 교체해야 visitOrder가 보존됩니다.
+  replacePlaces: (places) =>
+    set({
+      selectedPlaces: Array.isArray(places) ? places : [],
+      optimizedPath: null,
+    }),
+
   // 장소 삭제 (placeId 기준)
   removePlace: (placeId) =>
     set((state) => ({
-      selectedPlaces: state.selectedPlaces.filter((p) => p.placeId !== placeId),
+      selectedPlaces: state.selectedPlaces.filter((p) => resolvePlaceKey(p) !== placeId),
     })),
 
   // 미리보기 위치 설정

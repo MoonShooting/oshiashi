@@ -6,7 +6,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import project.oshiashi.oshiashi.domain.achievement.dto.AchievementResponse;
 import project.oshiashi.oshiashi.domain.achievement.service.AchievementService;
+import project.oshiashi.oshiashi.domain.bookmark.dto.BookmarkResponse;
+import project.oshiashi.oshiashi.domain.comment.dto.CommentResponse;
+import project.oshiashi.oshiashi.domain.post.dto.PostResponse;
 import project.oshiashi.oshiashi.domain.route.dto.RouteResponse;
+import project.oshiashi.oshiashi.domain.user.dto.UserAchievementRequest;
+import project.oshiashi.oshiashi.domain.user.dto.UserAchievementResponse;
 import project.oshiashi.oshiashi.domain.user.dto.UserProfileResponse;
 import project.oshiashi.oshiashi.domain.user.dto.UserResponse;
 import project.oshiashi.oshiashi.domain.user.service.UserService;
@@ -51,21 +56,21 @@ public class UserController {
 
 	// 내가 쓴 글 목록 조회: /api/v1/user/posts
 	@GetMapping("/posts")
-	public ResponseEntity<List<?>> getMyPosts() {
+	public ResponseEntity<List<PostResponse>> getMyPosts() {
 		log.info("[API] 내가 쓴 글 조회 호출");
 		return ResponseEntity.ok(userService.getMyPosts());
 	}
 
 	// 내가 쓴 댓글 목록 조회: /api/v1/user/comments
 	@GetMapping("/comments")
-	public ResponseEntity<List<?>> getMyComments() {
+	public ResponseEntity<List<CommentResponse>> getMyComments() {
 		log.info("[API] 내가 쓴 댓글 조회 호출");
 		return ResponseEntity.ok(userService.getMyComments());
 	}
 
 	// 북마크 목록 조회: /api/v1/user/myBookmarks
 	@GetMapping("/myBookmarks")
-	public ResponseEntity<List<?>> getMyBookmarks() {
+	public ResponseEntity<List<BookmarkResponse>> getMyBookmarks() {
 		log.info("[API] 북마크 조회 호출");
 		return ResponseEntity.ok(userService.getMyBookmarks());
 	}
@@ -83,14 +88,22 @@ public class UserController {
 		return ResponseEntity.ok(achievementService.getAchievements());
 	}
 
-	// TODO: 현재는 대표 칭호 변경 API 자리만 있으며, 실제 저장 로직은 미구현 상태
-	// 대표 칭호 변경: /api/v1/user/mainAchievement
+	/**
+	 * [대표 칭호 변경]
+	 * - API: PATCH /api/v1/user/mainAchievement
+	 * - 피드백 반영:
+	 * 1. Map 대신 전용 DTO(UserAchievementRequest)를 사용하여 타입 안정성 확보
+	 * 2. 변경 후 최신 유저 정보(UserResponse)를 반환하여 프론트엔드 동기화 지원
+	 */
 	@PatchMapping("/mainAchievement")
-	public ResponseEntity<String> updateMainAchievement(@RequestBody Map<String, Long> request) {
-		Long achievementId = request.get("achievementId");
-		log.info("[API] 대표 칭호 변경 호출: {}", achievementId);
-		userService.updateMainAchievement(achievementId);
-		return ResponseEntity.ok("대표 칭호가 변경되었습니다.");
+	public ResponseEntity<UserResponse> updateMainAchievement(@RequestBody UserAchievementRequest request) {
+		// 1. 요청 데이터에서 대상 ID 추출 (지역 변수 활용)
+		Long achievementId = request.getAchievementId();
+		log.info("[API] 대표 칭호 변경 호출 - 대상 ID: {}", achievementId);
+		// 2. 서비스 호출: 대표 칭호를 변경하고 최신 유저 응답 객체를 받음
+		UserResponse updatedUser = userService.updateMainAchievement(request);
+		// 3. 변경된 유저 정보와 함께 200 OK 반환
+		return ResponseEntity.ok(updatedUser);
 	}
 
 	// 특정 유저 요약 프로필 조회

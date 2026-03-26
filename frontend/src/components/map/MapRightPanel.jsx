@@ -2,32 +2,105 @@
  * @file MapRightPanel.jsx
  * @description 장소 클릭 시 우측에 나타나는 상세 패널
  *
- * [변경 내용] MapPlaceResponse (getPlaceDetail 응답) 적용
- *
- * [필드 매핑]
- * 프론트                    → MapPlaceResponse
- * pin.mediaType('애니메이션') → pin.mediaType ('애니메이션')
- * pin.name                 → 장소 이름
- * pin.address              → 주소
- * pin.googleMapsUrl        → 좌표로 직접 생성 (latitude/longitude)
- * pin.artwork.title        → pin.artworkTitle
- * pin.artwork.posterUrl    → sceneImageUrl 장소/장면 대표 이미지
- * pin.artwork.spotCount    → relatedPostCount 장소가 포함된 루트를 참조하는 게시글 수
- *
- * @param {MapPlaceResponse|null} pin     - 선택된 장소 상세 데이터
- * @param {Function}              onClose - 패널 닫기 콜백
+ * 작품 이미지 우선순위:
+ *  1) pin.artwork.posterUrl / pin.sceneImageUrl (백엔드 직접 제공)
+ *  2) artworkTitle 키워드로 내부 DB 검색 → posterUrl
+ *  3) Google Places API textSearch → 위치 사진
+ *  4) 색상 placeholder
  */
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useMapsLibrary } from '@vis.gl/react-google-maps';
 import { X, ExternalLink, Plus } from 'lucide-react';
 import styles from '@/styles/MapRightPanel.module.css';
 import { PIN_COLOR } from '@/constants/mapConstants';
+import { getPublicPostsByTag } from '@/api/postApi';
+import { getArtworkPosterByTitle } from '@/api/mapApi';
 
 export default function MapRightPanel({ pin, onClose }) {
+  const navigate = useNavigate();
+  const placesLib = useMapsLibrary('places');
+
+  const [publicPosts, setPublicPosts] = useState([]);
+  const [posterUrl, setPosterUrl] = useState(null);
+
+  // 작품 포스터 이미지 결정
+  // 1단계: 백엔드 직접 제공
+  // 2단계: 내부 Artwork DB 검색
+  // 3단계: Google Places API 위치 사진
+  useEffect(() => {
+    if (!pin) {
+      setPosterUrl(null);
+      return;
+    }
+
+    const directUrl = pin.artwork?.posterUrl ?? pin.sceneImageUrl ?? null;
+    if (directUrl) {
+      setPosterUrl(directUrl);
+      return;
+    }
+
+    // 이하 단계들은 직접 URL이 없을 때만 시도
+    setPosterUrl(null);
+    const artworkTitle = pin.artworkTitle || pin.artwork?.title || '';
+
+    // 2단계: 내부 DB 검색
+    if (artworkTitle) {
+      getArtworkPosterByTitle(artworkTitle)
+        .then((url) => {
+          if (url) {
+            setPosterUrl(url);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [pin?.placeId]);
+
+  // 3단계: Places API — 내부 DB에서도 이미지를 못 찾았을 때 위치 사진 조회
+  useEffect(() => {
+    if (!placesLib || !pin?.latitude || !pin?.longitude || posterUrl) return;
+
+    let cancelled = false;
+    const container = document.createElement('div');
+    const service = new placesLib.PlacesService(container);
+
+    service.textSearch(
+      {
+        query: pin.name || pin.artworkTitle || '',
+        location: { lat: Number(pin.latitude), lng: Number(pin.longitude) },
+        radius: 200,
+      },
+      (results, status) => {
+        if (cancelled) return;
+        if (status === 'OK' && results?.[0]?.photos?.[0]) {
+          const url = results[0].photos[0].getUrl({ maxWidth: 400, maxHeight: 200 });
+          setPosterUrl(url);
+        }
+      },
+    );
+
+    return () => {
+      cancelled = true;
+    };
+  }, [placesLib, pin?.placeId]); // posterUrl 제외 — 변경 시 재실행 불필요, early-return으로 충분
+
+  //  공개 게시글 조회
+  useEffect(() => {
+    const title = pin?.artworkTitle || pin?.artwork?.title;
+    if (!title) {
+      setPublicPosts([]);
+      return;
+    }
+    getPublicPostsByTag(title)
+      .then(setPublicPosts)
+      .catch(() => setPublicPosts([]));
+  }, [pin?.placeId]);
+
   if (!pin) return null;
 
   const pinConfig = PIN_COLOR[pin.mediaType] || PIN_COLOR.DEFAULT;
+  const artworkTitle = pin.artworkTitle || pin.artwork?.title || '';
 
-  // 구글 지도 URL 생성
   const googleMapsUrl = pin.latitude != null && pin.longitude != null ? `https://maps.google.com/?q=${pin.latitude},${pin.longitude}` : null;
 
   return (
@@ -39,7 +112,7 @@ export default function MapRightPanel({ pin, onClose }) {
             style={{
               backgroundColor: pinConfig.background,
               borderColor: pinConfig.border,
-              color: pinConfig.glyph, // 글자색 (보통 하얀색)
+              color: pinConfig.glyph,
             }}>
             {pin.mediaType || '작품'}
           </span>
@@ -47,7 +120,6 @@ export default function MapRightPanel({ pin, onClose }) {
             <X size={20} />
           </button>
         </div>
-        {/* 장소 이름 (name) */}
         <h2 className={styles.title}>{pin.name}</h2>
         {pin.address && <p className={styles.address}>{pin.address}</p>}
       </header>
@@ -57,20 +129,16 @@ export default function MapRightPanel({ pin, onClose }) {
         <section className={styles.section}>
           <div className={styles.sectionTitle}>
             <span>관련 작품</span>
-            {/* 작품 제목 (artworkTitle) */}
-            <span className={styles.dim}>{pin.artworkTitle}</span>
+            <span className={styles.dim}>{artworkTitle}</span>
           </div>
 
           <div className={styles.imageCard}>
-            {/* 대표 이미지 (sceneImageUrl) */}
-            {pin.sceneImageUrl ? (
-              <img src={pin.sceneImageUrl} alt={pin.artworkTitle} className={styles.imageCardImg} />
+            {posterUrl ? (
+              <img src={posterUrl} alt={artworkTitle} className={styles.imageCardImg} />
             ) : (
               <div className={styles.imageCardEmpty}>등록된 장면 이미지가 없습니다.</div>
             )}
-
             <div className={styles.imageOverlay}>
-              {/* 게시글 수 (relatedPostCount) */}
               <p>관련 게시글: {pin.relatedPostCount ?? 0}개</p>
               <span className={styles.subInfo}>{pin.mediaType} 명장면 확인</span>
             </div>
@@ -81,21 +149,43 @@ export default function MapRightPanel({ pin, onClose }) {
         <section className={styles.section}>
           <div className={styles.sectionTitle}>
             <span>공개 게시글</span>
-            <span className={styles.count}>{pin.relatedPostCount ?? 0}개</span>
+            <span className={styles.dim}>{publicPosts.length}개</span>
           </div>
-          <ul className={styles.postList}>{(pin.relatedPostCount ?? 0) === 0 && <p className={styles.emptyText}>등록된 게시글이 없습니다.</p>}</ul>
+          <ul className={styles.postList}>
+            {publicPosts.length === 0 ? (
+              <p className={styles.emptyText}>등록된 게시글이 없습니다.</p>
+            ) : (
+              publicPosts.map((post) => {
+                const postId = post.postId ?? post.id;
+                const author = post.userNickname ?? post.userName ?? post.author ?? '익명';
+                const date = post.createdAt
+                  ? new Date(post.createdAt).toLocaleDateString('ko-KR', {
+                      month: '2-digit',
+                      day: '2-digit',
+                    })
+                  : '';
+                return (
+                  <li key={postId} className={styles.postItem}>
+                    <div className={styles.postText}>
+                      <strong>{post.title || '(제목 없음)'}</strong>
+                      <span>
+                        {author}
+                        {date ? ` · ${date}` : ''}
+                      </span>
+                    </div>
+                  </li>
+                );
+              })
+            )}
+          </ul>
         </section>
       </div>
 
       <footer className={styles.footer}>
-        <button
-          className={styles.primaryBtn}
-          style={{ backgroundColor: pinConfig.background }}
-          onClick={() => googleMapsUrl && window.open(googleMapsUrl, '_blank')}
-          disabled={!googleMapsUrl}>
+        <button className={styles.primaryBtn} onClick={() => googleMapsUrl && window.open(googleMapsUrl, '_blank')} disabled={!googleMapsUrl}>
           구글 지도에서 보기 <ExternalLink size={16} />
         </button>
-        <button className={styles.secondaryBtn}>
+        <button className={styles.secondaryBtn} onClick={() => navigate('/spot')}>
           루트에 추가 <Plus size={16} />
         </button>
       </footer>

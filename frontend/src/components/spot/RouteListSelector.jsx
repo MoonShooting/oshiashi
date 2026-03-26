@@ -2,43 +2,61 @@
  * @file RouteListSelector.jsx
  * @description 루트에 담긴 장소 플로팅 패널 (지도 우측 하단 고정)
  * - 접기/펼치기 토글
- * - 드래그앤드롭 순서 변경
- * - durations: 이동수단별 소요시간 (저장 버튼 위에 표시)
+ * - 전체 영역 드래그앤드롭 순서 변경 적용
+ * - 지하철, 버스 소요 시간 분리 표시
  */
 import React, { useState, useRef, useCallback } from 'react';
 import { useMapStore } from '@/stores/useMapStore';
 import styles from '@/styles/RouteListSelector.module.css';
 
+// 지하철, 버스로 항목 분리
 const TRAVEL_MODES = [
   { key: 'WALKING', icon: '🚶', label: '도보' },
   { key: 'DRIVING', icon: '🚗', label: '자동차' },
-  { key: 'TRANSIT', icon: '🚌', label: '대중교통' },
+  { key: 'TRANSIT_SUBWAY', icon: '🚇', label: '지하철' },
+  { key: 'TRANSIT_BUS', icon: '🚌', label: '버스' },
 ];
 
-const toMin = (sec) => (sec != null ? `${Math.round(sec / 60)}분` : '-');
+// X시간 Y분 형태로 시간 포맷팅 함수 개선
+const formatDuration = (sec) => {
+  if (sec == null) return '-';
+  const totalMin = Math.round(sec / 60);
+  if (totalMin < 60) return `${totalMin}분`;
 
-export default function RouteListSelector({ onSave, durations }) {
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  return m > 0 ? `${h}시간 ${m}분` : `${h}시간`;
+};
+
+// isEditMode 프롭스 추가 (수정 상태 판별용)
+export default function RouteListSelector({ onSave, onReset, durations, isLocked = false, lockMessage = '', isEditMode = false }) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [overIdx, setOverIdx] = useState(null);
   const dragIdx = useRef(null);
 
   const { selectedPlaces, removePlace, reorderPlaces, clearMap } = useMapStore();
 
-  const handleDragStart = useCallback((e, idx) => {
-    dragIdx.current = idx;
-    e.dataTransfer.effectAllowed = 'move';
-  }, []);
+  const handleDragStart = useCallback(
+    (e, idx) => {
+      if (isLocked) return;
+      dragIdx.current = idx;
+      e.dataTransfer.effectAllowed = 'move';
+    },
+    [isLocked],
+  );
 
   const handleDragOver = useCallback(
     (e, idx) => {
+      if (isLocked) return;
       e.preventDefault();
       if (overIdx !== idx) setOverIdx(idx);
     },
-    [overIdx],
+    [isLocked, overIdx],
   );
 
   const handleDrop = useCallback(
     (e, dropIdx) => {
+      if (isLocked) return;
       e.preventDefault();
       setOverIdx(null);
       const from = dragIdx.current;
@@ -49,7 +67,7 @@ export default function RouteListSelector({ onSave, durations }) {
       reorderPlaces(next);
       dragIdx.current = null;
     },
-    [selectedPlaces, reorderPlaces],
+    [isLocked, selectedPlaces, reorderPlaces],
   );
 
   const handleDragLeave = useCallback(() => setOverIdx(null), []);
@@ -72,6 +90,7 @@ export default function RouteListSelector({ onSave, durations }) {
 
       {isExpanded && (
         <div className={styles.body}>
+          {isLocked && lockMessage ? <p className={styles.lockNotice}>{lockMessage}</p> : null}
           {selectedPlaces.length === 0 ? (
             <div className={styles.empty}>
               <div className={styles.emptyIcon}>🗺️</div>
@@ -87,13 +106,17 @@ export default function RouteListSelector({ onSave, durations }) {
               {selectedPlaces.map((place, idx) => (
                 <li
                   key={place.id}
-                  className={styles.item}
+                  className={isLocked ? `${styles.item} ${styles.itemLocked}` : styles.item}
                   data-over={overIdx === idx ? 'true' : undefined}
+                  // li 전체에 drag 이벤트 부여 (박스 전체 인식)
+                  draggable={!isLocked}
+                  onDragStart={(e) => handleDragStart(e, idx)}
                   onDragOver={(e) => handleDragOver(e, idx)}
                   onDragLeave={handleDragLeave}
                   onDrop={(e) => handleDrop(e, idx)}
                   onDragEnd={handleDragEnd}>
-                  <span className={styles.dragHandle} draggable onDragStart={(e) => handleDragStart(e, idx)} onDragEnd={handleDragEnd}>
+                  {/* dragHandle 부분의 이벤트는 상위(li)로 올렸으므로 디자인용 요소로만 남김 */}
+                  <span className={styles.dragHandle}>
                     <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor">
                       <circle cx="2.5" cy="2.5" r="1.5" />
                       <circle cx="7.5" cy="2.5" r="1.5" />
@@ -109,7 +132,11 @@ export default function RouteListSelector({ onSave, durations }) {
                     <span className={styles.itemTitle}>{place.title || place.name}</span>
                     {place.workName && <span className={styles.itemWork}>{place.workName}</span>}
                   </div>
-                  <button className={styles.removeBtn} title="루트에서 제거" onClick={() => removePlace(place.id)}>
+                  <button
+                    className={styles.removeBtn}
+                    title="루트에서 제거"
+                    onClick={() => removePlace(place.placeId ?? place.spotId ?? place.id)}
+                    disabled={isLocked}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <polyline points="3 6 5 6 21 6" />
                       <path d="M19 6l-1 14H6L5 6" />
@@ -121,34 +148,41 @@ export default function RouteListSelector({ onSave, durations }) {
             </ul>
           )}
 
-          {/* 이동수단별 소요시간 — 장소 2개 이상일 때만 표시 */}
           {durations && selectedPlaces.length >= 2 && (
             <div className={styles.durationSection}>
               {TRAVEL_MODES.map(({ key, icon, label }) => (
                 <div key={key} className={styles.durationRow}>
                   <span className={styles.durationIcon}>{icon}</span>
                   <span className={styles.durationLabel}>{label}</span>
-                  <span className={styles.durationValue}>{toMin(durations[key])}</span>
+                  {/* 포맷팅 함수 적용 */}
+                  <span className={styles.durationValue}>{formatDuration(durations[key])}</span>
                 </div>
               ))}
             </div>
           )}
 
           <div className={styles.footer}>
-            <button className={styles.resetBtn} onClick={clearMap}>
+            <button
+              className={styles.resetBtn}
+              onClick={() => {
+                onReset?.();
+                clearMap();
+              }}
+              disabled={isLocked}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <polyline points="1 4 1 10 7 10" />
                 <path d="M3.51 15a9 9 0 1 0 .49-3.29" />
               </svg>
               초기화
             </button>
-            <button className={styles.saveBtn} onClick={onSave} disabled={selectedPlaces.length < 1}>
+            <button className={styles.saveBtn} onClick={onSave} disabled={selectedPlaces.length < 1 || isLocked}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
                 <polyline points="17 21 17 13 7 13 7 21" />
                 <polyline points="7 3 7 8 15 8" />
               </svg>
-              저장
+              {/* isEditMode에 따라 텍스트 분기 */}
+              {isEditMode ? '수정' : '저장'}
             </button>
           </div>
         </div>

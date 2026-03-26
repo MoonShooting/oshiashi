@@ -6,14 +6,18 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import project.oshiashi.oshiashi.domain.post.dto.PostEntryResponse;
+import project.oshiashi.oshiashi.domain.comment.repository.CommentRepository;
 import project.oshiashi.oshiashi.domain.post.dto.PostRequest;
 import project.oshiashi.oshiashi.domain.post.dto.PostResponse;
 import project.oshiashi.oshiashi.domain.post.entity.PostEntity;
 import project.oshiashi.oshiashi.domain.post.entity.PostImageEntity;
 import project.oshiashi.oshiashi.domain.post.entity.PostLikeEntity;
 import project.oshiashi.oshiashi.domain.post.entity.PostTagEntity;
+import project.oshiashi.oshiashi.domain.post.repository.PostImageRepository;
 import project.oshiashi.oshiashi.domain.post.repository.PostLikeRepository;
 import project.oshiashi.oshiashi.domain.post.repository.PostRepository;
+import project.oshiashi.oshiashi.domain.post.repository.PostTagRepository;
 import project.oshiashi.oshiashi.domain.route.entity.RouteEntity;
 import project.oshiashi.oshiashi.domain.route.repository.RouteRepository;
 import project.oshiashi.oshiashi.domain.tag.entity.TagEntity;
@@ -24,7 +28,10 @@ import project.oshiashi.oshiashi.global.exception.BusinessException;
 import project.oshiashi.oshiashi.global.exception.ErrorCode;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -40,12 +47,18 @@ public class PostServiceImpl implements PostService {
 	private final TagRepository tagRepository;
 	private final PostLikeRepository postLikeRepository;
 
+	private final CommentRepository commentRepository;
+	private final PostTagRepository postTagRepository;
+	private final PostImageRepository postImageRepository;
+
+
 	/**
 	 * 1. 게시글 전체 조회 ( 루트가 있는 게시물)
 	 * @return List<PostResponse>
 	 * - 필수 반환: 모든 필드 (postId, title, content, status, viewCount, likeCount, tagNames, createdAt, updateAt)
 	 * - 특징: 데이터가 없으면 빈 리스트 [] 반환
 	 */
+	/*
 	@Override // 2026-03-22 이상학 : 작업한 최신순, 조회수 순, 좋아요 순 날아간거 복구했습니다.
 	@Transactional(readOnly = true)
 	public List<PostResponse> getAllPost(Boolean routeIdIsNull, String sort, String search, List<String> tags) {
@@ -85,6 +98,84 @@ public class PostServiceImpl implements PostService {
 						.anyMatch(pt -> tags.contains(pt.getTag().getTagName())))
 				.map(PostResponse::fromEntity)
 				.collect(Collectors.toUnmodifiableList());
+	}*/
+	@Override
+	@Transactional(readOnly = true)
+	public List<PostResponse> getAllPost(Boolean routeIdIsNull, String sort, String search, List<String> tags) {
+		log.debug("[Service] 게시글 전체 조회 요청 발생 - routeIdIsNull: {}, sort: {}", routeIdIsNull, sort);
+
+		String normalizedSort = (sort == null || sort.isBlank()) ? "latest" : sort.trim().toLowerCase();
+		List<PostEntity> posts;
+
+		boolean hasTags = tags != null && !tags.isEmpty();
+		boolean routeOnlyNull = Boolean.TRUE.equals(routeIdIsNull);
+
+		if (routeOnlyNull) {
+			if (hasTags) {
+				posts = postRepository.findAllByRouteIsNullAndTagNamesInOrderByCreatedAtDesc(tags);
+			} else {
+				posts = switch (normalizedSort) {
+					case "view" -> postRepository.findAllByRouteIsNullOrderByViewCountDescCreatedAtDesc();
+					case "like" -> postRepository.findAllByRouteIsNullOrderByLikeCountDescCreatedAtDesc();
+					case "latest" -> postRepository.findAllByRouteIsNullOrderByCreatedAtDesc();
+					default -> throw new IllegalArgumentException("지원하지 않는 정렬 방식입니다. " + sort);
+				};
+			}
+		} else {
+			if (hasTags) {
+				posts = postRepository.findAllByRouteIsNotNullAndTagNamesInOrderByCreatedAtDesc(tags);
+			} else {
+				posts = switch (normalizedSort) {
+					case "views" -> postRepository.findAllByRouteIsNotNullOrderByViewCountDescCreatedAtDesc();
+					case "popular" -> postRepository.findAllByRouteIsNotNullOrderByLikeCountDescCreatedAtDesc();
+					case "latest" -> postRepository.findAllByRouteIsNotNullOrderByCreatedAtDesc();
+					default -> throw new IllegalArgumentException("지원하지 않는 정렬 방식입니다. " + sort);
+				};
+			}
+		}
+
+		// search는 우선 기존처럼 메모리 필터 유지
+		List<PostEntity> filteredPosts = posts.stream()
+				.filter(post -> (search == null || search.isBlank())
+						|| post.getTitle().contains(search)
+						|| post.getContent().contains(search))
+				.toList();
+
+		if (filteredPosts.isEmpty()) {
+			return List.of();
+		}
+
+		List<Long> postIds = filteredPosts.stream()
+				.map(PostEntity::getPostId)
+				.toList();
+
+		Map<Long, Integer> commentCountMap = commentRepository.countByPostIds(postIds).stream()
+				.collect(Collectors.toMap(
+						row -> (Long) row[0],
+						row -> ((Long) row[1]).intValue()
+				));
+
+		Map<Long, List<String>> tagMap = postTagRepository.findTagNamesByPostIds(postIds).stream()
+				.collect(Collectors.groupingBy(
+						row -> (Long) row[0],
+						Collectors.mapping(row -> (String) row[1], Collectors.toList())
+				));
+
+		Map<Long, List<String>> imageMap = postImageRepository.findImagesByPostIds(postIds).stream()
+				.sorted(Comparator.comparing(row -> (Integer) row[2]))
+				.collect(Collectors.groupingBy(
+						row -> (Long) row[0],
+						Collectors.mapping(row -> (String) row[1], Collectors.toList())
+				));
+
+		return filteredPosts.stream()
+				.map(post -> PostResponse.fromListData(
+						post,
+						commentCountMap.getOrDefault(post.getPostId(), 0),
+						tagMap.getOrDefault(post.getPostId(), List.of()),
+						imageMap.getOrDefault(post.getPostId(), List.of())
+				))
+				.toList();
 	}
 
 	/**
@@ -165,24 +256,48 @@ public class PostServiceImpl implements PostService {
 		//먼저 저장하여 postId 받기
 		postEntity = postRepository.save(postEntity);
 		
-		// 1-1 이미지 넣기
-		if (request.getImageUrl() != null && !request.getImageUrl().isEmpty()) {
-			log.debug("[Service] 이미지 매핑 처리 시작: {}개", request.getImageUrl().size());
-			
-			for (int i = 0; i < request.getImageUrl().size(); i++) {
-				String url = request.getImageUrl().get(i);
+		// 1. 기본 이미지 리스트 가져오기
+		List<String> allImages = new ArrayList<>();
+		
+		// 2. 프론트가 보낸 'entries'를 최우선으로 가져옵니다. (여기에 원본과 내 사진이 다 있음)
+		if (request.getEntries() != null && !request.getEntries().isEmpty()) {
+			for (PostEntryResponse entry : request.getEntries()) {
 				
-				PostImageEntity imageEntity = PostImageEntity.builder()
-						.post(postEntity) // 게시글 연결
-						.imageUrl(url)
-						.sortOrder(i)    // 리스트에 들어온 순서대로 0, 1, 2... 부여
-						.createdAt(LocalDateTime.now())
-						.build();
+				// 1. [짝수 라인] 애니메이션 원본 장면 (Reference)
+				if (entry.getReferenceImageUrl() != null && !entry.getReferenceImageUrl().isEmpty()) {
+					allImages.add(entry.getReferenceImageUrl());
+				} else {
+					// 만약 원본이 없다면 순서가 밀리지 않게 빈 문자열이라도 넣어주는 게 안전할 수 있습니다.
+					// (프론트와 협의 필요, 보통은 기본 이미지 URL을 넣습니다.)
+					allImages.add("");
+				}
 				
-				// PostEntity의 이미지 리스트에 추가 (Cascade 설정)
-				// postEntity에 이미지를 추가함과 동시에 연관관계 설정
-				postEntity.addPostImage(imageEntity);
+				// 2. [홀수 라인] 내가 직접 찍은 사진 (User)
+				if (entry.getUserImageUrl() != null && !entry.getUserImageUrl().isEmpty()) {
+					allImages.add(entry.getUserImageUrl());
+				} else {
+					allImages.add("");
+				}
 			}
+		}
+		
+		
+		// 3. 만약 위에서 아무것도 안 담겼다면 기본 imageUrl 사용
+		if (allImages.isEmpty() && request.getImageUrl() != null) {
+			allImages.addAll(request.getImageUrl());
+		}
+		// [검거 로그] 여기서 주소가 서로 다른지 꼭 확인하세요!
+		log.debug("최종 리스트 내용: {}", allImages);
+		
+		// 3. 이제 합쳐진 allImages로 DB에 저장 (sortOrder i 적용)
+		for (int i = 0; i < allImages.size(); i++) {
+			PostImageEntity imageEntity = PostImageEntity.builder()
+					.post(postEntity)
+					.imageUrl(allImages.get(i))
+					.sortOrder(i)
+					.createdAt(LocalDateTime.now())
+					.build();
+			postEntity.addPostImage(imageEntity);
 		}
 		
 		// 2. 태그 처리: 요청 DTO에 태그 이름 리스트가 포함되어 있다면 매핑 진행
@@ -250,12 +365,7 @@ public class PostServiceImpl implements PostService {
 			log.debug("본인꺼만 수정 가능합니다");
 			throw new BusinessException(ErrorCode.ACCESS_DENIED, "본인이 작성한 글만 수정할 수 있습니다.");
 		}
-		// 2. 엔티티 데이터 업데이트
-		// 실제로는 route 객체도 새로 찾아와서 수정하는거 고려
-		postEntity.setTitle(request.getTitle());
-		postEntity.setContent(request.getContent());
-		postEntity.setStatus(request.getStatus());
-		postEntity.setUpdateAt(LocalDateTime.now());
+		
 		
 		// 2. 기본 정보 업데이트 (JPA Dirty Checking 활용)
 		// 따로 save()를 호출하지 않아도 트랜잭션 종료 시점에 변경 사항이 DB에 반영됩니다.

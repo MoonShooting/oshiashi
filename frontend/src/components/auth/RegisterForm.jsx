@@ -121,7 +121,7 @@ const RegisterForm = () => {
     if (errors.email || !formData.email) return alert('유효한 이메일을 입력해주세요.');
     try {
       await checkEmailAPI(formData.email);
-      await sendEmailAPI(formData.email);
+      await sendEmailAPI(formData.email, 'SIGNUP');
 
       setStatus((prev) => ({ ...prev, isEmailSent: true }));
       alert('인증번호 발송!');
@@ -134,7 +134,7 @@ const RegisterForm = () => {
     if (!formData.authCode) return alert('인증번호를 입력해주세요.');
 
     try {
-      await verifyEmailAPI(formData.email, formData.authCode);
+      await verifyEmailAPI(formData.email, formData.authCode, 'SIGNUP');
       alert('인증에 성공했습니다.');
       setStatus((prev) => ({ ...prev, isEmailVerified: true }));
     } catch (e) {

@@ -1,6 +1,7 @@
 package project.oshiashi.oshiashi.domain.post.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import project.oshiashi.oshiashi.domain.post.entity.PostEntity;
 import project.oshiashi.oshiashi.domain.post.entity.PostTagEntity;
@@ -57,5 +58,17 @@ public interface PostTagRepository extends JpaRepository<PostTagEntity, Long> {
 	 * 1. PostTag -> Post -> User -> userId
 	 * 2. PostTag -> Tag -> Artwork -> artworkId
 	 */
+
 	long countByPost_User_UserIdAndTag_Artwork_ArtworkId(String userId, Long artworkId);
+
+	Optional<PostTagEntity> findByPostAndTag(PostEntity post, TagEntity tag);
+
+	@Query("""
+    select pt.post.postId, t.tagName
+    from PostTagEntity pt
+    join pt.tag t
+    where pt.post.postId in :postIds
+    """)
+	List<Object[]> findTagNamesByPostIds(List<Long> postIds);
+
 }

@@ -18,7 +18,7 @@ public class ArtworkSearchController {
     private final ArtworkImportService artworkImportService;
 
     // movie / tv를 따로 부르지 않고, 검색 후보를 한 번에 모아 프론트에 반환합니다.
-    @GetMapping("/map/search")
+    @GetMapping("/maps/search")
     public List<ExternalArtworkCandidateResponse> searchExternal(@RequestParam String query) {
         return artworkImportService.searchExternal(query);
     }

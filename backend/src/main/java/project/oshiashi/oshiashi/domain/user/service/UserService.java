@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import project.oshiashi.oshiashi.domain.achievement.entity.AchievementEntity;
 import project.oshiashi.oshiashi.domain.bookmark.dto.BookmarkResponse;
 import project.oshiashi.oshiashi.domain.bookmark.entity.BookmarkEntity;
 import project.oshiashi.oshiashi.domain.bookmark.repository.BookmarkRepository;
@@ -17,6 +18,7 @@ import project.oshiashi.oshiashi.domain.post.repository.PostRepository;
 import project.oshiashi.oshiashi.domain.route.dto.RouteResponse;
 import project.oshiashi.oshiashi.domain.route.entity.RouteEntity;
 import project.oshiashi.oshiashi.domain.route.repository.RouteRepository;
+import project.oshiashi.oshiashi.domain.user.dto.UserAchievementRequest;
 import project.oshiashi.oshiashi.domain.user.dto.UserAchievementResponse;
 import project.oshiashi.oshiashi.domain.user.dto.UserProfileResponse;
 import project.oshiashi.oshiashi.domain.user.dto.UserResponse;
@@ -109,7 +111,7 @@ public class UserService {
 	 * - 용도: 사용자가 생성한 여행 루트 목록 호출
 	 * [제네릭(Generics) '?' 설명]
 	 * - '?'는 와일드카드로 "어떤 타입이든 올 수 있음"을 뜻하는 제네릭 문법
-	 *  - 현재 루트 관련 DTO가 미정이라, 나중에 특정 타입(예: List<RouteResponse>)으로 
+	 *  - 현재 루트 관련 DTO가 미정이라, 나중에 특정 타입(예: List<RouteResponse>)으로
 	 *  교체하기 전까지 모든 리스트 형식을 수용하기 위해 임시로 비워둔 예약자리
 	 */
 	@Transactional(readOnly = true) // 읽기 전용 트랜잭션: 데이터 수정이 없으므로 성능 최적화 및 안정성 확보
@@ -210,17 +212,35 @@ public class UserService {
 	/**
 	 * [대표 칭호 변경]
 	 * - API: /api/v1/user/mainAchievement
-	 * - 용도: 보유한 칭호 중 프로필에 노출될 대표 칭호를 설정
+	 * - 용도: UserAchievementRequest를 통해 받은 ID로 대표 칭호를 설정하고 최신 유저 정보를 반환함.
 	 */
 	@Transactional
-	public void updateMainAchievement(Long achievementId) {
+	public UserResponse updateMainAchievement(UserAchievementRequest request) {
+		// 1. 지역 변수 추출 (리뷰어 피드백)
+		Long targetId = request.getAchievementId();
 		UserEntity me = getCurrentUserEntity();
-		log.info("[UserService] 대표 칭호 변경 요청: {}", me.getUserId());
-		// me.changeMainAchievement(achievementId);
-		// TODO: 대표 칭호 저장 구조(main_achievement_id 또는 user_achievement.is_main)가 정해지면 보유 업적 검증 후 대표 칭호를 실제로 저장하도록 구현
-		throw new UnsupportedOperationException("대표 칭호 설정 기능은 아직 구현되지 않았습니다.");
-	}
+		String currentUserId = me.getUserId();
 
+		log.info("[UserService] 대표 칭호 변경 호출 - User: {}, Target: {}", currentUserId, targetId);
+
+		// 2. 해제 로직 (0이거나 null일 때)
+		if (targetId == null || targetId == 0L) {
+			me.updateSelectedAchievement(null);
+		}
+		else {
+			// 3. 유저가 실제 획득한 정보 찾기
+			UserAchievementEntity earned = userAchievementRepository
+					.findByUser_UserIdAndAchievement_AchievementId(currentUserId, targetId)
+					.orElseThrow(() -> new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "보유하지 않은 칭호입니다."));
+
+			// 4. 획득 정보에서 마스터 칭호를 꺼내 유저에게 세팅
+			me.updateSelectedAchievement(earned.getAchievement());
+		}
+		List<UserAchievementEntity> allMyAchievements = userAchievementRepository.findAllByUser(me);
+
+		log.info("[UserService] 변경 완료: {}", currentUserId);
+		return UserResponse.fromEntity(me, allMyAchievements);
+	}
 	/**
 	 * [공통 유틸리티: 현재 로그인한 유저 엔티티 인출]
 	 * - SecurityContext에서 인증 정보를 꺼내 DB의 최신 유저 상태를 반환

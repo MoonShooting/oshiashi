@@ -81,7 +81,7 @@ export default function MapCore({
         mapId={MAP_ID}
         style={{ width: '100%', height: '100%' }}
         disableDefaultUI={true}
-        clickableIcons={!disableMapClick}
+        clickableIcons={false}
         options={{
           draggableCursor: 'default',
           draggingCursor: 'grabbing',
@@ -101,14 +101,18 @@ export default function MapCore({
         <MapPanController center={center} />
         {typeof onCameraIdle === 'function' ? <MapCameraIdleBridge onCameraIdle={onCameraIdle} /> : null}
 
-        {safePins.map((pin) => {
+        {safePins.map((pin, idx) => {
           // latitude/longitude 없는 핀은 렌더 생략
           if (pin.latitude == null || pin.longitude == null) return null;
+          // placeId가 null이면 좌표 기반 키 사용 (duplicate key 방지)
+          const pinKey = pin.placeId ?? `pin-${pin.latitude}-${pin.longitude}-${idx}`;
+          // null===null 오탐 방지: 양쪽 모두 non-null일 때만 선택 처리
+          const isSelected = pin.placeId != null && selectedPinId != null && selectedPinId === pin.placeId;
           return (
             <CustomPin
-              key={pin.placeId}
+              key={pinKey}
               place={pin}
-              isSelected={selectedPinId === pin.placeId}
+              isSelected={isSelected}
               onClick={() => onPinClick?.(pin)}
               onCloseOverlay={() => onPinClick?.(null)}
             />

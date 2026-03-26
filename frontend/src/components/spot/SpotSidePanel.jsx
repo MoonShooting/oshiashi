@@ -1,17 +1,35 @@
 /**
  * @file SpotSidePanel.jsx
  * @description 루트 페이지 좌측 패널
- * 탭 1 - 북마크: 저장된 루트 폴더 목록 + 스팟 목록 (+추가 버튼)
+ * 탭 1 - 루트: 내 루트 / 북마크한 루트 목록 + 스팟 목록 (+추가 버튼)
  * 탭 2 - 지도 검색: Google Places 검색 → 결과에서 +추가
  */
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useMapsLibrary } from '@vis.gl/react-google-maps';
 import styles from '@/styles/SpotSidePanel.module.css';
-import { DUMMY_BOOKMARKED_SPOTS } from '@/data/dummyData';
 
-export default function SpotSidePanel({ savedRoutes = [], onAddToRoute, onPreview, center }) {
-  const [activeTab, setActiveTab] = useState('bookmark');
-  const [activeFolderId, setActiveFolderId] = useState(null);
+const ROUTE_MENU_ITEMS = [
+  { key: 'edit', label: '수정' },
+  { key: 'delete', label: '삭제' },
+  { key: 'rename', label: '루트이름변경' },
+];
+
+export default function SpotSidePanel({
+  myRoutes = [],
+  bookmarkedRoutes = [],
+  visibleSpots = [],
+  activeRouteKey = '',
+  sidebarError = '',
+  sidebarIssues = [],
+  onSelectRoute,
+  onRouteAction,
+  onAddToRoute,
+  onPreview,
+  center,
+  onEnterMapSearch,
+}) {
+  const [activeTab, setActiveTab] = useState('route');
+  const [openMenuKey, setOpenMenuKey] = useState('');
 
   const [keyword, setKeyword] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -19,12 +37,25 @@ export default function SpotSidePanel({ savedRoutes = [], onAddToRoute, onPrevie
 
   const placesLib = useMapsLibrary('places');
   const inputRef = useRef(null);
+  const menuRef = useRef(null);
+  const routeSections = useMemo(
+    () => [
+      { key: 'my-route', title: '내 루트', emptyMessage: '저장한 루트가 없습니다.', routes: myRoutes },
+      { key: 'bookmarked-route', title: '북마크한 루트', emptyMessage: '북마크한 루트가 없습니다.', routes: bookmarkedRoutes },
+    ],
+    [myRoutes, bookmarkedRoutes],
+  );
 
-  // 선택 폴더 기준으로 스팟 필터링 (폴더 미선택 시 전체)
-  const visibleSpots = activeFolderId ? DUMMY_BOOKMARKED_SPOTS.filter((s) => s.folderId === activeFolderId) : DUMMY_BOOKMARKED_SPOTS;
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setOpenMenuKey('');
+      }
+    };
 
-  // TODO: 폴더 목록 → GET /api/v1/routes/my
-  // TODO: 폴더 클릭 시 스팟 목록 → GET /api/v1/routes/{folderId}
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
 
   const handleSearch = useCallback(() => {
     if (!placesLib || !keyword.trim()) return;
@@ -57,33 +88,90 @@ export default function SpotSidePanel({ savedRoutes = [], onAddToRoute, onPrevie
     [onPreview, onAddToRoute],
   );
 
+  const handleTabChange = useCallback(
+    (tabKey) => {
+      setActiveTab(tabKey);
+      if (tabKey === 'search') {
+        // 탭 전환은 단순 UI 표시 변경이 아니라,
+        // SpotPage 전체의 "현재 작업 모드"를 바꾸는 이벤트이기도 합니다.
+        // 그래서 지도 검색 탭 진입 시 상위 컴포넌트에 잠금 전환을 알립니다.
+        onEnterMapSearch?.();
+      }
+    },
+    [onEnterMapSearch],
+  );
+
   return (
     <div className={styles.panel}>
       <div className={styles.tabs}>
-        <button className={`${styles.tab} ${activeTab === 'bookmark' ? styles.tabActive : ''}`} onClick={() => setActiveTab('bookmark')}>
-          북마크
+        <button className={`${styles.tab} ${activeTab === 'route' ? styles.tabActive : ''}`} onClick={() => handleTabChange('route')}>
+          루트
         </button>
-        <button className={`${styles.tab} ${activeTab === 'search' ? styles.tabActive : ''}`} onClick={() => setActiveTab('search')}>
+        <button className={`${styles.tab} ${activeTab === 'search' ? styles.tabActive : ''}`} onClick={() => handleTabChange('search')}>
           지도 검색
         </button>
       </div>
 
-      {activeTab === 'bookmark' && (
+      {activeTab === 'route' && (
         <div className={styles.bookmarkContent}>
           <div className={styles.folderList}>
-            {savedRoutes.map((folder) => (
-              <button
-                key={folder.id}
-                className={`${styles.folderItem} ${activeFolderId === folder.id ? styles.folderActive : ''}`}
-                onClick={() => setActiveFolderId((prev) => (prev === folder.id ? null : folder.id))}>
-                <span className={styles.folderIcon}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-                  </svg>
-                </span>
-                <span className={styles.folderName}>{folder.name}</span>
-                <span className={styles.folderCount}>{folder.count}개</span>
-              </button>
+            {sidebarError ? <p className={styles.routeError}>{sidebarError}</p> : null}
+            {sidebarIssues.map((issue, index) => (
+              <p key={`${issue}-${index}`} className={styles.routeIssue}>
+                {issue}
+              </p>
+            ))}
+
+            {routeSections.map((section) => (
+              <div key={section.key} className={styles.routeSection}>
+                <p className={styles.routeSectionTitle}>{section.title}</p>
+                {section.routes.length === 0 ? <p className={styles.routeEmpty}>{section.emptyMessage}</p> : null}
+                {section.routes.map((route) => (
+                  <div key={route.key} className={styles.folderRow} ref={openMenuKey === route.key ? menuRef : null}>
+                    <button
+                      className={`${styles.folderItem} ${activeRouteKey === route.key ? styles.folderActive : ''}`}
+                      onClick={() => onSelectRoute?.(route)}>
+                      <span className={styles.folderIcon}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                        </svg>
+                      </span>
+                      <span className={styles.folderName}>{route.title}</span>
+                      <span className={styles.folderCount}>{route.count}개</span>
+                    </button>
+                    <button
+                      className={styles.menuTrigger}
+                      type="button"
+                      aria-label="루트 메뉴"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setOpenMenuKey((prev) => (prev === route.key ? '' : route.key));
+                      }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <circle cx="12" cy="5" r="1.8" />
+                        <circle cx="12" cy="12" r="1.8" />
+                        <circle cx="12" cy="19" r="1.8" />
+                      </svg>
+                    </button>
+                    {openMenuKey === route.key ? (
+                      <div className={styles.menuPanel}>
+                        {ROUTE_MENU_ITEMS.map((item) => (
+                          <button
+                            key={item.key}
+                            className={styles.menuItem}
+                            type="button"
+                            onClick={() => {
+                              setOpenMenuKey('');
+                              onRouteAction?.(item.key, route);
+                            }}>
+                            {item.label}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
             ))}
           </div>
 
@@ -92,7 +180,6 @@ export default function SpotSidePanel({ savedRoutes = [], onAddToRoute, onPrevie
               <div key={spot.id} className={styles.spotItem} onMouseEnter={() => onPreview?.(spot.position)}>
                 <div className={styles.thumb} style={{ background: spot.color }} />
                 <div className={styles.spotInfo}>
-                  {/* DUMMY_BOOKMARKED_SPOTS는 name 필드 사용, API 응답은 title 필드 가능 */}
                   <span className={styles.spotTitle}>{spot.name || spot.title}</span>
                   <span className={styles.spotWork}>{spot.workName}</span>
                 </div>

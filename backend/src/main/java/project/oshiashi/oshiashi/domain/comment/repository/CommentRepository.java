@@ -1,6 +1,7 @@
 package project.oshiashi.oshiashi.domain.comment.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import project.oshiashi.oshiashi.domain.comment.entity.CommentEntity;
 import project.oshiashi.oshiashi.domain.user.entity.UserEntity;
@@ -15,4 +16,12 @@ public interface CommentRepository extends JpaRepository<CommentEntity, Long> {
 	List<CommentEntity> findAllByUserOrderByCreatedAtDesc(UserEntity user);
 	
 	List<CommentEntity> findByParent_CommentIdOrderByCreatedAtAsc(Long parentId);
+
+    @Query("""
+    select c.post.postId, count(c)
+    from CommentEntity c
+    where c.post.postId in :postIds
+    group by c.post.postId
+""")
+    List<Object[]> countByPostIds(List<Long> postIds);
 }

@@ -22,7 +22,7 @@ const FindIdForm = () => {
   // 1. 인증번호 발송
   const handleSendEmail = async () => {
     try {
-      await sendEmailAPI(formData.email);
+      await sendEmailAPI(formData.email, 'FIND_ID');
       alert('인증번호가 발송되었습니다.');
       setIsEmailSent(true);
     } catch (err) {
@@ -33,7 +33,7 @@ const FindIdForm = () => {
   // 2. 인증번호 검증 (서버 통신 추가)
   const handleVerifyCode = async () => {
     try {
-      await verifyEmailAPI(formData.email, formData.authCode);
+      await verifyEmailAPI(formData.email, formData.authCode, 'FIND_ID');
       alert('인증 성공!');
       setIsEmailVerified(true);
     } catch (err) {

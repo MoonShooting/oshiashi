@@ -1,15 +1,29 @@
 /**
  * @file SpotDirections.jsx
- * @description 루트 경로선 렌더러 + 이동수단별 소요시간 계산
- * - selectedPlaces 2개 이상: 도보 경로선 표시
- * - WALKING / DRIVING / TRANSIT 소요시간을 onDurationsChange로 올려보냄
- * - MapCore innerContent 슬롯으로 전달해야 useMap() 동작
+ * @description 루트 경로선 렌더러 + 지하철/버스 분리 소요시간 계산
  */
 import React, { useEffect, useState } from 'react';
 import { useMap, useMapsLibrary } from '@vis.gl/react-google-maps';
 import { useMapStore } from '@/stores/useMapStore';
 
-const MODES = ['WALKING', 'DRIVING', 'TRANSIT'];
+// 요청 모드 분리 (대중교통을 SUBWAY와 BUS로 세분화)
+const REQUEST_PROFILES = [
+  { key: 'WALKING', mode: 'WALKING' },
+  { key: 'DRIVING', mode: 'DRIVING' },
+  { key: 'TRANSIT_SUBWAY', mode: 'TRANSIT', transitMode: 'SUBWAY' },
+  { key: 'TRANSIT_BUS', mode: 'TRANSIT', transitMode: 'BUS' },
+];
+
+// 캐릭터 핀은 마젠타/코랄/오렌지/블루가 섞여 있으므로,
+// 경로선은 그중 가장 공통분모가 되는 베리-플럼 계열로 맞춘다.
+// 너무 밝은 보라는 지도 위에서 혼자 떠 보이기 쉬워서,
+// 핀보다 한 단계 어둡고 탁한 색으로 눌러 "핀을 잇는 선"처럼 보이게 한다.
+const ROUTE_LINE_STYLE = {
+  strokeColor: '#b05895',
+  strokeWeight: 6,
+  strokeOpacity: 0.84,
+  clickable: false,
+};
 
 export default function SpotDirections({ onDurationsChange }) {
   const map = useMap();
@@ -22,7 +36,7 @@ export default function SpotDirections({ onDurationsChange }) {
     const r = new routesLib.DirectionsRenderer({
       map,
       suppressMarkers: true,
-      polylineOptions: { strokeColor: '#d846ef', strokeWeight: 7, strokeOpacity: 0.9, clickable: false },
+      polylineOptions: ROUTE_LINE_STYLE,
     });
     setRenderer(r);
     return () => r.setMap(null);
@@ -50,12 +64,27 @@ export default function SpotDirections({ onDurationsChange }) {
     // 전체 소요시간 = 각 구간 합산
     const totalSec = (r) => r.routes[0]?.legs.reduce((s, leg) => s + (leg.duration?.value ?? 0), 0) ?? null;
 
-    // Promise.allSettled: 일부 모드 실패(TRANSIT 미지원 지역 등)해도 나머지 표시
+    // 버스/지하철을 구분하여 각각 호출
     Promise.allSettled(
-      MODES.map((mode) => svc.route({ origin, destination, waypoints, travelMode: google.maps.TravelMode[mode], optimizeWaypoints: false })),
+      REQUEST_PROFILES.map(({ mode, transitMode }) => {
+        const request = {
+          origin,
+          destination,
+          waypoints,
+          travelMode: google.maps.TravelMode[mode],
+          optimizeWaypoints: false,
+        };
+        // 지하철, 버스 필터 추가
+        if (transitMode && google.maps.TransitMode) {
+          request.transitOptions = {
+            modes: [google.maps.TransitMode[transitMode]],
+          };
+        }
+        return svc.route(request);
+      }),
     ).then((results) => {
       const durations = {};
-      MODES.forEach((key, i) => {
+      REQUEST_PROFILES.forEach(({ key }, i) => {
         durations[key] = results[i].status === 'fulfilled' ? totalSec(results[i].value) : null;
       });
       onDurationsChange?.(durations);
