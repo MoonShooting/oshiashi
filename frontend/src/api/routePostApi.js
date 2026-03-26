@@ -169,6 +169,7 @@ const normalizeEntry = (entry, index, fallback = {}) => {
 
   return {
     id: String(entry?.entryId ?? entry?.id ?? `entry-${index}`),
+    spotId: entry?.spotId ?? fallback.spotId ?? null,
     title: entry?.title ?? entry?.placeName ?? entry?.name ?? fallback.title ?? `장소 ${index + 1}`,
     artworkTitle:
       entry?.artworkTitle ?? entry?.sceneTitle ?? entry?.workName ?? fallback.artworkTitle ?? '작품 정보 없음',
@@ -840,10 +841,24 @@ export const createRoutePost = async ({ selectedRoute, title, selectedTags = [],
 };
 
 // 수정/삭제 후 목록 반영을 위해 route-posts-changed 이벤트를 발행합니다.
-export const updateRoutePost = async ({ postId, title, content ,userId }) => {
+export const updateRoutePost = async ({ postId, title, content, userId, selectedRoute, selectedTags = [], entries = [] }) => {
+  const body =
+    entries.length > 0 || selectedRoute
+      ? buildRouteCreatePayload({
+          selectedRoute: selectedRoute ?? { routeId: null },
+          title: title ?? '',
+          selectedTags,
+          entries,
+        })
+      : { title, content, userId };
+
+  if (userId && typeof body === 'object') {
+    body.userId = userId;
+  }
+
   await FetchJson(`/api/v1/posts/${postId}`, {
     method: 'PATCH',
-    body: JSON.stringify({ title, content , userId}),
+    body: JSON.stringify(body),
   });
 
   const refreshed = await fetchRoutePostById(postId);

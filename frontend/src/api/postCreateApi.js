@@ -1,4 +1,4 @@
-import { createRoutePost, loadPostCreateRoutes } from '@/api/routePostApi';
+import { createRoutePost, loadPostCreateRoutes, updateRoutePost } from '@/api/routePostApi';
 
 /*
 [postCreateApi]
@@ -8,3 +8,4 @@ import { createRoutePost, loadPostCreateRoutes } from '@/api/routePostApi';
 export { loadPostCreateRoutes };
 
 export const submitPostCreate = async (draft) => createRoutePost(draft);
+export const submitPostUpdate = async (draft) => updateRoutePost(draft);
