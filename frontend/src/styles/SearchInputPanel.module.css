@@ -119,6 +119,10 @@
   background: rgba(107, 70, 193, 0.22);
 }
 
+.suggestionButtonActive {
+  background: rgba(107, 70, 193, 0.22);
+}
+
 .suggestionButton:disabled {
   cursor: default;
   opacity: 0.6;

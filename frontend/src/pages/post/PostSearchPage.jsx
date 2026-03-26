@@ -29,6 +29,7 @@ const PostSearchPage = () => {
   const [isSearchingTags, setIsSearchingTags] = useState(false);
   const [tagSearchError, setTagSearchError] = useState('');
   const [isSuggestionOpen, setIsSuggestionOpen] = useState(false);
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
 
   const tagSearchDebounceRef = useRef(null);
   const isComposing = useRef(false);
@@ -105,9 +106,11 @@ const PostSearchPage = () => {
         const result = await searchArtworkTagOptions(query);
         setTagSuggestions((result.items ?? []).slice(0, 6));
         setIsSuggestionOpen((result.items ?? []).length > 0);
+        setActiveSuggestionIndex(-1);
       } catch (error) {
         setTagSuggestions([]);
         setIsSuggestionOpen(false);
+        setActiveSuggestionIndex(-1);
         setTagSearchError(error.message || '작품 태그 추천을 불러오지 못했습니다.');
       } finally {
         setIsSearchingTags(false);
@@ -150,9 +153,38 @@ const PostSearchPage = () => {
       setInputValue('');
       setTagSuggestions([]);
       setIsSuggestionOpen(false);
+      setActiveSuggestionIndex(-1);
       setTagSearchError('');
     },
     [selectedTags, updateTags],
+  );
+
+  const handleTagInputKeyDown = useCallback(
+    async (event) => {
+      if (isComposing.current) return;
+
+      if (event.key === 'ArrowDown' && isSuggestionOpen) {
+        event.preventDefault();
+        setActiveSuggestionIndex((prev) => Math.min(prev + 1, tagSuggestions.length - 1));
+        return;
+      }
+
+      if (event.key === 'ArrowUp' && isSuggestionOpen) {
+        event.preventDefault();
+        setActiveSuggestionIndex((prev) => Math.max(prev - 1, 0));
+        return;
+      }
+
+      if (event.key === 'Enter' && isSuggestionOpen && activeSuggestionIndex >= 0 && tagSuggestions[activeSuggestionIndex]) {
+        event.preventDefault();
+        try {
+          await applyResolvedTag(tagSuggestions[activeSuggestionIndex]);
+        } catch (error) {
+          setTagSearchError(error.message || '작품 태그를 추가하지 못했습니다.');
+        }
+      }
+    },
+    [activeSuggestionIndex, applyResolvedTag, isSuggestionOpen, tagSuggestions],
   );
 
   const handleAddTag = useCallback(async () => {
@@ -169,13 +201,19 @@ const PostSearchPage = () => {
       const result = await searchArtworkTagOptions(query);
       const candidates = result.items ?? [];
       const exact = candidates.find((candidate) => resolveCandidateLabel(candidate).toLowerCase() === query.toLowerCase());
-      const matched = exact ?? (candidates.length === 1 ? candidates[0] : null);
+
+      // 게시물 검색에서는 TMDB 후보를 개수 1개라는 이유만으로 자동 확정하지 않는다.
+      // 외부 작품은 사용자가 추천 목록에서 실제로 보고 선택해야
+      // "원하는 작품이 맞는지"를 확인할 수 있고, 의도치 않은 import도 줄일 수 있다.
+      const matched = result.source === 'LOCAL_DB' ? exact ?? (candidates.length === 1 ? candidates[0] : null) : null;
 
       if (!matched) {
         // 같은 제목/비슷한 제목의 작품이 여러 개인 상황에서는
         // 잘못된 tagName으로 검색해 버리지 않도록 자동 선택을 피합니다.
+        // 특히 TMDB 외부 후보는 1건만 내려와도 사용자가 목록에서 확정하도록 유도합니다.
         setTagSuggestions(candidates.slice(0, 6));
         setIsSuggestionOpen(candidates.length > 0);
+        setActiveSuggestionIndex(-1);
         setTagSearchError(
           candidates.length > 0
             ? '여러 작품 후보가 있습니다. 아래 목록에서 정확한 태그를 선택해 주세요.'
@@ -237,8 +275,12 @@ const PostSearchPage = () => {
                 // 추천 목록도 같은 공통 확정 로직을 타게 해서
                 // 버튼 제출과 추천 클릭이 같은 결과를 내도록 맞춥니다.
                 onSelectSuggestion={applyResolvedTag}
-                formatSuggestionLabel={(item) => `#${resolveCandidateLabel(item)}`}
-                getSuggestionMeta={(item) => (item?.source === 'TMDB' ? '외부 후보' : '로컬 태그')}
+                formatSuggestionLabel={(item) => resolveCandidateLabel(item)}
+                getSuggestionMeta={(item) =>
+                  item?.mediaType ? `[${item.mediaType}]` : item?.source === 'TMDB' ? '외부 후보' : '로컬 태그'
+                }
+                onInputKeyDown={handleTagInputKeyDown}
+                suggestionActiveIndex={activeSuggestionIndex}
                 onInputCompositionStart={() => {
                   isComposing.current = true;
                 }}

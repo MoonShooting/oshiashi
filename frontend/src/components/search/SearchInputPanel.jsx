@@ -37,6 +37,8 @@ const SearchInputPanel = ({
   getSuggestionMeta,
   onInputCompositionStart,
   onInputCompositionEnd,
+  onInputKeyDown,
+  suggestionActiveIndex = -1,
 }) => {
   const resolvedFormatter = formatItemLabel ?? ((item) => `#${item}`);
   const resolvedKeyGetter = getItemKey ?? ((item) => String(item));
@@ -61,16 +63,17 @@ const SearchInputPanel = ({
       <form className={styles.form} onSubmit={handleSubmit}>
         <div className={styles.inputShell}>
           <LeadingIcon className={styles.leadingIcon} strokeWidth={2} />
-          <input
-            id={inputId}
-            value={value}
-            onChange={(event) => onChange?.(event.target.value)}
-            onCompositionStart={onInputCompositionStart}
-            onCompositionEnd={onInputCompositionEnd}
-            className={styles.input}
-            placeholder={placeholder}
-            disabled={disabled}
-          />
+            <input
+              id={inputId}
+              value={value}
+              onChange={(event) => onChange?.(event.target.value)}
+              onCompositionStart={onInputCompositionStart}
+              onCompositionEnd={onInputCompositionEnd}
+              onKeyDown={onInputKeyDown}
+              className={styles.input}
+              placeholder={placeholder}
+              disabled={disabled}
+            />
           <button type="submit" className={styles.submitButton} disabled={disabled || !value.trim()}>
             <SubmitIcon className={styles.submitIcon} strokeWidth={2} />
             <span>{submitLabel}</span>
@@ -84,13 +87,13 @@ const SearchInputPanel = ({
       {suggestionItems.length > 0 ? (
         <div className={styles.suggestionList}>
           {suggestionItems.map((item, index) => (
-            <button
-              key={resolvedSuggestionKeyGetter(item, index)}
-              type="button"
-              className={styles.suggestionButton}
-              // 추천 항목 클릭 처리도 UI 컴포넌트가 직접 판단하지 않고
-              // 상위 페이지의 도메인 로직에 위임합니다.
-              onClick={() => onSelectSuggestion?.(item)}
+              <button
+                key={resolvedSuggestionKeyGetter(item, index)}
+                type="button"
+                className={`${styles.suggestionButton} ${suggestionActiveIndex === index ? styles.suggestionButtonActive : ''}`}
+                // 추천 항목 클릭 처리도 UI 컴포넌트가 직접 판단하지 않고
+                // 상위 페이지의 도메인 로직에 위임합니다.
+                onClick={() => onSelectSuggestion?.(item)}
               disabled={!onSelectSuggestion}>
               <span className={styles.suggestionLabel}>{resolvedSuggestionFormatter(item)}</span>
               {getSuggestionMeta ? <span className={styles.suggestionMeta}>{getSuggestionMeta(item)}</span> : null}

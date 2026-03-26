@@ -317,6 +317,16 @@ export default function SpotPage() {
     },
   });
 
+  useEffect(() => {
+    return () => {
+      // 루트 생성 페이지는 "임시 편집 화면" 성격이 강하므로,
+      // 다른 페이지로 나갈 때 이전에 보던 루트/선택 장소를 남기지 않는다.
+      // 특히 selectedPlaces는 전역 store라서 정리하지 않으면 재진입 시
+      // 예전에 선택했던 루트가 그대로 복원된 것처럼 보일 수 있다.
+      clearMap();
+    };
+  }, [clearMap]);
+
   const handlePreview = useCallback((loc) => {
     if (!loc || loc.lat == null) return;
     setCenter({ lat: Number(loc.lat), lng: Number(loc.lng) });

@@ -55,8 +55,6 @@ export default function OrderPin({ num, mediaType, isSelected }) {
         boxShadow: isSelected ? `0 0 0 3px ${colors.border}55, 0 4px 12px rgba(0,0,0,0.4)` : '0 2px 8px rgba(0,0,0,0.4)',
         transition: 'all 0.2s',
         cursor: 'pointer',
-        background: colors?.background || '#333',
-        borderColor: colors?.border || '#fff',
       }}>
       {num}
     </div>
