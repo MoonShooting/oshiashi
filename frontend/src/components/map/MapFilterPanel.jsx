@@ -16,11 +16,18 @@ export default function MapFilterPanel({ activeMediaTypes = [], onToggleMediaTyp
 
   const FIXED_MEDIA_TYPES = ['영화', '드라마', '애니메이션'];
 
+  const MEDIA_TYPE_KO = {
+    MOVIE: '영화',
+    TV: '드라마',
+    ANIMATION: '애니메이션',
+    ANIME: '애니메이션',
+  };
+
   // /api/v1/maps/autocomplete?keyword= 호출 (debounce 유지)
   const scheduleAutocomplete = useCallback((val) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     const query = val?.trim();
-    if (!query) {
+    if (!query || query.length < 2) {
       setSuggestions([]);
       setIsOpen(false);
       return;
@@ -33,7 +40,7 @@ export default function MapFilterPanel({ activeMediaTypes = [], onToggleMediaTyp
           ? data.map((s) =>
               typeof s === 'string'
                 ? { title: s, mediaType: null }
-                : { title: s.title ?? s.name ?? String(s), mediaType: s.mediaType ?? null }
+                : { title: s.title ?? s.name ?? String(s), mediaType: MEDIA_TYPE_KO[s.mediaType] ?? s.mediaType ?? null },
             )
           : [];
         setSuggestions(results);
@@ -43,17 +50,14 @@ export default function MapFilterPanel({ activeMediaTypes = [], onToggleMediaTyp
         console.error('[MapFilterPanel] 자동완성 로드 실패:', err);
         setSuggestions([]);
       }
-    }, 150);
+    }, 200);
   }, []);
 
   const handleInputChange = (e) => {
     const val = e.target.value;
     setWorkKeyword(val);
 
-    // 한글 조합 중이어도 디바운스 검색은 실행되도록
-    if (!isComposing.current) {
-      scheduleAutocomplete(val);
-    }
+    scheduleAutocomplete(val);
   };
 
   // 작품 선택 시 바로 onWorkSearch 호출
@@ -140,9 +144,7 @@ export default function MapFilterPanel({ activeMediaTypes = [], onToggleMediaTyp
                       className={`${styles.autocompleteItem} ${idx === activeIdx ? styles.active : ''}`}
                       onClick={() => handleSelectItem(item)}>
                       <span className={styles.autocompleteTitle}>{item.title}</span>
-                      {item.mediaType && (
-                        <span className={styles.mediaTypeBadge}>[{item.mediaType}]</span>
-                      )}
+                      {item.mediaType && <span className={styles.mediaTypeBadge}>[{item.mediaType}]</span>}
                     </li>
                   ))}
                 </ul>
