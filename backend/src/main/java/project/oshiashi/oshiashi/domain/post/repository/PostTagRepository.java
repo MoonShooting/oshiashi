@@ -8,7 +8,6 @@ import project.oshiashi.oshiashi.domain.post.entity.PostTagEntity;
 import project.oshiashi.oshiashi.domain.tag.entity.TagEntity;
 
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 public interface PostTagRepository extends JpaRepository<PostTagEntity, Long> {
@@ -54,8 +53,14 @@ public interface PostTagRepository extends JpaRepository<PostTagEntity, Long> {
 	void deleteByPostAndTagIn(PostEntity post, List<TagEntity> tags);
 
 	/**
-	 * 특정 게시글과 특정 태그 조합으로 매핑 정보를 단건 조회
+	 * 특정 유저가 특정 작품에 대해 작성한 총 게시글 수를 카운트합니다.
+	 * [탐색 경로]
+	 * 1. PostTag -> Post -> User -> userId
+	 * 2. PostTag -> Tag -> Artwork -> artworkId
 	 */
+
+	long countByPost_User_UserIdAndTag_Artwork_ArtworkId(String userId, Long artworkId);
+
 	Optional<PostTagEntity> findByPostAndTag(PostEntity post, TagEntity tag);
 
 	@Query("""
@@ -65,4 +70,5 @@ public interface PostTagRepository extends JpaRepository<PostTagEntity, Long> {
     where pt.post.postId in :postIds
     """)
 	List<Object[]> findTagNamesByPostIds(List<Long> postIds);
+
 }
