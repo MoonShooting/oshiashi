@@ -225,64 +225,68 @@ const PostDetailPage = () => {
 
           {actionError ? <p className={styles.postActionError}>{actionError}</p> : null}
 
-          <div className={styles.detailGrid}>
-            <PostEntrySidebar
+          <div className={styles.detailLayout}>
+            {/* 비교 뷰어는 상세 페이지의 핵심 컨텐츠라 상단 풀폭으로 먼저 노출한다. */}
+            <PostComparisonViewer
               entries={post.entries}
-              activeEntryId={activeEntry.id}
-              onSelectEntry={setActiveEntryId}
+              activeIndex={activeIndex}
+              onPrev={() =>
+                setActiveEntryId(
+                  post.entries[
+                    activeIndex === 0 ? post.entries.length - 1 : activeIndex - 1
+                  ].id,
+                )
+              }
+              onNext={() =>
+                setActiveEntryId(
+                  post.entries[
+                    activeIndex === post.entries.length - 1 ? 0 : activeIndex + 1
+                  ].id,
+                )
+              }
+              onSelectIndex={(index) => setActiveEntryId(post.entries[index].id)}
+              onOpenLocation={setLocationEntry}
             />
 
-            <main className={styles.mainColumn}>
-              <PostComparisonViewer
-                entries={post.entries}
-                activeIndex={activeIndex}
-                onPrev={() =>
-                  setActiveEntryId(
-                    post.entries[
-                      activeIndex === 0 ? post.entries.length - 1 : activeIndex - 1
-                    ].id,
-                  )
-                }
-                onNext={() =>
-                  setActiveEntryId(
-                    post.entries[
-                      activeIndex === post.entries.length - 1 ? 0 : activeIndex + 1
-                    ].id,
-                  )
-                }
-                onSelectIndex={(index) => setActiveEntryId(post.entries[index].id)}
-                onOpenLocation={setLocationEntry}
-              />
+            <div className={styles.contentGrid}>
+              <main className={styles.mainColumn}>
+                <PostDiaryCard
+                  post={post}
+                  entry={activeEntry}
+                  likeCount={post.stats?.likes ?? 0}
+                  commentCount={post.comments?.length ?? 0}
+                  liked={liked || likeBusy}
+                  bookmarked={Boolean(bookmarkInfo)}
+                  onToggleLike={handleToggleLike}
+                  onToggleBookmark={handleToggleBookmark}
+                />
 
-              <PostDiaryCard
-                post={post}
-                entry={activeEntry}
-                likeCount={post.stats?.likes ?? 0}
-                commentCount={post.comments?.length ?? 0}
-                liked={liked || likeBusy}
-                bookmarked={Boolean(bookmarkInfo)}
-                onToggleLike={handleToggleLike}
-                onToggleBookmark={handleToggleBookmark}
-              />
+                <PostCommentSection
+                  comments={post.comments ?? []}
+                  value={commentInput}
+                  onChange={setCommentInput}
+                  onSubmit={handleSubmitComment}
+                  canComment={isLoggedIn}
+                  hintText="이 게시물을 본 뒤 느낀 점이나 실제 방문 팁을 남길 수 있습니다."
+                  readOnlyMessage="로그인 후 댓글을 작성할 수 있습니다."
+                  placeholder="예: 같은 시간대에 가보려는데 대기 줄은 어느 정도였나요?"
+                  submitLabel={isSubmittingComment ? '등록 중...' : '댓글 달기'}
+                  canManageComment={canManageComment}
+                  onEditComment={handleUpdateComment}
+                  onDeleteComment={handleDeleteComment}
+                  isCommentBusy={(commentId) => String(commentBusyId) === String(commentId)}
+                />
+              </main>
 
-              <PostCommentSection
-                comments={post.comments ?? []}
-                value={commentInput}
-                onChange={setCommentInput}
-                onSubmit={handleSubmitComment}
-                canComment={isLoggedIn}
-                hintText="이 게시물을 본 뒤 느낀 점이나 실제 방문 팁을 남길 수 있습니다."
-                readOnlyMessage="로그인 후 댓글을 작성할 수 있습니다."
-                placeholder="예: 같은 시간대에 가보려는데 대기 줄은 어느 정도였나요?"
-                submitLabel={isSubmittingComment ? '등록 중...' : '댓글 달기'}
-                canManageComment={canManageComment}
-                onEditComment={handleUpdateComment}
-                onDeleteComment={handleDeleteComment}
-                isCommentBusy={(commentId) => String(commentBusyId) === String(commentId)}
-              />
-            </main>
-
-            <PostInfoSidebar post={post} activeEntry={activeEntry} onOpenLocation={setLocationEntry} />
+              <aside className={styles.secondaryColumn}>
+                <PostEntrySidebar
+                  entries={post.entries}
+                  activeEntryId={activeEntry.id}
+                  onSelectEntry={setActiveEntryId}
+                />
+                <PostInfoSidebar post={post} />
+              </aside>
+            </div>
           </div>
         </div>
 

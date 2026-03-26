@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pencil, Settings, UserRound } from 'lucide-react';
+import { UserRound } from 'lucide-react';
 import styles from '@/styles/MyPage.module.css';
 
 const MyPageHeroCard = ({ profile, summaryItems, onShowAchievements }) => (
@@ -25,6 +25,8 @@ const MyPageHeroCard = ({ profile, summaryItems, onShowAchievements }) => (
           <p>가입일: {profile.joinedAt}</p>
         </div>
 
+        {/* 프로필 편집/설정은 아직 미완 기능이라 진입 버튼만 숨겨둡니다.
+            기능이 준비되면 아래 액션 영역을 다시 복구해 연결합니다.
         <div className={styles.profileActions}>
           <button type="button" className={styles.primaryActionButton}>
             <Pencil className={styles.actionIcon} strokeWidth={2} />
@@ -36,6 +38,7 @@ const MyPageHeroCard = ({ profile, summaryItems, onShowAchievements }) => (
             <span>설정</span>
           </button>
         </div>
+        */}
       </div>
     </div>
 

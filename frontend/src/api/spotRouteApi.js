@@ -102,6 +102,7 @@ const normalizeRoute = (route, { sourceType = 'MY_ROUTE', bookmark = null, canLo
     sourceType,
     bookmarkId: num(bookmark?.bookmarkId ?? route?.bookmarkId),
     bookmarkName: text(bookmark?.bookmarkName ?? route?.bookmarkName),
+    postId: num(bookmark?.postId ?? route?.postId),
     canLoadDetail,
     loadIssue: text(loadIssue),
   };
@@ -143,7 +144,8 @@ const toDetailedSpot = async (routeSpot, index) => {
 // 이 fallback은 북마크 응답을 SpotPage 전용 route 모델로 바꾸는 역할을 합니다.
 const normalizeBookmarkedRouteFromPins = (bookmark) => {
   const routeId = num(bookmark?.routeId);
-  const rawPins = toArray(bookmark?.pins);
+  // 목록 요약 단계에서 pins를 bookmarkPins로 보관할 수 있으므로 두 입력을 모두 허용한다.
+  const rawPins = toArray(bookmark?.pins ?? bookmark?.bookmarkPins);
   if (routeId == null || rawPins.length === 0) return null;
 
   const routeSpots = rawPins.map((pin, index) => ({
@@ -168,6 +170,7 @@ const normalizeBookmarkedRouteFromPins = (bookmark) => {
     sourceType: 'BOOKMARKED_ROUTE',
     bookmarkId: num(bookmark?.bookmarkId),
     bookmarkName: text(bookmark?.bookmarkName),
+    postId: num(bookmark?.postId),
     canLoadDetail: false,
     loadIssue: '북마크 응답의 장소 정보로 복원한 루트입니다.',
     // 선택 시 getPlaceDetail 재호출 없이 바로 쓸 수 있도록 원본 pin도 함께 보관합니다.
@@ -208,6 +211,7 @@ const normalizeBookmarkedRouteSummary = (bookmark) => {
     sourceType: 'BOOKMARKED_ROUTE',
     bookmarkId: num(bookmark?.bookmarkId),
     bookmarkName: text(bookmark?.bookmarkName),
+    postId: num(bookmark?.postId),
     canLoadDetail: true,
     loadIssue: '',
     bookmarkPins: toArray(bookmark?.pins),
@@ -245,6 +249,7 @@ const normalizeBookmarkedRouteFromPost = (postResponse, bookmark) => {
     sourceType: 'BOOKMARKED_ROUTE',
     bookmarkId: num(bookmark?.bookmarkId),
     bookmarkName: text(bookmark?.bookmarkName),
+    postId: num(bookmark?.postId),
     canLoadDetail: false,
     loadIssue: '북마크 게시물의 장소 정보로 복원한 루트입니다.',
     bookmarkEntries: entries,

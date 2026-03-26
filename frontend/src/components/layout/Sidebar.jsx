@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Film, House, Map, MapPinned, MessageCircle, MessageSquare, Settings, Trophy, UserRound, X } from 'lucide-react';
+import { Film, House, Map, MapPinned, MessageCircle, MessageSquare, Trophy, UserRound, X } from 'lucide-react';
 import { useAuthStore } from '@/stores/useAuthStore';
 import styles from '@/styles/Sidebar.module.css';
 
@@ -25,12 +25,12 @@ const guestMenuItems = [
 
 const loggedInBottomItems = [
   { key: 'achievement', icon: Trophy, label: '업적' },
-  { key: 'settings', icon: Settings, label: '설정' },
+  // { key: 'settings', icon: Settings, label: '설정' },
 ];
 
 const guestBottomItems = [
   { key: 'login', icon: UserRound, label: '로그인 페이지' },
-  { key: 'settings', icon: Settings, label: '설정' },
+  // { key: 'settings', icon: Settings, label: '설정' },
 ];
 
 const Sidebar = ({ isOpen = false, onClose, activeKey = 'home' }) => {

@@ -5,8 +5,6 @@ import {
   Clock3,
   Heart,
   MessageCircle,
-  Share2,
-  Music4,
 } from 'lucide-react';
 import styles from '@/styles/PostDetailPage.module.css';
 
@@ -24,7 +22,6 @@ const PostDiaryCard = ({
   const moodTags = Array.isArray(entry?.moodTags) ? entry.moodTags : [];
   const postTagNames = Array.isArray(post?.tagNames) ? post.tagNames : [];
   const sceneNote = entry?.sceneNote || post?.content || '작성된 장면 기록이 없습니다.';
-  const soundtrack = entry?.soundtrack || '기록된 OST 없음';
 
   return (
     <section className={styles.diaryCard}>
@@ -69,9 +66,6 @@ const PostDiaryCard = ({
             <MessageCircle size={16} />
             {commentCount}
           </span>
-          <button type="button" className={styles.diaryIconButton}>
-            <Share2 size={16} />
-          </button>
         </div>
       </div>
 
@@ -80,10 +74,17 @@ const PostDiaryCard = ({
         <p className={styles.diaryParagraph}>{sceneNote}</p>
 
         <div className={styles.diaryInfoBar}>
-          <div className={styles.diaryInfoItem}>
-            <Music4 size={16} />
-            <span>{soundtrack}</span>
-          </div>
+          {/*
+            구현 예정 기능 보존용 주석
+            - 장면별 OST 노출
+            - "기록된 OST 없음" 기본 문구
+            현재는 OST 기능이 아직 완성되지 않아 화면에서 숨깁니다.
+
+            <div className={styles.diaryInfoItem}>
+              <Music4 size={16} />
+              <span>{entry?.soundtrack || '기록된 OST 없음'}</span>
+            </div>
+          */}
           <div className={styles.diaryMoodTags}>
             {moodTags.map((tag) => (
               <span key={tag} className={styles.diaryTag}>
