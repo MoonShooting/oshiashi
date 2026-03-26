@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, Pencil, Save, Trash2, XCircle } from 'lucide-react';
+import { ArrowLeft, Pencil, Trash2 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import MainLayout from '@/components/layout/MainLayout';
 import PostEntrySidebar from '@/components/post/detail/PostEntrySidebar';
@@ -62,18 +62,10 @@ const PostDetailPage = () => {
     setCommentInput,
     isSubmittingComment,
     commentBusyId,
-    isEditingPost,
-    editTitle,
-    setEditTitle,
-    editContent,
-    setEditContent,
     isSavingPost,
     likeBusy,
     liked,
     bookmarkInfo,
-    handleStartEdit,
-    handleCancelEdit,
-    handleSavePost,
     handleDeletePost,
     handleToggleLike,
     handleToggleBookmark,
@@ -159,66 +151,30 @@ const PostDetailPage = () => {
 
           <header className={styles.headerCard}>
             <p className={styles.headerEyebrow}>Post Detail</p>
-
-            {isEditingPost ? (
-              <div className={styles.postEditWrap}>
-                <input
-                  className={styles.postEditInput}
-                  value={editTitle}
-                  onChange={(event) => setEditTitle(event.target.value)}
-                  placeholder="제목을 입력해 주세요."
-                />
-                <textarea
-                  className={styles.postEditTextarea}
-                  value={editContent}
-                  onChange={(event) => setEditContent(event.target.value)}
-                  placeholder="게시글 설명을 입력해 주세요."
-                />
-              </div>
-            ) : (
-              <>
-                <h1 className={styles.headerTitle}>{post.title}</h1>
-                <p className={styles.headerSummary}>{post.summary || post.content}</p>
-              </>
-            )}
+            <>
+              <h1 className={styles.headerTitle}>{post.title}</h1>
+              <p className={styles.headerSummary}>{post.summary || post.content}</p>
+            </>
 
             {isAuthor ? (
               <div className={styles.postManageRow}>
-                {isEditingPost ? (
-                  <>
-                    <button
-                      type="button"
-                      className={styles.postManageButton}
-                      disabled={isSavingPost}
-                      onClick={handleSavePost}>
-                      <Save size={14} />
-                      {isSavingPost ? '저장 중...' : '수정 저장'}
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.postManageButton}
-                      disabled={isSavingPost}
-                      onClick={handleCancelEdit}>
-                      <XCircle size={14} />
-                      취소
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button type="button" className={styles.postManageButton} onClick={handleStartEdit}>
-                      <Pencil size={14} />
-                      게시글 수정
-                    </button>
-                    <button
-                      type="button"
-                      className={`${styles.postManageButton} ${styles.postManageButtonDanger}`}
-                      disabled={isSavingPost}
-                      onClick={handleDeletePost}>
-                      <Trash2 size={14} />
-                      게시글 삭제
-                    </button>
-                  </>
-                )}
+                <>
+                  <button
+                    type="button"
+                    className={styles.postManageButton}
+                    onClick={() => navigate(`/posts/${post.id}/edit`)}>
+                    <Pencil size={14} />
+                    게시글 수정
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.postManageButton} ${styles.postManageButtonDanger}`}
+                    disabled={isSavingPost}
+                    onClick={handleDeletePost}>
+                    <Trash2 size={14} />
+                    게시글 삭제
+                  </button>
+                </>
               </div>
             ) : null}
           </header>

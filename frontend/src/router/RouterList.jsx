@@ -52,6 +52,14 @@ const postList = [
       </ProtectedRoute>
     ),
   },
+  {
+    path: '/posts/:postId/edit',
+    element: (
+      <ProtectedRoute>
+        <PostCreatePage />
+      </ProtectedRoute>
+    ),
+  },
   { path: '/posts/:postId', element: <PostDetailPage /> },
   { path: '/post/:postId', element: <PostDetailPage /> },
   {

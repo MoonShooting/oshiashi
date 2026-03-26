@@ -50,6 +50,41 @@ export const createRouteEntries = (route) =>
     };
   });
 
+const buildExistingPhoto = (imageUrl, note, index) => ({
+  id: `existing-photo-${index}`,
+  name: `existing-photo-${index + 1}`,
+  previewUrl: imageUrl,
+  note: note ?? '',
+  file: null,
+  uploadStatus: imageUrl ? 'uploaded' : 'idle',
+  uploadError: '',
+  uploadedUrl: imageUrl ?? '',
+  uploadedImageId: null,
+  imageUrl: imageUrl ?? '',
+});
+
+export const createEntriesFromPostDetail = (post) =>
+  (post?.entries ?? []).map((entry, index) => ({
+    id: entry.id ?? `entry-${index}`,
+    kind: entry.spotId ? 'route-spot' : 'custom-place',
+    sortOrder: index,
+    spotId: entry.spotId ?? null,
+    name: entry.title ?? entry.name ?? '',
+    artworkTitle: entry.artworkTitle ?? '',
+    address: entry.address ?? '',
+    latitude: parseNumber(entry.lat ?? entry.latitude),
+    longitude: parseNumber(entry.lng ?? entry.longitude),
+    sceneImageUrl: entry.referenceImageUrl ?? null,
+    referenceImageUrl: entry.referenceImageUrl ?? null,
+    referenceImagePreviewUrl: null,
+    referenceImageUploadStatus: entry.referenceImageUrl ? 'uploaded' : 'idle',
+    referenceImageUploadError: '',
+    referenceImageFileName: entry.referenceImageUrl ? '기존 참고 이미지' : '',
+    experiencePhotos: entry.userImageUrl
+      ? [buildExistingPhoto(entry.userImageUrl, entry.sceneNote ?? '', index)]
+      : [],
+  }));
+
 // 사용자가 수동으로 추가하는 장소 카드 기본값입니다.
 export const createCustomPlaceEntry = (sortOrder = 0) => ({
   id: `custom-place-${Date.now()}-${sortOrder}`,
