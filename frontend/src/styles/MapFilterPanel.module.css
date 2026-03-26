@@ -199,8 +199,21 @@
   padding: 8px 12px;
   cursor: pointer;
   color: #b0b0cf;
-  /* color: #eee; */
   font-size: 0.9rem;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.autocompleteTitle {
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.mediaTypeBadge {
+  font-size: 0.7rem;
+  color: rgba(160, 155, 185, 0.6);
+  flex-shrink: 0;
 }
 /* font-size: 0.85rem;
   transition: all 0.2s ease;

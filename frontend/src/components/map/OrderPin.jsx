@@ -1,4 +1,5 @@
 import React from 'react';
+import { PIN_COLOR } from '@/constants/mapConstants';
 
 import pin1Url from '@/assets/route-pins/pin-1.png';
 import pin2Url from '@/assets/route-pins/pin-2.png';
@@ -23,6 +24,8 @@ const ORDER_PIN_IMAGES = {
  * 이렇게 두면 현재 요구사항은 충족하면서도 최대 개수 정책이 바뀌었을 때
  * 마커가 아예 사라지는 상황을 막을 수 있다.
  */
+export default function OrderPin({ num, mediaType, isSelected }) {
+  const colors = PIN_COLOR[mediaType] || PIN_COLOR.DEFAULT;
 export default function OrderPin({ num, colors, isSelected }) {
   const imageSrc = ORDER_PIN_IMAGES[num];
 
@@ -41,6 +44,20 @@ export default function OrderPin({ num, colors, isSelected }) {
     <div
       className={`${styles.fallbackPin} ${isSelected ? styles.selected : ''}`}
       style={{
+        width: 32,
+        height: 32,
+        borderRadius: '50%',
+        background: colors.background,
+        border: `2px solid ${colors.border}`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: '#fff',
+        fontWeight: 700,
+        fontSize: 13,
+        boxShadow: isSelected ? `0 0 0 3px ${colors.border}55, 0 4px 12px rgba(0,0,0,0.4)` : '0 2px 8px rgba(0,0,0,0.4)',
+        transition: 'all 0.2s',
+        cursor: 'pointer',
         background: colors?.background || '#333',
         borderColor: colors?.border || '#fff',
       }}>

@@ -134,7 +134,14 @@ function ClickPopup({ pos, onAdd, onClose }) {
             fields: ['name', 'types'],
           },
           (placeResult, status) => {
-            if (status === placesLib.PlacesServiceStatus.OK && placeResult?.name && !isTooBroad(placeResult.name)) {
+            const broadPlaceTypes = ['locality', 'administrative_area_level_1', 'administrative_area_level_2', 'country', 'political'];
+            const isBroadType = placeResult?.types?.some((t) => broadPlaceTypes.includes(t));
+            if (
+              status === placesLib.PlacesServiceStatus.OK &&
+              placeResult?.name &&
+              !isTooBroad(placeResult.name) &&
+              !isBroadType
+            ) {
               setAddress(placeResult.name);
               setLoading(false);
             } else {
