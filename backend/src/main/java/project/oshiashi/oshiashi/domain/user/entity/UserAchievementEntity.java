@@ -39,4 +39,6 @@ public class UserAchievementEntity {
 		this.id = new UserAchievementId(user.getUserId(), achievement.getAchievementId());
 		this.achievedAt = LocalDateTime.now();
 	}
+
+
 }
