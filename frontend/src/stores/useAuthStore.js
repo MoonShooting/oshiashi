@@ -3,7 +3,6 @@ import { getMyInfoAPI } from '@/api/auth.js';
 // 위치 src기준으로 시작하려면 @/으로 작성합니다.
 
 let tokenExpiryTimeoutId = null;
-let tokenCountdownIntervalId = null;
 
 /*
 [인증 저장소 토큰 정책]
@@ -64,11 +63,6 @@ const clearTokenTimers = () => {
     clearTimeout(tokenExpiryTimeoutId);
     tokenExpiryTimeoutId = null;
   }
-
-  if (tokenCountdownIntervalId != null) {
-    clearInterval(tokenCountdownIntervalId);
-    tokenCountdownIntervalId = null;
-  }
 };
 
 const applyLoggedOutState = (set, isInitialized = true) => {
@@ -79,7 +73,6 @@ const applyLoggedOutState = (set, isInitialized = true) => {
     isLoggedIn: false,
     isInitialized,
     tokenExpiresAt: null,
-    tokenRemainingMs: 0,
   });
 };
 
@@ -88,41 +81,24 @@ const setupTokenLifecycle = (token, set) => {
 
   const tokenExpiresAt = extractTokenExpiryAt(token);
   if (tokenExpiresAt == null) {
-    return {
-      tokenExpiresAt: null,
-      tokenRemainingMs: 0,
-      isExpired: false,
-    };
+    return { tokenExpiresAt: null, isExpired: false };
   }
 
-  const tokenRemainingMs = getRemainingMs(tokenExpiresAt);
-  if (tokenRemainingMs <= 0) {
+  const remainingMs = getRemainingMs(tokenExpiresAt);
+  if (remainingMs <= 0) {
     applyLoggedOutState(set);
     return {
       tokenExpiresAt: null,
-      tokenRemainingMs: 0,
       isExpired: true,
     };
   }
 
   tokenExpiryTimeoutId = setTimeout(() => {
     applyLoggedOutState(set);
-  }, tokenRemainingMs);
-
-  tokenCountdownIntervalId = setInterval(() => {
-    const nextRemainingMs = getRemainingMs(tokenExpiresAt);
-
-    if (nextRemainingMs <= 0) {
-      applyLoggedOutState(set);
-      return;
-    }
-
-    set({ tokenRemainingMs: nextRemainingMs });
-  }, 1000);
+  }, remainingMs);
 
   return {
     tokenExpiresAt,
-    tokenRemainingMs,
     isExpired: false,
   };
 };
@@ -130,28 +106,16 @@ const setupTokenLifecycle = (token, set) => {
 const getInitialTokenSession = () => {
   const token = getStoredToken();
   if (!token) {
-    return {
-      token: '',
-      tokenExpiresAt: null,
-      tokenRemainingMs: 0,
-    };
+    return { token: '', tokenExpiresAt: null };
   }
 
   const tokenExpiresAt = extractTokenExpiryAt(token);
   if (tokenExpiresAt != null && getRemainingMs(tokenExpiresAt) <= 0) {
     clearStoredToken();
-    return {
-      token: '',
-      tokenExpiresAt: null,
-      tokenRemainingMs: 0,
-    };
+    return { token: '', tokenExpiresAt: null };
   }
 
-  return {
-    token,
-    tokenExpiresAt,
-    tokenRemainingMs: tokenExpiresAt != null ? getRemainingMs(tokenExpiresAt) : 0,
-  };
+  return { token, tokenExpiresAt };
 };
 
 const initialTokenSession = getInitialTokenSession();
@@ -164,7 +128,6 @@ export const useAuthStore = create((set) => ({
   isEmailVerified: false, // 이메일 인증 완료 여부 추가
   isInitialized: false, // 초기화 여부, 새로고침 시 토큰 검증이 끝나기 전까지 화면이 깜빡이는 현상(Flicker)을 방지
   tokenExpiresAt: initialTokenSession.tokenExpiresAt,
-  tokenRemainingMs: initialTokenSession.tokenRemainingMs,
 
   // 이메일 인증 상태 업데이트 함수(인증 성공 시 호출할 함수)
   setEmailVerified: (status) => set({ isEmailVerified: status }),
@@ -190,7 +153,6 @@ export const useAuthStore = create((set) => ({
       isLoggedIn: true,
       isInitialized: true,
       tokenExpiresAt: session.tokenExpiresAt,
-      tokenRemainingMs: session.tokenRemainingMs,
     });
   },
 
@@ -227,7 +189,6 @@ export const useAuthStore = create((set) => ({
         isLoggedIn: true,
         isInitialized: true,
         tokenExpiresAt: session.tokenExpiresAt,
-        tokenRemainingMs: session.tokenRemainingMs,
       });
     } catch (error) {
       // 인증 실패(만료/위조 토큰)는 토큰을 제거하고 로그아웃 처리합니다.
@@ -252,7 +213,6 @@ export const useAuthStore = create((set) => ({
           isLoggedIn: true,
           isInitialized: true,
           tokenExpiresAt: session.tokenExpiresAt,
-          tokenRemainingMs: session.tokenRemainingMs,
         };
       });
     }
