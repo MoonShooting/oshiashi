@@ -100,7 +100,14 @@ const RegisterForm = () => {
       alert('사용 가능한 아이디입니다.');
       setStatus((prev) => ({ ...prev, isIdChecked: true }));
     } catch (e) {
-      alert(e.message || '이미 사용 중인 아이디입니다.');
+      // API 응답 에러에서 'WITHDRAWN' 태그가 있는지 확인
+      const errorMessage = typeof e === 'string' ? e : e.message || JSON.stringify(e);
+
+      if (errorMessage.includes('WITHDRAWN')) {
+        alert('탈퇴 유예 기간인 계정입니다. 현재 가입이 불가합니다.');
+      } else {
+        alert('이미 사용 중인 아이디입니다.');
+      }
     }
   };
 
@@ -126,7 +133,12 @@ const RegisterForm = () => {
       setStatus((prev) => ({ ...prev, isEmailSent: true }));
       alert('인증번호 발송!');
     } catch (e) {
-      alert(e.message || '이메일 처리 중 오류 발생');
+      const errorMessage = e.message || '';
+      if (errorMessage.includes('탈퇴')) {
+        alert('탈퇴 유예 기간인 계정의 이메일입니다. 현재 가입이 불가합니다.');
+      } else {
+        alert(errorMessage || '이메일 처리 중 오류 발생');
+      }
     }
   };
 
@@ -150,9 +162,14 @@ const RegisterForm = () => {
       await registerAPI({ userId, name, email, password, nickname });
 
       alert('회원가입이 완료되었습니다!');
-      navigate('/login'); // 이동할 화면: 메인 화면으로 이동하고 싶으면 '/'로 작성
+      navigate('/login');
     } catch (e) {
-      alert(e.message || '가입 실패');
+      const errorMessage = e.message || '';
+      if (errorMessage.includes('탈퇴')) {
+        alert('탈퇴 유예 기간인 정보가 포함되어 있어 가입할 수 없습니다.');
+      } else {
+        alert(errorMessage || '가입 실패');
+      }
     }
   };
 
