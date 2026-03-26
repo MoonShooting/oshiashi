@@ -30,8 +30,8 @@ public class MailService {
 	public void sendVerificationEmail(String toEmail, String authCode, EmailAuthType type) {
 		log.info("[Mail Service] 메일 발송 프로세스 시작 (Async) - Type: {}, To: {}", type.name(), toEmail);
 		// 로고 URL (GitHub나 외부 호스팅 이미지 주소로 교체하세요)
-		String logoUrl = ""; //로고 url
-		String brandColor = ""; // 오시아시의 퍼플 포인트 컬러
+		String logoUrl = "C:\\Myproject\\oshiashi\\frontend\\src\\assets\\brand-logo-transparent.png"; //로고 url
+		String brandColor = "#2d2d44"; // 오시아시의 퍼플 포인트 컬러
 
 		String title = String.format("[Oshiashi] %s 인증번호 안내", type.getDescription());
 
