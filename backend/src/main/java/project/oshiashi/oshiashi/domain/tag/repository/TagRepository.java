@@ -22,6 +22,7 @@ public interface TagRepository extends JpaRepository<TagEntity, Long> {
 	 * - 용도: 게시글 작성 시, 입력받은 태그가 이미 DB에 있는지 확인하고 가져올 때 사용합니다.
 	 */
 	Optional<TagEntity> findByTagName(String tagName);
+	List<TagEntity> findAllByTagNameIn(List<String> tagNames);
 
 	/**
 	 * 2. 태그 이름 존재 여부 확인

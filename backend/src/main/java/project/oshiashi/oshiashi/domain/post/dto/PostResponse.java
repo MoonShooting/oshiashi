@@ -54,6 +54,7 @@ public class PostResponse {
 	private List<PostEntryResponse> entries;
 	
 	private String userId;
+	private String userNickname;
 	/**
 	 * 엔티티를 DTO로 변환하는 정적 팩토리 메서드
 	 * @param entity 변환할 PostEntity
@@ -132,6 +133,7 @@ public class PostResponse {
 		
 		return PostResponse.builder()
 				.userId(entity.getUser().getUserId())
+				.userNickname(entity.getUser().getNickname())
 				.postId(entity.getPostId())
 				.title(entity.getTitle())
 				.content(entity.getContent())
@@ -169,6 +171,8 @@ public class PostResponse {
 			List<String> imageUrls
 	) {
 		return PostResponse.builder()
+				.userId(entity.getUser().getUserId())
+				.userNickname(entity.getUser().getNickname())
 				.postId(entity.getPostId())
 				.title(entity.getTitle())
 				.content(entity.getContent())
@@ -181,6 +185,36 @@ public class PostResponse {
 				.commentCount(commentCount != null ? commentCount : 0)
 				.tagNames(tagNames != null ? tagNames : List.of())
 				.imageUrl(imageUrls != null ? imageUrls : List.of())
+				.build();
+	}
+
+	public static PostResponse fromCreateData(
+			PostEntity entity,
+			List<String> imageUrls,
+			List<String> tagNames,
+			List<PostEntryResponse> entries
+	) {
+		List<String> safeImageUrls = imageUrls != null ? imageUrls : List.of();
+		List<String> safeTagNames = tagNames != null ? tagNames : List.of();
+		List<PostEntryResponse> safeEntries = entries != null ? entries : List.of();
+
+		return PostResponse.builder()
+				.userId(entity.getUser().getUserId())
+				.userNickname(entity.getUser().getNickname())
+				.postId(entity.getPostId())
+				.title(entity.getTitle())
+				.content(entity.getContent())
+				.routeId(entity.getRoute() != null ? entity.getRoute().getRouteId() : null)
+				.status(entity.getStatus())
+				.viewCount(entity.getViewCount())
+				.likeCount(entity.getLikeCount())
+				.createdAt(entity.getCreatedAt())
+				.updateAt(entity.getUpdateAt())
+				.commentCount(0)
+				.thumbnailUrl(safeImageUrls.isEmpty() ? null : safeImageUrls.get(0))
+				.entries(safeEntries)
+				.tagNames(safeTagNames)
+				.imageUrl(safeImageUrls)
 				.build();
 	}
 

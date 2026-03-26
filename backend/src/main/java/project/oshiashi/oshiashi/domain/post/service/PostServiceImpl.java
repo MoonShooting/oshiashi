@@ -228,8 +228,8 @@ public class PostServiceImpl implements PostService {
 		}
 		
 		log.debug("[Service] 게시글 등록 요청 시작 - 제목: {}", request.getTitle());
-		
-		UserEntity user = userRepository.findById(request.getUserId())
+
+		UserEntity user = userRepository.findById(currentUserId)
 				.orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "사용자를 찾을 수 없습니다."));
 		
 		RouteEntity route = null;
@@ -264,19 +264,14 @@ public class PostServiceImpl implements PostService {
 			for (PostEntryResponse entry : request.getEntries()) {
 				
 				// 1. [짝수 라인] 애니메이션 원본 장면 (Reference)
-				if (entry.getReferenceImageUrl() != null && !entry.getReferenceImageUrl().isEmpty()) {
-					allImages.add(entry.getReferenceImageUrl());
-				} else {
-					// 만약 원본이 없다면 순서가 밀리지 않게 빈 문자열이라도 넣어주는 게 안전할 수 있습니다.
-					// (프론트와 협의 필요, 보통은 기본 이미지 URL을 넣습니다.)
-					allImages.add("");
+				if (entry.getReferenceImageUrl() != null && !entry.getReferenceImageUrl().isBlank()) {
+					allImages.add(entry.getReferenceImageUrl().trim());
 				}
-				
+
+
 				// 2. [홀수 라인] 내가 직접 찍은 사진 (User)
-				if (entry.getUserImageUrl() != null && !entry.getUserImageUrl().isEmpty()) {
-					allImages.add(entry.getUserImageUrl());
-				} else {
-					allImages.add("");
+				if (entry.getUserImageUrl() != null && !entry.getUserImageUrl().isBlank()) {
+					allImages.add(entry.getUserImageUrl().trim());
 				}
 			}
 		}
@@ -290,28 +285,36 @@ public class PostServiceImpl implements PostService {
 		log.debug("최종 리스트 내용: {}", allImages);
 		
 		// 3. 이제 합쳐진 allImages로 DB에 저장 (sortOrder i 적용)
-		for (int i = 0; i < allImages.size(); i++) {
+		List<String> persistableImages = allImages.stream()
+				.filter(imageUrl -> imageUrl != null && !imageUrl.isBlank())
+				.distinct()
+				.toList();
+
+		for (int i = 0; i < persistableImages.size(); i++) {
 			PostImageEntity imageEntity = PostImageEntity.builder()
 					.post(postEntity)
-					.imageUrl(allImages.get(i))
+					.imageUrl(persistableImages.get(i))
 					.sortOrder(i)
 					.createdAt(LocalDateTime.now())
 					.build();
 			postEntity.addPostImage(imageEntity);
 		}
-		
+
+
 		// 2. 태그 처리: 요청 DTO에 태그 이름 리스트가 포함되어 있다면 매핑 진행
 		// addTagsToPost 내부에서 TagEntity 조회/생성 및 PostTagEntity 연결이 일어납니다.
 		if (request.getTagNames() != null && !request.getTagNames().isEmpty()) {
 			log.debug("[Service] 태그 매핑 처리 시작: {}개", request.getTagNames().size());
-			addTagsToPost(postEntity, request.getTagNames());
+			addTagsToPostInBatch(postEntity, request.getTagNames());
 		}
 
 		log.debug("[Service] 게시글 및 태그 저장 완료 - 생성된 ID: {}", postEntity.getPostId());
 
 		// 3. 저장된 엔티티를 응답용 DTO로 변환하여 반환
 		// @Transactional 덕분에 메서드가 끝날 때 변경사항(이미지, 태그)이 자동으로 DB에 반영됨
-		return PostResponse.fromEntity(postEntity);
+		List<String> responseTagNames = normalizeTagNames(request.getTagNames());
+		List<PostEntryResponse> responseEntries = request.getEntries() != null ? request.getEntries() : List.of();
+		return PostResponse.fromCreateData(postEntity, persistableImages, responseTagNames, responseEntries);
 	}
 	
 	/**
@@ -383,7 +386,7 @@ public class PostServiceImpl implements PostService {
 		postEntity.getPostTags().clear();
 
 		if (request.getTagNames() != null && !request.getTagNames().isEmpty()) {
-			addTagsToPost(postEntity, request.getTagNames());
+			addTagsToPostInBatch(postEntity, request.getTagNames());
 		}
 
 		log.debug("[Service] 게시글 정보 및 {}개의 태그 수정 완료",
@@ -455,6 +458,57 @@ public class PostServiceImpl implements PostService {
 			if (!alreadyMapped) {
 				// 게시글과 태그의 연결 정보만 생성합니다.
 				// 태그 본체(TagEntity)는 여기서 새로 만들지 않습니다.
+				PostTagEntity postTag = PostTagEntity.create(post, tag);
+				post.getPostTags().add(postTag);
+			}
+		});
+	}
+
+	private List<String> normalizeTagNames(List<String> tagNames) {
+		if (tagNames == null) {
+			return List.of();
+		}
+
+		return tagNames.stream()
+				.filter(name -> name != null && !name.isBlank())
+				.map(String::trim)
+				.distinct()
+				.toList();
+	}
+
+	private void addTagsToPostInBatch(PostEntity post, List<String> tagNames) {
+		List<String> normalizedTagNames = tagNames.stream()
+				.filter(name -> name != null && !name.isBlank())
+				.map(String::trim)
+				.distinct()
+				.toList();
+
+		if (normalizedTagNames.isEmpty()) {
+			return;
+		}
+
+		List<TagEntity> tags = tagRepository.findAllByTagNameIn(normalizedTagNames);
+		Map<String, TagEntity> tagMap = tags.stream()
+				.collect(Collectors.toMap(TagEntity::getTagName, tag -> tag));
+
+		List<String> missingTagNames = normalizedTagNames.stream()
+				.filter(tagName -> !tagMap.containsKey(tagName))
+				.toList();
+
+		if (!missingTagNames.isEmpty()) {
+			throw new BusinessException(
+					ErrorCode.INVALID_INPUT_VALUE,
+					"존재하지 않는 태그입니다: " + String.join(", ", missingTagNames)
+			);
+		}
+
+		normalizedTagNames.forEach(tagName -> {
+			TagEntity tag = tagMap.get(tagName);
+
+			boolean alreadyMapped = post.getPostTags().stream()
+					.anyMatch(postTag -> postTag.getTag().getTagId().equals(tag.getTagId()));
+
+			if (!alreadyMapped) {
 				PostTagEntity postTag = PostTagEntity.create(post, tag);
 				post.getPostTags().add(postTag);
 			}
