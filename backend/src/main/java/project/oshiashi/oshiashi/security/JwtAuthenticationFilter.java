@@ -38,45 +38,30 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
 			throws ServletException, IOException {
 
-		// 현재 어떤 요청이 들어왔는지 확인하기 위한 로그 (디버깅용)
-		log.debug("[Security Filter] 요청 감지: {} {}", request.getMethod(), request.getRequestURI());
 		// 1. HTTP 요청 헤더에서 "Authorization" 값을 꺼내옴
 		String authHeader = request.getHeader("Authorization");
-		// [1-1] Front에서 header값을 유저정보를 담아 잘 가져오는지 확인용 디버그
-		log.debug("[Security Filter] 수신된 헤더: {}", authHeader);
+
 		// 2. 토큰 존재 여부 및 "Bearer " 표준 규격 확인
-		// - Bearer: "이 토큰의 소지자(Bearer)에게 권한을 주라"는 약속된 인증 타입임.
 		if (authHeader != null && authHeader.startsWith("Bearer ")) {
-			// "Bearer " 이후의 실제 토큰 문자열만 추출 (인덱스 7번부터 끝까지)
 			String token = authHeader.substring(7);
-			// 3. [보안 추가] 블랙리스트 확인 (로그아웃 여부)
-			// - 유효한 토큰이라도 사용자가 로그아웃을 했다면 Redis에 등록되어 접근이 차단되어야 함.
+
+			// 3. 블랙리스트(로그아웃) 확인
 			if (isBlacklisted(token)) {
-				log.warn("[Security] 로그아웃된 토큰으로 접근 시도 차단: {}", token);
-				// 블랙리스트일 경우 인증 도장을 찍지 않고 다음 필터로 넘김 (결국 권한 부족으로 차단됨)
+				log.warn("[Security] 로그아웃된 토큰으로 접근 시도 차단");
 				filterChain.doFilter(request, response);
 				return;
 			}
-			// 4. JWT 토큰의 유효성 검증 (위조, 변조, 만료 시간 체크)
-			if (jwtProvider.validateToken(token)) {
 
-				// 5. 토큰에서 사용자 식별자(userId)를 꺼내옴
-				String userId = jwtProvider.getUserId(token);
-
-				// 6. DB에서 유저 정보를 조회하여 시큐리티 전용 신분증(UserDetails) 객체 생성
+			// 4. JWT 검증 + userId 추출을 한 번의 파싱으로 처리 (이전: validateToken + getUserId 두 번 파싱)
+			String userId = jwtProvider.getUserIdIfValid(token);
+			if (userId != null) {
+				// 5. DB에서 유저 정보 조회 (role 등 추가 정보 필요)
 				UserDetails userDetails = userDetailsService.loadUserByUsername(userId);
 
-				// 7. 시큐리티 전용 '인증 도장(Authentication 객체)'을 만듦
-				// - 첫 번째 인자: 유저 정보 (Principal)
-				// - 두 번째 인자: 비밀번호 (이미 토큰으로 인증됐으므로 null)
-				// - 세 번째 인자: 해당 유저의 권한 목록 (Authorities)
+				// 6. SecurityContext에 인증 도장 등록
 				UsernamePasswordAuthenticationToken authentication =
 						new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-
-				// 8. [핵심] 시큐리티 저장소(SecurityContext)에 인증 도장을 쾅 찍어줌
-				// - 이 작업이 완료되어야 이후 로직(Controller 등)에서 "인증된 사용자"로 인정받음.
 				SecurityContextHolder.getContext().setAuthentication(authentication);
-				log.debug("[Security] 유저 인증 성공!: {}", userId);
 			}
 		}
 		// 9. 검문이 끝났으면 다음 필터로 요청을 넘겨줌 (혹은 최종 목적지인 Controller로 도달함)
