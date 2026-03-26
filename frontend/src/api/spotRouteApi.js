@@ -34,6 +34,9 @@ const unwrapObject = (value) => {
   return value;
 };
 
+const routeDetailCache = new Map();
+const routeDetailInFlight = new Map();
+
 const decodeBase64Url = (value) => {
   const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
   const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
@@ -172,6 +175,45 @@ const normalizeBookmarkedRouteFromPins = (bookmark) => {
   };
 };
 
+// 북마크 목록 렌더링 단계에서는 bookmark response 자체에 routeId, bookmarkName,
+// pinCount, pins가 이미 들어 있습니다.
+// 따라서 "목록을 보여주기 위해" route detail을 bookmark 개수만큼 추가 호출할 필요가 없습니다.
+// 여기서는 즉시 렌더 가능한 최소 route 모델만 만들고,
+// 사용자가 실제로 눌렀을 때만 상세 조회/복원을 시도하도록 분리합니다.
+const normalizeBookmarkedRouteSummary = (bookmark) => {
+  const restored = normalizeBookmarkedRouteFromPins(bookmark);
+  if (restored) {
+    return {
+      ...restored,
+      title: text(bookmark?.bookmarkName) || restored.title,
+      count: num(bookmark?.pinCount) ?? restored.count,
+      canLoadDetail: true,
+      loadIssue: '',
+    };
+  }
+
+  const routeId = num(bookmark?.routeId);
+  if (routeId == null) return null;
+
+  return {
+    key: `BOOKMARKED_ROUTE-${routeId}`,
+    routeId,
+    title: text(bookmark?.bookmarkName) || `북마크 루트 ${routeId}`,
+    count: num(bookmark?.pinCount) ?? 0,
+    routeSpots: [],
+    spots: [],
+    artworkTagName: '',
+    artworkTagNames: [],
+    isPublic: false,
+    sourceType: 'BOOKMARKED_ROUTE',
+    bookmarkId: num(bookmark?.bookmarkId),
+    bookmarkName: text(bookmark?.bookmarkName),
+    canLoadDetail: true,
+    loadIssue: '',
+    bookmarkPins: toArray(bookmark?.pins),
+  };
+};
+
 // 공개 게시물 상세는 소유자 검사가 없고 entries에 장소 정보가 담겨 있으므로,
 // 북마크 route detail이 막힌 경우 "pins보다 풍부한" 두 번째 복구 경로로 사용합니다.
 // pins는 요약 정보지만, entries는 작성자가 남긴 제목/이미지/주소가 더 많이 담길 수 있어
@@ -209,8 +251,32 @@ const normalizeBookmarkedRouteFromPost = (postResponse, bookmark) => {
   };
 };
 
-const fetchRouteDetail = async (routeId, userId) =>
-  unwrapObject(await FetchJson(withUserId(`/api/v1/map/routes/${routeId}`, userId)));
+const fetchRouteDetail = async (routeId, userId) => {
+  const key = `${routeId}:${resolveUserId(userId)}`;
+
+  if (routeDetailCache.has(key)) {
+    return routeDetailCache.get(key);
+  }
+
+  if (routeDetailInFlight.has(key)) {
+    return routeDetailInFlight.get(key);
+  }
+
+  const request = FetchJson(withUserId(`/api/v1/map/routes/${routeId}`, userId))
+    .then((response) => {
+      const unwrapped = unwrapObject(response);
+      routeDetailCache.set(key, unwrapped);
+      routeDetailInFlight.delete(key);
+      return unwrapped;
+    })
+    .catch((error) => {
+      routeDetailInFlight.delete(key);
+      throw error;
+    });
+
+  routeDetailInFlight.set(key, request);
+  return request;
+};
 
 const toRouteSaveSpot = (spot, index) => ({
   // 저장 요청 payload는 백엔드 계약(RouteSpotRequest)에 맞춘다.
@@ -246,52 +312,28 @@ export const loadSpotSidebarRoutes = async ({ userId } = {}) => {
   // 내 루트/북마크 루트 중 하나가 실패해도 다른 목록은 노출한다.
   const issues = [];
 
-  let myRoutes = [];
-  try {
-    myRoutes = toArray(await FetchJson('/api/v1/user/myRoute')).map((route) => normalizeRoute(route, { sourceType: 'MY_ROUTE' }));
-  } catch (error) {
-    issues.push(error.message || '내 루트 목록을 불러오지 못했습니다.');
+  const [myRoutesResult, bookmarksResult] = await Promise.allSettled([
+    FetchJson('/api/v1/user/myRoute'),
+    fetchBookmarksWithFallback({ fetchJson: FetchJson }),
+  ]);
+
+  const myRoutes =
+    myRoutesResult.status === 'fulfilled'
+      ? toArray(myRoutesResult.value).map((route) => normalizeRoute(route, { sourceType: 'MY_ROUTE' }))
+      : [];
+  if (myRoutesResult.status === 'rejected') {
+    issues.push(myRoutesResult.reason?.message || '내 루트 목록을 불러오지 못했습니다.');
   }
 
-  let bookmarkedRoutes = [];
-  try {
-    const routeBookmarks = (await fetchBookmarksWithFallback({ fetchJson: FetchJson })).filter((bookmark) => num(bookmark?.routeId) != null);
-    bookmarkedRoutes = await Promise.all(
-      routeBookmarks.map(async (bookmark) => {
-        try {
-          const detail = await fetchRouteDetail(bookmark.routeId, userId);
-          return normalizeRoute(detail, { sourceType: 'BOOKMARKED_ROUTE', bookmark });
-        } catch (error) {
-          // 북마크된 route detail이 막히는 가장 흔한 이유는 "남의 루트를 북마크했다"는 점입니다.
-          // 그래서 소유자 검사가 없는 공개 게시물 상세를 먼저 시도하고,
-          // 그것도 실패하면 bookmark.pins로 최소 복원을 시도합니다.
-          try {
-            if (bookmark?.postId != null) {
-              const bookmarkedPost = await FetchJson(`/api/v1/posts/${bookmark.postId}`);
-              const restoredFromPost = normalizeBookmarkedRouteFromPost(bookmarkedPost, bookmark);
-              if (restoredFromPost) return restoredFromPost;
-            }
-          } catch {
-            // 공개 게시물도 복원 실패 시 pins fallback으로 내려갑니다.
-          }
-
-          const restoredFromPins = normalizeBookmarkedRouteFromPins(bookmark);
-          if (restoredFromPins) return restoredFromPins;
-
-          return normalizeRoute(
-            { routeId: bookmark.routeId, title: bookmark.bookmarkName, spots: [] },
-            {
-              sourceType: 'BOOKMARKED_ROUTE',
-              bookmark,
-              canLoadDetail: false,
-              loadIssue: error.message || '이 북마크 루트는 상세를 불러올 수 없습니다.',
-            },
-          );
-        }
-      }),
-    );
-  } catch (error) {
-    issues.push(error.message || '북마크한 루트 목록을 불러오지 못했습니다.');
+  const bookmarkedRoutes =
+    bookmarksResult.status === 'fulfilled'
+      ? toArray(bookmarksResult.value)
+          .filter((bookmark) => num(bookmark?.routeId) != null)
+          .map((bookmark) => normalizeBookmarkedRouteSummary(bookmark))
+          .filter(Boolean)
+      : [];
+  if (bookmarksResult.status === 'rejected') {
+    issues.push(bookmarksResult.reason?.message || '북마크한 루트 목록을 불러오지 못했습니다.');
   }
 
   return { myRoutes, bookmarkedRoutes, issues };
@@ -359,16 +401,42 @@ export const loadSpotSidebarRouteDetail = async ({ route, userId } = {}) => {
     throw new Error(route.loadIssue || '이 루트는 상세를 불러올 수 없습니다.');
   }
 
-  const detail = normalizeRoute(await fetchRouteDetail(route.routeId, userId), {
-    sourceType: route.sourceType ?? 'MY_ROUTE',
-    bookmark: route,
-  });
+  try {
+    const detail = normalizeRoute(await fetchRouteDetail(route.routeId, userId), {
+      sourceType: route.sourceType ?? 'MY_ROUTE',
+      bookmark: route,
+    });
 
-  return {
-    ...detail,
-    // route_spot + 장소 상세 조회 결과를 병합해 사이드패널/지도 공용 모델로 만든다.
-    detailedSpots: await Promise.all(detail.routeSpots.map(toDetailedSpot)),
-  };
+    return {
+      ...detail,
+      // route_spot + 장소 상세 조회 결과를 병합해 사이드패널/지도 공용 모델로 만든다.
+      detailedSpots: await Promise.all(detail.routeSpots.map(toDetailedSpot)),
+    };
+  } catch (error) {
+    // 북마크 route 상세는 소유자 조건 때문에 실패할 수 있습니다.
+    // 이 경우 목록에서 이미 받아 둔 bookmark pins/post fallback을 최대한 재사용해
+    // "다시 목록을 로딩하느라 오래 기다렸는데 선택도 실패"하는 경험을 줄입니다.
+    if (route.sourceType === 'BOOKMARKED_ROUTE') {
+      try {
+        if (route?.postId != null) {
+          const bookmarkedPost = await FetchJson(`/api/v1/posts/${route.postId}`);
+          const restoredFromPost = normalizeBookmarkedRouteFromPost(bookmarkedPost, route);
+          if (restoredFromPost) {
+            return loadSpotSidebarRouteDetail({ route: restoredFromPost, userId });
+          }
+        }
+      } catch {
+        // post fallback 실패 시 pins fallback으로 내려갑니다.
+      }
+
+      const restoredFromPins = normalizeBookmarkedRouteFromPins(route);
+      if (restoredFromPins) {
+        return loadSpotSidebarRouteDetail({ route: restoredFromPins, userId });
+      }
+    }
+
+    throw error;
+  }
 };
 
 export const renameSpotRoute = async ({ route, newTitle, userId } = {}) => {
