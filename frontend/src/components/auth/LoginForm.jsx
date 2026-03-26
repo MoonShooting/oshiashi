@@ -34,8 +34,13 @@ const LoginForm = () => {
       // 인증 상태가 반영되면 홈으로 이동합니다.
       navigate('/');
     } catch (error) {
-      console.error('로그인 에러:', error);
-      setFormError(error.message || '아이디 또는 비밀번호를 확인해주세요.');
+      const errorMessage = typeof e === 'string' ? e : e.message || JSON.stringify(e);
+
+      if (errorMessage.includes('WITHDRAWN')) {
+        alert('탈퇴 처리 진행 중인 계정입니다. 로그인이 불가합니다.');
+      } else {
+        alert('아이디 또는 비밀번호가 일치하지 않습니다.');
+      }
     }
   };
 
