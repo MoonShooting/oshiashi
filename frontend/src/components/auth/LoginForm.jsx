@@ -15,7 +15,7 @@ const LoginForm = () => {
 
   // Zustand 스토어에서는 로그인 성공 후 "사용자 정보 + 토큰 저장 정책"만 반영합니다.
   // 실제 인증 요청은 api 레이어가, 화면 전환은 이 컴포넌트가 담당하도록 역할을 분리합니다.
-  const { login, fetchMe } = useAuthStore();
+  const login = useAuthStore((s) => s.login);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -30,9 +30,6 @@ const LoginForm = () => {
       // 로그인 직후에는 최소 userId라도 보장해 화면의 userId 의존 API가 즉시 동작하게 합니다.
       const fallbackUser = userInfo ?? { userId: loginData.userId };
       login(fallbackUser, token, rememberMe);
-
-      // /auth/me로 최신 사용자 정보를 즉시 복구해 전역 상태를 서버 기준으로 맞춥니다.
-      await fetchMe();
 
       // 인증 상태가 반영되면 홈으로 이동합니다.
       navigate('/');

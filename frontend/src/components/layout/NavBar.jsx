@@ -23,7 +23,9 @@ const NavBar = () => {
   const navigate = useNavigate();
   const profileMenuRef = useRef(null);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
-  const { isLoggedIn, logout, tokenRemainingMs } = useAuthStore();
+  const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
+  const logout = useAuthStore((s) => s.logout);
+  const tokenRemainingMs = useAuthStore((s) => s.tokenRemainingMs);
   // /auth/me 초기화 타이밍과 무관하게, 토큰 기준 로그인 상태면 메뉴를 안정적으로 노출합니다.
   const showProfileMenu = isLoggedIn;
   const isGuestAction = !isLoggedIn;

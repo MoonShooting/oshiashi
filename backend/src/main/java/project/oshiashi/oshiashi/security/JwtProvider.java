@@ -46,16 +46,34 @@ public class JwtProvider {
 	 */
 	public String getUserId(String token) {
 		return Jwts.parser()
-				.verifyWith(key) // 서버의 키로 서명이 일치하는지 먼저 확인함
+				.verifyWith(key)
 				.build()
-				.parseSignedClaims(token) // 토큰을 해석함
+				.parseSignedClaims(token)
 				.getPayload()
-				.getSubject(); // 담겨있던 userId 반환
+				.getSubject();
 	}
+
+	/**
+	 * [2-1. 검증 + 추출 통합: getUserIdIfValid]
+	 * - validateToken + getUserId를 하나의 JWT 파싱으로 처리해 중복 파싱을 제거함.
+	 * - 유효한 토큰이면 userId를 반환하고, 무효면 null을 반환함.
+	 */
+	public String getUserIdIfValid(String token) {
+		try {
+			return Jwts.parser()
+					.verifyWith(key)
+					.build()
+					.parseSignedClaims(token)
+					.getPayload()
+					.getSubject();
+		} catch (Exception e) {
+			return null;
+		}
+	}
+
 	/**
 	 * [3. 유효성 검사: validateToken]
 	 * - 토큰이 변조되었는지, 혹은 유효기간이 지났는지 확인하는 '위조 감별' 기능임.
-	 * - 문제가 있다면 예외를 던지며 false를 반환함.
 	 */
 	public boolean validateToken(String token) {
 		try {
@@ -63,9 +81,8 @@ public class JwtProvider {
 					.verifyWith(key)
 					.build()
 					.parseSignedClaims(token);
-			return true; // 아무 문제 없으면 유효함
+			return true;
 		} catch (Exception e) {
-			// 토큰 만료, 서명 불일치, 형식 오류 등 모든 경우를 포함함
 			return false;
 		}
 	}
