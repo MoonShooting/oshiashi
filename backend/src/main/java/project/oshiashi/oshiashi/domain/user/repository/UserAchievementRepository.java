@@ -1,7 +1,6 @@
 package project.oshiashi.oshiashi.domain.user.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
 import project.oshiashi.oshiashi.domain.achievement.entity.AchievementEntity;
 import project.oshiashi.oshiashi.domain.user.entity.UserAchievementEntity;
 import project.oshiashi.oshiashi.domain.user.entity.UserAchievementId;
@@ -29,4 +28,10 @@ public interface UserAchievementRepository extends JpaRepository<UserAchievement
 	 * - 명명 규칙: exists + ByUser(엔티티) + And + Achievement(엔티티)
 	 */
 	boolean existsByUserAndAchievement(UserEntity user, AchievementEntity achievement);
+
+	/**
+	 * 특정 유저(userId)와 특정 업적(achievementId)에 해당하는 UserAchievement 데이터를 조회합니다.
+	 */
+	Optional<UserAchievementEntity> findByUser_UserIdAndAchievement_AchievementId(String userId, Long achievementId);
+
 }

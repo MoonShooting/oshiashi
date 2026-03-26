@@ -8,6 +8,7 @@ import project.oshiashi.oshiashi.domain.post.entity.PostTagEntity;
 import project.oshiashi.oshiashi.domain.tag.entity.TagEntity;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface PostTagRepository extends JpaRepository<PostTagEntity, Long> {
