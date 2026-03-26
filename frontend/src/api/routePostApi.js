@@ -609,7 +609,7 @@ const buildRouteCreatePayload = ({ selectedRoute, title, selectedTags = [], entr
   const post = {
     routeId: selectedRoute?.routeId ?? null,
     title: title.trim(),
-    content: content || title.trim(),
+    content: title.trim(),
     status: 'PUBLIC',
     // 작성 페이지는 수동 태그 UI를 제거했으므로,
     // explicit selectedTags가 비어 있으면 route 자체가 들고 있던 작품 태그를 그대로 tagNames에 사용합니다.
