@@ -26,14 +26,11 @@ const ORDER_PIN_IMAGES = {
  */
 export default function OrderPin({ num, mediaType, isSelected }) {
   const colors = PIN_COLOR[mediaType] || PIN_COLOR.DEFAULT;
-export default function OrderPin({ num, colors, isSelected }) {
   const imageSrc = ORDER_PIN_IMAGES[num];
 
   if (imageSrc) {
     return (
-      <div
-        className={`${styles.imagePin} ${isSelected ? styles.selected : ''}`}
-        aria-label={`${num}번 경유지 핀`}>
+      <div className={`${styles.imagePin} ${isSelected ? styles.selected : ''}`} aria-label={`${num}번 경유지 핀`}>
         <img src={imageSrc} alt="" className={styles.image} draggable="false" />
         <span className={styles.imagePinNumber}>{num}</span>
       </div>
