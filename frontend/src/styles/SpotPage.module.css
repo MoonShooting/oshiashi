@@ -8,15 +8,15 @@
 /* 핀 바로 위에 뜨는 장소명 툴팁 (이미 루트에 포함된 핀용) */
 .pinLabel {
   position: absolute;
-  bottom: 45px; /* 핀 머리 위 위치 */
+  bottom: 66px; /* 축소된 핀 위로 충분히 띄워 지도와 겹치지 않게 */
   left: 50%;
   transform: translateX(-50%);
   background: rgba(10, 10, 20, 0.92);
   border: 1px solid rgba(217, 70, 239, 0.45);
   color: #fff;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 500;
-  padding: 4px 10px;
+  padding: 4px 9px;
   border-radius: 6px;
   white-space: nowrap;
   pointer-events: none;
