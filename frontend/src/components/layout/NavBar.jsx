@@ -25,7 +25,25 @@ const NavBar = () => {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const logout = useAuthStore((s) => s.logout);
-  const tokenRemainingMs = useAuthStore((s) => s.tokenRemainingMs);
+  const tokenExpiresAt = useAuthStore((s) => s.tokenExpiresAt);
+
+  // 카운트다운은 로컬 state로 관리 — 전역 store를 매초 업데이트하지 않아도 됩니다.
+  const [tokenRemainingMs, setTokenRemainingMs] = useState(() =>
+    tokenExpiresAt ? Math.max(0, tokenExpiresAt - Date.now()) : 0,
+  );
+
+  useEffect(() => {
+    if (!tokenExpiresAt) {
+      setTokenRemainingMs(0);
+      return;
+    }
+    setTokenRemainingMs(Math.max(0, tokenExpiresAt - Date.now()));
+    const id = setInterval(() => {
+      setTokenRemainingMs(Math.max(0, tokenExpiresAt - Date.now()));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [tokenExpiresAt]);
+
   // /auth/me 초기화 타이밍과 무관하게, 토큰 기준 로그인 상태면 메뉴를 안정적으로 노출합니다.
   const showProfileMenu = isLoggedIn;
   const isGuestAction = !isLoggedIn;

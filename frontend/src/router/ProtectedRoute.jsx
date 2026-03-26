@@ -4,7 +4,8 @@ import { useAuthStore } from '@/stores/useAuthStore';
 
 const ProtectedRoute = ({ children }) => {
   const location = useLocation();
-  const { isLoggedIn, isInitialized } = useAuthStore();
+  const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
+  const isInitialized = useAuthStore((s) => s.isInitialized);
 
   // 중요:
   // isInitialized=false 구간은 "새로고침 직후 /auth/me 복구 중" 상태입니다.
