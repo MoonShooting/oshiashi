@@ -1,13 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertCircle, Camera, PlusCircle, Sparkles } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import MainLayout from '@/components/layout/MainLayout';
 import PostEditorFields from '@/components/post/create/PostEditorFields';
 import PostRoutePicker from '@/components/post/create/PostRoutePicker';
 import PostSceneEntryCard from '@/components/post/create/PostSceneEntryCard';
 import { uploadPostImage } from '@/api/imageUploadApi';
-import { loadPostCreateRoutes, submitPostCreate } from '@/api/postCreateApi';
-import { createCustomPlaceEntry, createRouteEntries } from '@/data/post/postCreateDraftUtils';
+import { loadPostCreateRoutes, submitPostCreate, submitPostUpdate } from '@/api/postCreateApi';
+import { fetchRoutePostById } from '@/api/routePostApi';
+import { createCustomPlaceEntry, createEntriesFromPostDetail, createRouteEntries } from '@/data/post/postCreateDraftUtils';
 import { useAuthStore } from '@/stores/useAuthStore';
 import styles from '@/styles/PostCreatePage.module.css';
 
@@ -25,7 +26,9 @@ const hasUploadedUrl = (value) => typeof value === 'string' && value.trim().leng
 */
 const PostCreatePage = () => {
   const navigate = useNavigate();
+  const { postId } = useParams();
   const { user } = useAuthStore();
+  const isEditMode = Boolean(postId);
 
   const objectUrlsRef = useRef(new Set());
   const [selectedRouteId, setSelectedRouteId] = useState('');
@@ -36,6 +39,7 @@ const PostCreatePage = () => {
   const [isLoadingRoutes, setIsLoadingRoutes] = useState(true);
   const [routeError, setRouteError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editRouteMeta, setEditRouteMeta] = useState(null);
   const [submitState, setSubmitState] = useState({
     status: 'idle',
     message: '',
@@ -62,6 +66,28 @@ const PostCreatePage = () => {
       setRouteError('');
 
       try {
+        if (isEditMode) {
+          const found = await fetchRoutePostById(postId);
+          if (!alive) return;
+          if (!found) {
+            throw new Error('수정할 게시글을 찾을 수 없습니다.');
+          }
+
+          const hydratedEntries = createEntriesFromPostDetail(found);
+          setTitle(found.title ?? '');
+          setEntries(hydratedEntries);
+          setSelectedRouteId(String(found.routeId ?? found.id ?? 'edit-route'));
+          setEditRouteMeta({
+            id: String(found.routeId ?? found.id ?? 'edit-route'),
+            routeId: found.routeId ?? null,
+            title: found.routeTitle ?? found.title ?? '기존 루트',
+            spots: hydratedEntries,
+          });
+          setRoutes([]);
+          setRouteIssues([]);
+          return;
+        }
+
         const response = await loadPostCreateRoutes(currentUserId);
         if (!alive) return;
 
@@ -89,9 +115,10 @@ const PostCreatePage = () => {
     return () => {
       alive = false;
     };
-  }, [currentUserId]);
+  }, [currentUserId, isEditMode, postId]);
 
   useEffect(() => {
+    if (isEditMode) return;
     if (!selectedRouteId) return;
 
     // 루트 목록이 재로딩되어 기존 선택이 사라진 경우 입력 상태를 초기화합니다.
@@ -100,9 +127,12 @@ const PostCreatePage = () => {
       setSelectedRouteId('');
       setEntries([]);
     }
-  }, [routes, selectedRouteId]);
+  }, [isEditMode, routes, selectedRouteId]);
 
-  const selectedRoute = useMemo(() => routes.find((route) => route.id === selectedRouteId) ?? null, [routes, selectedRouteId]);
+  const selectedRoute = useMemo(
+    () => editRouteMeta ?? routes.find((route) => route.id === selectedRouteId) ?? null,
+    [editRouteMeta, routes, selectedRouteId],
+  );
   const selectedTags = useMemo(() => {
     const rawTags = selectedRoute?.artworkTagNames ?? selectedRoute?.tagNames ?? selectedRoute?.artworkTagName ?? [];
     const nextTags = Array.isArray(rawTags) ? rawTags : [rawTags];
@@ -337,22 +367,31 @@ const PostCreatePage = () => {
     try {
       const uploadedEntries = await uploadEntriesBeforeSubmit(entries);
 
-      const created = await submitPostCreate({
-        selectedRoute,
-        title,
-        selectedTags,
-        entries: uploadedEntries,
-      });
+      const created = isEditMode
+        ? await submitPostUpdate({
+            postId,
+            selectedRoute,
+            title,
+            selectedTags,
+            entries: uploadedEntries,
+            userId: currentUserId,
+          })
+        : await submitPostCreate({
+            selectedRoute,
+            title,
+            selectedTags,
+            entries: uploadedEntries,
+          });
 
       if (!created?.id) {
-        throw new Error('생성된 게시글 ID를 확인하지 못했습니다.');
+        throw new Error(isEditMode ? '수정된 게시글 ID를 확인하지 못했습니다.' : '생성된 게시글 ID를 확인하지 못했습니다.');
       }
 
       navigate(`/posts/${created.id}`);
     } catch (error) {
       setSubmitState({
         status: 'error',
-        message: error.message || '게시글 등록에 실패했습니다.',
+        message: error.message || (isEditMode ? '게시글 수정에 실패했습니다.' : '게시글 등록에 실패했습니다.'),
       });
       setIsSubmitting(false);
     }
@@ -405,7 +444,19 @@ const PostCreatePage = () => {
           </div>
         ) : null}
 
-        <PostRoutePicker routes={routes} selectedRouteId={selectedRouteId} onSelectRoute={handleSelectRoute} loading={isLoadingRoutes} />
+        {isEditMode ? (
+          <section className={styles.formSection}>
+            <label className={styles.sectionLabel}>기준 루트</label>
+            <p className={styles.tagInputHint}>{selectedRoute?.title ?? '기존 루트 정보를 불러오는 중입니다.'}</p>
+          </section>
+        ) : (
+          <PostRoutePicker
+            routes={routes}
+            selectedRouteId={selectedRouteId}
+            onSelectRoute={handleSelectRoute}
+            loading={isLoadingRoutes}
+          />
+        )}
 
         <section className={styles.formSection}>
           <label className={styles.sectionLabel}>태그 안내</label>
@@ -502,7 +553,7 @@ const PostCreatePage = () => {
               className={canSubmit ? styles.primaryCtaButton : `${styles.primaryCtaButton} ${styles.primaryCtaButtonDisabled}`}
               disabled={!canSubmit}
               onClick={handleSubmit}>
-              {isSubmitting ? '등록 중...' : '게시글 등록'}
+              {isSubmitting ? (isEditMode ? '수정 중...' : '등록 중...') : isEditMode ? '게시글 수정' : '게시글 등록'}
             </button>
           </div>
         </div>
