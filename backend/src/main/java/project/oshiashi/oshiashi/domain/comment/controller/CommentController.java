@@ -2,6 +2,7 @@ package project.oshiashi.oshiashi.domain.comment.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import project.oshiashi.oshiashi.domain.comment.dto.CommentCreateRequest;
@@ -29,21 +30,24 @@ public class CommentController {
         return ResponseEntity.status(201).body(commentService.createComment(postId, request));
     }
     
-    // 2. 특정 게시글에 달린 모든 댓글 목록을 조회합니다.
+    // 2. 특정 게시글에 달린 댓글 목록 조회 — 페이지네이션 지원
     @GetMapping("/posts/{postId}/comments")
     public ResponseEntity<List<CommentResponse>> getCommentsByPost(
-            @PathVariable(name = "postId") Long postId
+            @PathVariable(name = "postId") Long postId,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false, defaultValue = "50") int size
     ) {
-        
-        log.debug("댓글 목록 조회 요청 - 게시글 번호: {}", postId);
-        
-        // 1. 서비스에서 해당 게시글의 댓글 목록을 가져옴
-        List<CommentResponse> comments = commentService.getCommentsByPost(postId);
-        
-        // 2. 로그로 결과 개수 확인 (디버깅용)
+        log.debug("댓글 목록 조회 요청 - 게시글 번호: {}, page: {}", postId, page);
+
+        List<CommentResponse> comments;
+        if (page == null) {
+            // 하위 호환: page 파라미터 없으면 전체 로드
+            comments = commentService.getCommentsByPost(postId);
+        } else {
+            comments = commentService.getCommentsByPost(postId, PageRequest.of(page, size));
+        }
+
         log.debug("조회된 댓글 개수: {}", comments.size());
-        
-        // 3. 리스트와 함께 200 OK 응답
         return ResponseEntity.ok(comments);
     }
 

@@ -30,11 +30,12 @@ public class MapServiceImpl implements MapService {
     private final TagRepository tagRepository;
 
 
-    // 전체 장소를 지도용 응답 DTO(MapPlaceResponse)로 변환해서 반환합니다.
-    // 추후 정렬/페이징이 필요하면 이 메서드에서 확장할 수 있습니다.
+    // ── 성능 최적화: JOIN FETCH로 Artwork + ArtworkType 한 번에 로드 ──
+    // 기존: findAll() → Spot N개 × Artwork LAZY × ArtworkType LAZY = 34+ 쿼리
+    // 개선: findAllWithArtwork() → 1 쿼리로 전부 로드
     @Override
     public List<MapPlaceResponse> getPlaces() {
-        return spotRepository.findAll().stream()
+        return spotRepository.findAllWithArtwork().stream()
                 .map(MapPlaceResponse::from)
                 .toList();
     }
@@ -43,7 +44,10 @@ public class MapServiceImpl implements MapService {
     // 마커 클릭 후 상세 패널/모달에 보여줄 데이터를 반환하는 용도입니다.
     @Override
     public MapPlaceResponse getPlaceDetail(Long placeId) {
-        SpotEntity spot = spotRepository.findById(placeId)
+        // ── 성능 최적화: findDetailByPlaceId로 Artwork+ArtworkType JOIN FETCH ──
+        // 기존: findById → MapPlaceResponse.from()에서 Artwork LAZY 로드 = +2 쿼리
+        // 개선: 1 쿼리로 Artwork + ArtworkType까지 로드
+        SpotEntity spot = spotRepository.findDetailByPlaceId(placeId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "장소를 찾을 수 없습니다."));
 
         // 장소와 관련된 게시글이 몇 개인지 세는 코드
@@ -174,7 +178,8 @@ public class MapServiceImpl implements MapService {
 
         String trimmedKeyword = keyword.trim();
 
-        return artworkRepository.findByTitleContainingIgnoreCase(trimmedKeyword).stream()
+        // ── 성능 최적화: JOIN FETCH로 ArtworkType N+1 방지 ──
+        return artworkRepository.findByTitleWithType(trimmedKeyword).stream()
                 .limit(10)
                 .map(artwork -> MapAutocompleteResponse.builder()
                         .artworkId(artwork.getArtworkId())
@@ -210,7 +215,8 @@ public class MapServiceImpl implements MapService {
             return List.of();
         }
 
-        return spotRepository.findByArtwork_ArtworkId(tag.getArtwork().getArtworkId()).stream()
+        // ── 성능 최적화: findByArtworkIdWithType으로 N+1 방지 ──
+        return spotRepository.findByArtworkIdWithType(tag.getArtwork().getArtworkId()).stream()
                 .map(MapPlaceResponse::from)
                 .toList();
     }

@@ -2,6 +2,7 @@ package project.oshiashi.oshiashi.domain.comment.service;
 
 //import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -59,7 +60,7 @@ public class CommentServiceImpl implements CommentService {
     
     @Transactional(readOnly = true)
     public List<CommentResponse> getCommentsByPost(Long postId) {
-        
+
         // 조회 시작 로그 (어떤 게시글의 댓글을 찾으려 하는지 기록)
         log.debug("댓글 목록 조회 시작 - 게시글 ID: {}", postId);
         // 게시글 존재 여부 우선 체크
@@ -67,19 +68,43 @@ public class CommentServiceImpl implements CommentService {
             log.debug("댓글 조회 실패: 존재하지 않는 게시글입니다. ID: {}", postId);
             throw new IllegalArgumentException("게시글이 존재하지 않습니다. ID=" + postId);
         }
-        
-        // Repository를 통해 댓글 엔티티 리스트 조회
-        List<CommentEntity> commentEntities = commentRepository.findByPost_PostIdOrderByCreatedAtAsc(postId);
-        
+
+        // ── 성능 최적화: JOIN FETCH로 User + Parent를 한 번에 로드 ──
+        // 기존: findByPost_PostId → 댓글 N개 × User LAZY = ~15 쿼리
+        // 개선: findByPostIdWithUser → 1 쿼리로 전부 로드
+        List<CommentEntity> commentEntities = commentRepository.findByPostIdWithUser(postId);
+
         // 조회 결과 로그 (결과가 몇 건인지 기록)
         log.debug("댓글 조회 완료 - 게시글 ID: {}, 조회된 댓글 수: {}개", postId, commentEntities.size());
-        
+
         // Stream API를 사용하여 Entity 리스트를 Response DTO 리스트로 변환
         return commentEntities.stream()
                 .map(CommentResponse::fromEntity)
                 .toList();
     }
     
+    /**
+     * 페이지네이션 적용 댓글 조회
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<CommentResponse> getCommentsByPost(Long postId, Pageable pageable) {
+        log.debug("댓글 페이지네이션 조회 - 게시글 ID: {}, page: {}, size: {}",
+                postId, pageable.getPageNumber(), pageable.getPageSize());
+
+        if (!postRepository.existsById(postId)) {
+            throw new IllegalArgumentException("게시글이 존재하지 않습니다. ID=" + postId);
+        }
+
+        List<CommentEntity> commentEntities = commentRepository.findByPostIdWithUser(postId, pageable);
+
+        log.debug("댓글 페이지 조회 완료 - 게시글 ID: {}, 조회된 댓글 수: {}개", postId, commentEntities.size());
+
+        return commentEntities.stream()
+                .map(CommentResponse::fromEntity)
+                .toList();
+    }
+
     public CommentResponse updateComment(Long commentId, CommentUpdateRequest request) {
         validateContent(request.getContent());
         UserEntity userEntity = getCurrentUserEntity();
@@ -156,8 +181,9 @@ public class CommentServiceImpl implements CommentService {
     
     public List<CommentResponse> getReplies(Long parentId) {
         log.debug("대댓글 목록 조회 - 부모 댓글 ID: {}", parentId);
-        
-        return commentRepository.findByParent_CommentIdOrderByCreatedAtAsc(parentId)
+
+        // ── 성능 최적화: User JOIN FETCH 적용 ──
+        return commentRepository.findRepliesWithUser(parentId)
                 .stream()
                 .map(CommentResponse::fromEntity)
                 .toList();

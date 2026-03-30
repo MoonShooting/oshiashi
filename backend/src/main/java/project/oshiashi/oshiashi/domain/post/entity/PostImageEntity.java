@@ -52,6 +52,10 @@ public class PostImageEntity {
     @Column(name = "exif_longitude", precision = 10, scale = 7)
     private BigDecimal exifLongitude;
 
+    // 장소별 메모 (게시글 작성 시 각 entry의 note를 개별 저장)
+    @Column(name = "note", columnDefinition = "TEXT")
+    private String note;
+
     // nullable 항목 제거
     @Column(name = "created_at")
     private LocalDateTime createdAt;

@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import InputGroup from '@/components/input/InputGroup';
 import ActionInputGroup from '@/components/input/ActionInputGroup';
 import Button from '@/components/modal/Button.jsx';
+import Toast from '@/components/common/Toast.jsx';
+import { useToast } from '@/hooks/useToast.js';
 import { sendEmailAPI, verifyEmailAPI, findIdAPI } from '@/api/auth.js';
 
 /** 아이디 찾기 로직: 이름, 이메일 인증, 아이디 결과 출력
@@ -10,6 +12,7 @@ import { sendEmailAPI, verifyEmailAPI, findIdAPI } from '@/api/auth.js';
  */
 const FindIdForm = () => {
   const navigate = useNavigate();
+  const { toasts, toast, dismiss } = useToast();
   const [formData, setFormData] = useState({ name: '', email: '', authCode: '' });
   const [isEmailSent, setIsEmailSent] = useState(false);
   const [isEmailVerified, setIsEmailVerified] = useState(false);
@@ -23,10 +26,10 @@ const FindIdForm = () => {
   const handleSendEmail = async () => {
     try {
       await sendEmailAPI(formData.email, 'FIND_ID');
-      alert('인증번호가 발송되었습니다.');
+      toast.success('인증번호가 발송되었습니다.');
       setIsEmailSent(true);
     } catch (err) {
-      alert(err.message);
+      toast.error(err.message);
     }
   };
 
@@ -34,10 +37,10 @@ const FindIdForm = () => {
   const handleVerifyCode = async () => {
     try {
       await verifyEmailAPI(formData.email, formData.authCode, 'FIND_ID');
-      alert('인증 성공!');
+      toast.success('인증 성공!');
       setIsEmailVerified(true);
     } catch (err) {
-      alert('인증번호가 틀립니다.');
+      toast.error('인증번호가 틀립니다.');
     }
   };
 
@@ -47,12 +50,14 @@ const FindIdForm = () => {
 
     // 1. 이름과 이메일 입력 여부 확인
     if (!formData.name || !formData.email) {
-      return alert('이름과 이메일을 모두 입력해주세요.');
+      toast.error('이름과 이메일을 모두 입력해주세요.');
+      return;
     }
 
     // 2. 이메일 인증 완료 여부 확인 (프론트엔드 가드)
     if (!isEmailVerified) {
-      return alert('이메일 인증을 먼저 완료해주세요.');
+      toast.error('이메일 인증을 먼저 완료해주세요.');
+      return;
     }
 
     try {
@@ -61,45 +66,48 @@ const FindIdForm = () => {
 
       // 4. 결과 출력
       if (result && result.userId) {
-        alert(`찾으시는 아이디는 [ ${result.userId} ] 입니다.`);
-        navigate('/login');
+        toast.success(`찾으시는 아이디는 [ ${result.userId} ] 입니다.`);
+        setTimeout(() => navigate('/login'), 2000);
       } else {
         throw new Error('아이디 정보를 응답받지 못했습니다.');
       }
     } catch (error) {
       // 5. 에러 처리 (인증 미완료 시 백엔드 ExceptionHandler가 던지는 메시지 출력)
-      alert(error.message || '정보가 일치하는 회원이 없습니다.');
+      toast.error(error.message || '정보가 일치하는 회원이 없습니다.');
     }
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <InputGroup label="이름" name="name" value={formData.name} onChange={handleChange} placeholder="실명 입력" />
-      <ActionInputGroup
-        label="이메일"
-        name="email"
-        value={formData.email}
-        onChange={handleChange}
-        btnText={isEmailSent ? '재발송' : '인증요청'}
-        onAction={handleSendEmail}
-        disabled={isEmailVerified}
-      />
-      {isEmailSent && (
+    <>
+      <Toast toasts={toasts} onDismiss={dismiss} />
+      <form onSubmit={handleSubmit}>
+        <InputGroup label="이름" name="name" value={formData.name} onChange={handleChange} placeholder="실명 입력" />
         <ActionInputGroup
-          label="인증번호"
-          name="authCode"
-          value={formData.authCode}
+          label="이메일"
+          name="email"
+          value={formData.email}
           onChange={handleChange}
-          btnText="확인"
-          onAction={handleVerifyCode}
+          btnText={isEmailSent ? '재발송' : '인증요청'}
+          onAction={handleSendEmail}
           disabled={isEmailVerified}
-          successMsg={isEmailVerified && '인증 성공!'}
         />
-      )}
-      <Button type="submit" variant="primary" fullWidth disabled={!formData.name || !isEmailVerified} style={{ marginTop: '20px' }}>
-        아이디 찾기
-      </Button>
-    </form>
+        {isEmailSent && (
+          <ActionInputGroup
+            label="인증번호"
+            name="authCode"
+            value={formData.authCode}
+            onChange={handleChange}
+            btnText="확인"
+            onAction={handleVerifyCode}
+            disabled={isEmailVerified}
+            successMsg={isEmailVerified && '인증 성공!'}
+          />
+        )}
+        <Button type="submit" variant="primary" fullWidth disabled={!formData.name || !isEmailVerified} style={{ marginTop: '20px' }}>
+          아이디 찾기
+        </Button>
+      </form>
+    </>
   );
 };
 

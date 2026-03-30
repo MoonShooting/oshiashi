@@ -145,9 +145,11 @@ const toSummary = (detail) => ({
 - 백엔드 명세에 맞춰 커뮤니티 전용 엔드포인트(/api/v1/posts/community)를 호출합니다.
 - 검색어/정렬 조건을 그대로 querystring으로 전달합니다.
 */
-export const fetchCommunityPosts = async ({ search = '', sortBy = 'latest', limit } = {}) => {
+export const fetchCommunityPosts = async ({ search = '', sortBy = 'latest', limit, page = 0, size = 20 } = {}) => {
   const params = new URLSearchParams();
   params.set('sort', SORT_QUERY_MAP[sortBy] ?? 'latest');
+  params.set('page', String(page));
+  params.set('size', String(size));
 
   const keyword = search.trim();
   if (keyword) params.set('search', keyword);
@@ -250,11 +252,15 @@ export const deleteCommunityComment = async ({ postId, commentId }) => {
 - 커뮤니티 상세도 일반 게시글 상세와 동일하게 좋아요/북마크 토글을 지원합니다.
 - 처리 후 상세를 재조회해 화면 상태를 서버 기준으로 맞춥니다.
 */
+// ── 성능 최적화: 좋아요 응답을 직접 사용, 불필요한 재조회 제거 ──
 export const likeCommunityPost = async ({ postId }) => {
-  await FetchJson(`/api/v1/posts/${postId}/like`, { method: 'POST' });
-  const refreshed = await fetchCommunityPostById(postId);
+  const response = await FetchJson(`/api/v1/posts/${postId}/like`, { method: 'POST' });
   emitCommunityPostsUpdated();
-  return refreshed;
+  // 서버가 갱신된 게시글을 반환하면 그대로 사용, 아니면 재조회
+  if (response && (response.postId || response.id)) {
+    return toCommunityDetail(response, []);
+  }
+  return fetchCommunityPostById(postId);
 };
 
 export const fetchMyCommunityBookmarks = async ({ userId } = {}) => {

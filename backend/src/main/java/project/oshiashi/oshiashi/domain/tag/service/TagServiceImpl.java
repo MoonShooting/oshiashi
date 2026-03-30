@@ -66,7 +66,8 @@ public class TagServiceImpl implements TagService {
 
 	@Override
 	public List<TagResponse> getTags() {
-		return tagRepository.findAllByOrderByTagNameAsc().stream()
+		// ── 성능 최적화: JOIN FETCH로 Artwork N+1 방지 ──
+		return tagRepository.findAllWithArtworkOrderByTagNameAsc().stream()
 				.map(TagResponse::fromEntity)
 				.toList();
 	}

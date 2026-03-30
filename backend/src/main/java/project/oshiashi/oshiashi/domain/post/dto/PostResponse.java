@@ -117,6 +117,8 @@ public class PostResponse {
 				String referenceUrl = refImg.getImageUrl(); // 왼쪽 화면용
 				String userUrl = (userImg != null) ? userImg.getImageUrl() : referenceUrl; // 오른쪽 화면용
 				
+				// refImg.getNote()에 entry별 note가 저장돼 있음 (구 데이터는 null → 빈 문자열)
+				String entryNote = refImg.getNote() != null ? refImg.getNote() : "";
 				entryResponses.add(PostEntryResponse.builder()
 						.referenceImageUrl(referenceUrl)
 						.userImageUrl(userUrl)
@@ -125,7 +127,7 @@ public class PostResponse {
 						.artworkTitle(realArtworkTitle)
 						.latitude(lat)
 						.longitude(lng)
-						.note(entity.getContent())
+						.note(entryNote)
 						.sortOrder(i / 2) // 화면 리스트 인덱스 (0, 1, 2...)
 						.build());
 			}

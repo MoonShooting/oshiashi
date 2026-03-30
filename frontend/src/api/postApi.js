@@ -6,13 +6,23 @@ import { extractArrayPayload } from './postApiShared.js';
 export const getPublicPostsByTag = async (tagTitle) => {
   if (!tagTitle) return [];
 
-  // tags 파라미터로 검색, 서버가 최신순 정렬 후 내려줌
-  const params = new URLSearchParams({ tags: tagTitle, sort: 'latest' });
-  const raw = await FetchClient(`/api/v1/posts?${params.toString()}`, { method: 'GET' });
-  const items = extractArrayPayload(raw);
+  // GET /api/v1/posts        → routeIdIsNull=false (루트 있는 게시물만)
+  // GET /api/v1/posts/community → routeIdIsNull=true  (커뮤니티 게시물만)
+  // 맵 사이드바는 두 유형 모두 표시해야 하므로 병렬 호출 후 병합
+  const params = new URLSearchParams({ tags: tagTitle, sort: 'latest', page: '0', size: '4' });
+  const url = `/api/v1/posts?${params.toString()}`;
+  const communityUrl = `/api/v1/posts/community?${params.toString()}`;
 
-  // status 필드가 있으면 PUBLIC만, 없으면(필드 자체가 없을 때) 전체를 공개로 간주
-  return items
-    .filter((p) => !p.status || p.status === 'PUBLIC')
+  const [routeResult, communityResult] = await Promise.allSettled([
+    FetchClient(url, { method: 'GET' }),
+    FetchClient(communityUrl, { method: 'GET' }),
+  ]);
+
+  const routePosts = routeResult.status === 'fulfilled' ? extractArrayPayload(routeResult.value) : [];
+  const communityPosts = communityResult.status === 'fulfilled' ? extractArrayPayload(communityResult.value) : [];
+
+  return [...routePosts, ...communityPosts]
+    .filter((p) => !p.status || p.status.toUpperCase() === 'PUBLIC')
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
     .slice(0, 4);
 };

@@ -1,10 +1,13 @@
 package project.oshiashi.oshiashi.domain.artwork.tmdb;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 import project.oshiashi.oshiashi.domain.artwork.tmdb.dto.TmdbSearchResponse;
+
+import java.time.Duration;
 
 /*
  * TMDB API와 통신하는 전용 Client 클래스
@@ -41,10 +44,14 @@ public class TmdbClient {
     /*
      * 외부 HTTP API 호출을 위한 Spring 클래스
      *
-     * REST API 요청을 보내고
-     * 응답 JSON을 Java 객체로 자동 변환합니다.
+     * ── 성능/안정성 최적화: 타임아웃 설정 추가 ──
+     * 기존: new RestTemplate() → 타임아웃 없음 → TMDB 장애 시 무한 대기
+     * 개선: 연결 5초 + 읽기 5초 타임아웃 설정
      */
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate = new RestTemplateBuilder()
+            .connectTimeout(Duration.ofSeconds(5))
+            .readTimeout(Duration.ofSeconds(5))
+            .build();
 
     /*
      * TMDB 영화 검색 API 호출

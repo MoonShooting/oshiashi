@@ -6,11 +6,14 @@ import SubmitGuide from '@/components/input/SubmitGuide.jsx';
 import Button from '@/components/modal/Button.jsx';
 import { TERMS_DATA } from '@/data/termsData.js';
 import TermsModal from '@/components/auth/TermsModal.jsx';
+import Toast from '@/components/common/Toast.jsx';
+import { useToast } from '@/hooks/useToast.js';
 import { sendEmailAPI, verifyEmailAPI, registerAPI, checkEmailAPI, checkIdAPI, checkNicknameAPI } from '@/api/Auth.js';
 import './RegisterForm.css';
 
 const RegisterForm = () => {
   const navigate = useNavigate();
+  const { toasts, toast, dismiss } = useToast();
   const [formData, setFormData] = useState({
     userId: '',
     name: '',
@@ -94,63 +97,70 @@ const RegisterForm = () => {
   const guideMessage = getSubmitGuideMessage();
 
   const handleIdCheck = async () => {
-    if (errors.userId || !formData.userId) return alert('유효한 아이디를 입력해주세요.');
+    if (errors.userId || !formData.userId) {
+      toast.error('유효한 아이디를 입력해주세요.');
+      return;
+    }
     try {
       await checkIdAPI(formData.userId);
-      alert('사용 가능한 아이디입니다.');
+      toast.success('사용 가능한 아이디입니다.');
       setStatus((prev) => ({ ...prev, isIdChecked: true }));
     } catch (e) {
-      // API 응답 에러에서 'WITHDRAWN' 태그가 있는지 확인
       const errorMessage = typeof e === 'string' ? e : e.message || JSON.stringify(e);
-
       if (errorMessage.includes('WITHDRAWN')) {
-        alert('탈퇴 유예 기간인 계정입니다. 현재 가입이 불가합니다.');
+        toast.error('탈퇴 유예 기간인 계정입니다. 현재 가입이 불가합니다.');
       } else {
-        alert('이미 사용 중인 아이디입니다.');
+        toast.error('이미 사용 중인 아이디입니다.');
       }
     }
   };
 
   const handleNickNameCheck = async () => {
-    if (errors.nickname || !formData.nickname) return alert('유효한 닉네임을 입력해주세요.');
-
+    if (errors.nickname || !formData.nickname) {
+      toast.error('유효한 닉네임을 입력해주세요.');
+      return;
+    }
     try {
       await checkNicknameAPI(formData.nickname);
-      alert('사용 가능한 닉네임입니다.');
+      toast.success('사용 가능한 닉네임입니다.');
       setStatus((prev) => ({ ...prev, isNickNameChecked: true }));
     } catch (e) {
-      alert(e.message || '이미 사용 중인 닉네임입니다.');
+      toast.error(e.message || '이미 사용 중인 닉네임입니다.');
       setStatus((prev) => ({ ...prev, isNickNameChecked: false }));
     }
   };
 
   const handleEmailCheckAndSend = async () => {
-    if (errors.email || !formData.email) return alert('유효한 이메일을 입력해주세요.');
+    if (errors.email || !formData.email) {
+      toast.error('유효한 이메일을 입력해주세요.');
+      return;
+    }
     try {
       await checkEmailAPI(formData.email);
       await sendEmailAPI(formData.email, 'SIGNUP');
-
       setStatus((prev) => ({ ...prev, isEmailSent: true }));
-      alert('인증번호 발송!');
+      toast.success('인증번호가 발송되었습니다.');
     } catch (e) {
       const errorMessage = e.message || '';
       if (errorMessage.includes('탈퇴')) {
-        alert('탈퇴 유예 기간인 계정의 이메일입니다. 현재 가입이 불가합니다.');
+        toast.error('탈퇴 유예 기간인 계정의 이메일입니다. 현재 가입이 불가합니다.');
       } else {
-        alert(errorMessage || '이메일 처리 중 오류 발생');
+        toast.error(errorMessage || '이메일 처리 중 오류 발생');
       }
     }
   };
 
   const handleVerifyCode = async () => {
-    if (!formData.authCode) return alert('인증번호를 입력해주세요.');
-
+    if (!formData.authCode) {
+      toast.error('인증번호를 입력해주세요.');
+      return;
+    }
     try {
       await verifyEmailAPI(formData.email, formData.authCode, 'SIGNUP');
-      alert('인증에 성공했습니다.');
+      toast.success('인증에 성공했습니다.');
       setStatus((prev) => ({ ...prev, isEmailVerified: true }));
     } catch (e) {
-      alert(e.message || '인증번호가 일치하지 않습니다.');
+      toast.error(e.message || '인증번호가 일치하지 않습니다.');
       setStatus((prev) => ({ ...prev, isEmailVerified: false }));
     }
   };
@@ -160,15 +170,14 @@ const RegisterForm = () => {
     try {
       const { userId, name, email, password, nickname } = formData;
       await registerAPI({ userId, name, email, password, nickname });
-
-      alert('회원가입이 완료되었습니다!');
-      navigate('/login');
+      toast.success('회원가입이 완료되었습니다!');
+      setTimeout(() => navigate('/login'), 1500);
     } catch (e) {
       const errorMessage = e.message || '';
       if (errorMessage.includes('탈퇴')) {
-        alert('탈퇴 유예 기간인 정보가 포함되어 있어 가입할 수 없습니다.');
+        toast.error('탈퇴 유예 기간인 정보가 포함되어 있어 가입할 수 없습니다.');
       } else {
-        alert(errorMessage || '가입 실패');
+        toast.error(errorMessage || '가입 실패');
       }
     }
   };
@@ -182,6 +191,7 @@ const RegisterForm = () => {
 
   return (
     <div className="register-container">
+      <Toast toasts={toasts} onDismiss={dismiss} />
       <form className="register-content" onSubmit={handleSignup}>
         <h3>회원가입</h3>
 
