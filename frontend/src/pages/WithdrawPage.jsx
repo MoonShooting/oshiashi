@@ -2,10 +2,13 @@ import React, { useMemo, useState } from 'react';
 import { AlertTriangle, LoaderCircle, ShieldAlert } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Button from '@/components/modal/Button';
+import ConfirmModal from '@/components/modal/ConfirmModal';
 import AccountActionLayout from '@/components/account/AccountActionLayout';
 import InputGroup from '@/components/input/InputGroup';
 import SubmitGuide from '@/components/input/SubmitGuide';
 import MainLayout from '@/components/layout/MainLayout';
+import Toast from '@/components/common/Toast';
+import { useToast } from '@/hooks/useToast';
 import { withdrawAPI } from '@/api/auth';
 import { useAuthStore } from '@/stores/useAuthStore';
 import styles from '@/styles/WithdrawPage.module.css';
@@ -21,11 +24,13 @@ const WITHDRAW_CONFIRMATION_TEXT = '회원탈퇴';
 const WithdrawPage = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
+  const { toasts, toast, dismiss } = useToast();
   const [password, setPassword] = useState('');
   const [confirmationText, setConfirmationText] = useState('');
   const [agreedToWarning, setAgreedToWarning] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
 
   const profile = useMemo(
     () => ({
@@ -47,7 +52,7 @@ const WithdrawPage = () => {
         ? '안내 사항 확인 및 동의가 필요합니다.'
         : null;
 
-  const handleSubmit = async (event) => {
+  const handleSubmit = (event) => {
     event.preventDefault();
     setErrorMessage('');
 
@@ -66,17 +71,17 @@ const WithdrawPage = () => {
       return;
     }
 
-    const shouldProceed = window.confirm('정말로 회원 탈퇴를 진행하시겠습니까? 이 작업은 되돌릴 수 없습니다.');
-    if (!shouldProceed) {
-      return;
-    }
+    setConfirmModalOpen(true);
+  };
 
+  const handleConfirmWithdraw = async () => {
+    setConfirmModalOpen(false);
     try {
       setIsSubmitting(true);
       await withdrawAPI(password.trim());
       logout();
-      alert('회원 탈퇴가 완료되었습니다.');
-      navigate('/login', { replace: true });
+      toast.success('회원 탈퇴가 완료되었습니다.');
+      setTimeout(() => navigate('/login', { replace: true }), 1500);
     } catch (error) {
       setErrorMessage(error.message || '회원 탈퇴에 실패했습니다. 잠시 후 다시 시도해주세요.');
     } finally {
@@ -86,6 +91,17 @@ const WithdrawPage = () => {
 
   return (
     <MainLayout isMapPage={false} activeMenuKey="mypage">
+      <Toast toasts={toasts} onDismiss={dismiss} />
+      <ConfirmModal
+        isOpen={confirmModalOpen}
+        title="회원 탈퇴 확인"
+        message="정말로 회원 탈퇴를 진행하시겠습니까? 이 작업은 되돌릴 수 없습니다."
+        confirmText="탈퇴 확정"
+        cancelText="취소"
+        variant="danger"
+        onConfirm={handleConfirmWithdraw}
+        onCancel={() => setConfirmModalOpen(false)}
+      />
       {/* 탈퇴 페이지 전용으로 마크업을 반복하지 않고, 계정 작업 공통 레이아웃에 데이터만 주입합니다. */}
       <AccountActionLayout
         badgeIcon={ShieldAlert}

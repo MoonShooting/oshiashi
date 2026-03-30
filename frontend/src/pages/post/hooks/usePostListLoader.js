@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 /**
  * 게시글 목록 공통 로더 훅
  * - 로딩/에러/목록 상태 관리
- * - 생성/수정/삭제 이벤트 수신 시 동일 조건으로 재조회
+ * - 생성/수정/삭제 이벤트 수신 시 동일 조건으로 재조회 (디바운스 적용)
  *
  * 페이지마다 다른 점은 loadPosts 함수와 이벤트 이름만 주입합니다.
  */
@@ -15,6 +15,7 @@ const usePostListLoader = ({
   const [posts, setPosts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
+  const debounceTimerRef = useRef(null);
 
   useEffect(() => {
     // 비동기 완료 시점에 언마운트된 컴포넌트 setState를 막기 위한 가드입니다.
@@ -41,9 +42,15 @@ const usePostListLoader = ({
       }
     };
 
+    // ── 성능 최적화: 디바운스 적용 ──
+    // 빠른 연속 이벤트(댓글 여러 개 작성, 좋아요 연타 등) 시 재조회를 300ms 디바운스
     const handleUpdated = () => {
-      // 작성/수정/삭제/댓글 변경 이벤트를 받으면 현재 조건으로 다시 조회합니다.
-      run();
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+      debounceTimerRef.current = setTimeout(() => {
+        run();
+      }, 300);
     };
 
     run();
@@ -54,6 +61,9 @@ const usePostListLoader = ({
 
     return () => {
       alive = false;
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
       if (updatedEventName && typeof window !== 'undefined') {
         window.removeEventListener(updatedEventName, handleUpdated);
       }

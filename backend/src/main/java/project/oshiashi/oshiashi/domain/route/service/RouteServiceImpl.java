@@ -58,22 +58,26 @@ public class RouteServiceImpl implements RouteService {
         return RouteResponse.fromEntity(saved);
     }
 
-    // 사용자 루트 목록 조회
+    // ── 성능 최적화: 사용자 루트 목록 조회 ──
+    // 기존: findByUser_UserId → RouteResponse.fromEntity() N+1 = 113+ 쿼리 (11초+)
+    // 개선: JOIN FETCH로 Route→RouteSpot→Spot→Artwork 1 쿼리 로드
     @Override
     public List<RouteResponse> getRouteList(String userId) {
         if (!userRepository.existsById(userId)) {
             throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "존재하지 않는 사용자입니다.");
         }
 
-        return routeRepository.findByUser_UserIdOrderByCreatedAtDesc(userId).stream()
+        return routeRepository.findByUserIdWithFullGraph(userId).stream()
                 .map(RouteResponse::fromEntity)
                 .toList();
     }
 
-    // 루트 단건 조회
+    // ── 성능 최적화: 루트 단건 조회 ──
+    // 기존: findByRouteIdAndUser_UserId → fromEntity() N+1 = ~13 쿼리
+    // 개선: JOIN FETCH로 1 쿼리
     @Override
     public RouteResponse getRoute(String userId, Long routeId) {
-        RouteEntity route = routeRepository.findByRouteIdAndUser_UserId(routeId, userId)
+        RouteEntity route = routeRepository.findByIdAndUserIdWithFullGraph(routeId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ROUTE_NOT_FOUND));
 
         return RouteResponse.fromEntity(route);
@@ -120,26 +124,57 @@ public class RouteServiceImpl implements RouteService {
     // - 동일 요청이 화면마다 다른 결과를 낼 수 있으며
     // - 권한/무결성 검증 누락 가능성이 높아진다.
     // 따라서 spot 생성/검증/연결 책임을 서버 한 곳으로 모은다.
+    // ── 성능 최적화: 배치 로딩 ──
+    // 기존: spot마다 개별 findById() = N 쿼리
+    // 개선: 기존 spotId를 한 번에 조회 후 Map에 캐시, 신규 spot만 개별 저장
     private void addRouteSpots(RouteEntity route, List<RouteSpotRequest> spotRequests, Long fallbackArtworkId) {
+        // 1단계: 기존 spotId를 배치로 조회
+        List<Long> existingSpotIds = spotRequests.stream()
+                .map(RouteSpotRequest::getSpotId)
+                .filter(id -> id != null)
+                .toList();
+
+        java.util.Map<Long, SpotEntity> spotCache = new java.util.HashMap<>();
+        if (!existingSpotIds.isEmpty()) {
+            spotRepository.findAllById(existingSpotIds)
+                    .forEach(spot -> spotCache.put(spot.getSpotId(), spot));
+        }
+
+        // 2단계: 신규 spot에 필요한 artworkId를 배치로 조회
+        Set<Long> artworkIds = new HashSet<>();
+        if (fallbackArtworkId != null) artworkIds.add(fallbackArtworkId);
+        spotRequests.stream()
+                .filter(req -> req.getSpotId() == null && req.getArtworkId() != null)
+                .forEach(req -> artworkIds.add(req.getArtworkId()));
+
+        java.util.Map<Long, ArtworkEntity> artworkCache = new java.util.HashMap<>();
+        if (!artworkIds.isEmpty()) {
+            artworkRepository.findAllById(artworkIds)
+                    .forEach(art -> artworkCache.put(art.getArtworkId(), art));
+        }
+
+        // 3단계: 각 spotRequest를 처리 (캐시 활용)
         for (int index = 0; index < spotRequests.size(); index += 1) {
             RouteSpotRequest spotRequest = spotRequests.get(index);
-            SpotEntity spot = resolveSpotEntity(spotRequest, fallbackArtworkId, route.getTitle(), index);
+            SpotEntity spot = resolveSpotEntity(spotRequest, fallbackArtworkId, route.getTitle(), index, spotCache, artworkCache);
 
             RouteSpotEntity routeSpot = RouteSpotEntity.of(route, spot, spotRequest.getVisitOrder());
             route.addRouteSpot(routeSpot);
         }
     }
 
-    private SpotEntity resolveSpotEntity(RouteSpotRequest spotRequest, Long fallbackArtworkId, String routeTitle, int index) {
-        // 기존 spot 참조 케이스
+    private SpotEntity resolveSpotEntity(RouteSpotRequest spotRequest, Long fallbackArtworkId,
+                                          String routeTitle, int index,
+                                          java.util.Map<Long, SpotEntity> spotCache,
+                                          java.util.Map<Long, ArtworkEntity> artworkCache) {
+        // 기존 spot 참조 케이스 — 캐시에서 조회
         if (spotRequest.getSpotId() != null) {
-            return spotRepository.findById(spotRequest.getSpotId())
-                    .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "존재하지 않는 스팟입니다."));
+            SpotEntity cached = spotCache.get(spotRequest.getSpotId());
+            if (cached != null) return cached;
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "존재하지 않는 스팟입니다.");
         }
 
-        // 신규 spot 생성 케이스:
-        // spotId가 없으면 서버가 필수값을 검증하고 SpotEntity를 생성한다.
-        // (프론트는 입력 전달만 담당, 저장 가능 여부 판정은 서버 책임)
+        // 신규 spot 생성 케이스
         BigDecimal latitude = spotRequest.getLatitude();
         BigDecimal longitude = spotRequest.getLongitude();
         if (latitude == null || longitude == null) {
@@ -151,8 +186,10 @@ public class RouteServiceImpl implements RouteService {
             throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "spotId가 없으면 artworkId가 필요합니다.");
         }
 
-        ArtworkEntity artwork = artworkRepository.findById(artworkId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "존재하지 않는 작품입니다."));
+        ArtworkEntity artwork = artworkCache.get(artworkId);
+        if (artwork == null) {
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "존재하지 않는 작품입니다.");
+        }
 
         String spotName = normalizeSpotName(spotRequest.getSpotName(), index);
         String sceneImgUrl = normalizeSceneImgUrl(spotRequest.getSceneImgUrl(), routeTitle, spotName, index);

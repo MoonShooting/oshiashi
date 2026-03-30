@@ -35,10 +35,12 @@ export const emitRoutePostsUpdated = () => {
 
 // ── 목록 조회 ──────────────────────────────────────────────
 
-export const fetchRoutePosts = async ({ tags = [], search = '', sortBy = 'latest' } = {}) => {
+export const fetchRoutePosts = async ({ tags = [], search = '', sortBy = 'latest', page = 0, size = 20 } = {}) => {
   const params = new URLSearchParams();
   params.set('routeIdIsNull', 'false');
   params.set('sort', sortBy);
+  params.set('page', String(page));
+  params.set('size', String(size));
 
   const normalizedSearch = search.trim();
   if (normalizedSearch) {
@@ -141,12 +143,16 @@ export const deleteRoutePost = async ({ postId, userId }) => {
 
 // ── 좋아요 ─────────────────────────────────────────────────
 
+// ── 성능 최적화: 좋아요 응답을 직접 사용, 불필요한 재조회 제거 ──
 export const likeRoutePost = async ({ postId }) => {
-  await FetchJson(`/api/v1/posts/${postId}/like`, {
+  const response = await FetchJson(`/api/v1/posts/${postId}/like`, {
     method: 'POST',
   });
 
-  const refreshed = await fetchRoutePostById(postId);
   emitRoutePostsUpdated();
-  return refreshed;
+  // 서버가 갱신된 게시글을 반환하면 그대로 사용, 아니면 재조회
+  if (response && (response.postId || response.id)) {
+    return toRoutePostDetail(response, []);
+  }
+  return fetchRoutePostById(postId);
 };

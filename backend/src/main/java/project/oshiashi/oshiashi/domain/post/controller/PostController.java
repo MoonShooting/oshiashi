@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.web.bind.annotation.*;
 import project.oshiashi.oshiashi.domain.comment.dto.CommentResponse;
 import project.oshiashi.oshiashi.domain.comment.service.CommentService;
@@ -30,24 +31,38 @@ public class PostController {
 	// 0. 임시 리스트 (static 유지)
 	//private static List<PostResponse> postListTest = new ArrayList<>();
 	
-	// 1. 전체 조회 (루트가 있는 게시판)
+	// 1. 전체 조회 (루트가 있는 게시판) — 페이지네이션 지원
 	@GetMapping
 	public ResponseEntity<List<PostResponse>> getPosts(
 			@RequestParam(required = false, defaultValue = "latest") String sort,
 			@RequestParam(required = false) String search,
-			@RequestParam(required = false) List<String> tags
+			@RequestParam(required = false) List<String> tags,
+			@RequestParam(required = false) Integer page,
+			@RequestParam(required = false, defaultValue = "20") int size
 	) {
-		List<PostResponse> responses = postService.getAllPost(false, sort, search, tags);
-		return ResponseEntity.ok(responses);
+		// page 파라미터가 없으면 기존 전체 로드 (하위 호환)
+		if (page == null) {
+			return ResponseEntity.ok(postService.getAllPost(false, sort, search, tags));
+		}
+		return ResponseEntity.ok(
+				postService.getAllPost(false, sort, search, tags, PageRequest.of(page, size))
+		);
 	}
-	// 1-1. 전체 조회 (루트가 없는 자유 게시판)
+	// 1-1. 전체 조회 (루트가 없는 자유 게시판) — 페이지네이션 지원
 	@GetMapping("/community")
 	public ResponseEntity<List<PostResponse>> getPostsNotRoute(
 			@RequestParam(required = false, defaultValue = "latest") String sort,
 			@RequestParam(required = false) String search,
-			@RequestParam(required = false) List<String> tags
+			@RequestParam(required = false) List<String> tags,
+			@RequestParam(required = false) Integer page,
+			@RequestParam(required = false, defaultValue = "20") int size
 	) {
-		return ResponseEntity.ok(postService.getAllPost(true, sort, search, tags));
+		if (page == null) {
+			return ResponseEntity.ok(postService.getAllPost(true, sort, search, tags));
+		}
+		return ResponseEntity.ok(
+				postService.getAllPost(true, sort, search, tags, PageRequest.of(page, size))
+		);
 	}
 	
 	

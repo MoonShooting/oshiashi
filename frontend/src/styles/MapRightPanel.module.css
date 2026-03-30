@@ -148,16 +148,26 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px; /* 12px -> 10px */
+  padding: 8px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 10px;
-  transition: background 0.2s ease;
+  transition: background 0.2s ease, transform 0.15s ease;
   cursor: pointer;
 }
 
 .postItem:hover {
   background: rgba(255, 255, 255, 0.08);
+  transform: translateY(-1px);
+}
+
+.postThumb {
+  width: 52px;
+  height: 52px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background-color: #2d2d44;
 }
 
 .infoBadge {

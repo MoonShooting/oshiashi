@@ -2,6 +2,7 @@ package project.oshiashi.oshiashi.domain.artwork.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import project.oshiashi.oshiashi.domain.artwork.entity.ArtworkEntity;
 
@@ -79,4 +80,13 @@ public interface ArtworkRepository extends JpaRepository<ArtworkEntity, Long> {
     order by a.title asc
     """)
     List<String> findTop5TitlesByKeyword(String keyword);
+
+    // ── 성능 최적화: ArtworkType JOIN FETCH로 N+1 방지 (자동완성용) ──
+    @Query("""
+        SELECT a FROM ArtworkEntity a
+        JOIN FETCH a.artworkType
+        WHERE LOWER(a.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
+        ORDER BY a.title ASC
+    """)
+    List<ArtworkEntity> findByTitleWithType(@Param("keyword") String keyword);
 }

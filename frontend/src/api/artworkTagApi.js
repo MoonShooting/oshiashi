@@ -22,6 +22,18 @@ import { importArtwork, searchMapArtworks } from '@/api/mapApi';
 
 const text = (value) => String(value ?? '').trim();
 
+// ── 성능 최적화: 태그 목록 인메모리 캐시 ──
+// 기존: 검색할 때마다 GET /api/v1/tags 호출 (원격 DB N+1 = ~1.5초)
+// 개선: 첫 조회 후 60초간 캐시 재사용 → 즉시 응답
+let _tagCache = null;
+let _tagCacheExpiry = 0;
+const TAG_CACHE_TTL_MS = 60_000; // 60초
+
+const invalidateTagCache = () => {
+  _tagCache = null;
+  _tagCacheExpiry = 0;
+};
+
 const toArray = (value) => {
   if (Array.isArray(value)) return value;
   if (Array.isArray(value?.content)) return value.content;
@@ -72,13 +84,24 @@ const normalizeExternalCandidate = (candidate) => {
   };
 };
 
-export const loadArtworkTags = async () =>
+export const loadArtworkTags = async () => {
   // 태그 목록은 서비스에서 "즉시 검색에 써도 되는 정답 집합"입니다.
   // 게시글 검색/루트 저장 모두 이 목록을 우선 추천 기준으로 사용합니다.
-  toArray(await FetchJson('/api/v1/tags'))
+
+  // ── 성능 최적화: 캐시 히트 시 네트워크 요청 스킵 ──
+  if (_tagCache && Date.now() < _tagCacheExpiry) {
+    return _tagCache;
+  }
+
+  const tags = toArray(await FetchJson('/api/v1/tags'))
     .map(normalizeLocalTag)
     .filter(Boolean)
     .sort((left, right) => left.tagName.localeCompare(right.tagName, 'ko'));
+
+  _tagCache = tags;
+  _tagCacheExpiry = Date.now() + TAG_CACHE_TTL_MS;
+  return tags;
+};
 
 export const searchArtworkTagOptions = async (query) => {
   const normalizedQuery = text(query);
@@ -134,6 +157,7 @@ export const ensureLocalArtworkTag = async (candidate) => {
   try {
     // 정상 케이스:
     // import 직후 태그를 생성해 바로 로컬 Tag 형태로 반환합니다.
+    invalidateTagCache(); // 새 태그 생성 시 캐시 무효화
     return (
       normalizeLocalTag(
         unwrapObject(
@@ -153,8 +177,7 @@ export const ensureLocalArtworkTag = async (candidate) => {
     );
   } catch (error) {
     // 동시 요청/중복 생성 경합 허용:
-    // 같은 작품을 다른 화면 또는 다른 클릭으로 거의 동시에 확정할 수 있으므로
-    // "이미 태그가 만들어진 경우"는 실패로 끝내지 않고 기존 태그를 찾아 재사용합니다.
+    invalidateTagCache();
     const existing = (await loadArtworkTags()).find((tag) => String(tag.artworkId) === String(artworkId));
     if (existing) return existing;
     throw error;
@@ -178,6 +201,7 @@ export const resolveArtworkSelectionToTag = async (artwork) => {
     try {
       // 로컬 Artwork가 이미 있어도 Tag가 없을 수 있으므로,
       // "로컬 작품 선택" 역시 태그 생성 보장을 한 번 거칩니다.
+      invalidateTagCache(); // 새 태그 생성 시 캐시 무효화
       return (
         normalizeLocalTag(
           unwrapObject(
@@ -196,7 +220,7 @@ export const resolveArtworkSelectionToTag = async (artwork) => {
         }
       );
     } catch (error) {
-      // 이미 태그가 만들어진 경우를 허용해 idempotent하게 처리합니다.
+      invalidateTagCache();
       const existing = (await loadArtworkTags()).find((tag) => String(tag.artworkId) === String(artwork.artworkId));
       if (existing) return existing;
       throw error;

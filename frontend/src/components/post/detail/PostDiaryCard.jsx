@@ -21,7 +21,7 @@ const PostDiaryCard = ({
   // 응답 누락 시에도 렌더링이 가능하도록 배열/문자열 기본값을 고정합니다.
   const moodTags = Array.isArray(entry?.moodTags) ? entry.moodTags : [];
   const postTagNames = Array.isArray(post?.tagNames) ? post.tagNames : [];
-  const sceneNote = entry?.sceneNote || post?.content || '작성된 장면 기록이 없습니다.';
+  const sceneNote = entry?.sceneNote || '작성된 장면 기록이 없습니다.';
 
   return (
     <section className={styles.diaryCard}>

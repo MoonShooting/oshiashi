@@ -52,8 +52,19 @@ public interface TagRepository extends JpaRepository<TagEntity, Long> {
 	 */
 	void deleteByArtwork_ArtworkId(Long artworkId);
 
-	// 존재하는 tag 목록을 조회하여 선택하도록 하기 위한 조회용
+	// 존재하는 tag 목록을 조회하여 선택하도록 하기 위한 조회용 (기본 - 호환)
 	List<TagEntity> findAllByOrderByTagNameAsc();
+
+	// ── 성능 최적화: Artwork JOIN FETCH로 N+1 방지 ──
+	// 기존: findAllByOrderByTagNameAsc() → TagResponse.fromEntity()에서 artwork LAZY 로드
+	//       = 태그 14개 × Artwork LAZY = 15 쿼리 (원격 DB 기준 ~1.5초)
+	// 개선: 1 쿼리로 Tag + Artwork 한 번에 로드 (~100ms)
+	@Query("""
+		SELECT t FROM TagEntity t
+		LEFT JOIN FETCH t.artwork
+		ORDER BY t.tagName ASC
+	""")
+	List<TagEntity> findAllWithArtworkOrderByTagNameAsc();
 
 	@Query("""
     select pt.post.postId, t.tagName

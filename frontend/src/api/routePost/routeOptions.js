@@ -285,6 +285,10 @@ export const loadPostCreateRoutes = async (userId) => {
   const issues = [];
   const collected = [];
 
+  // ── 성능 최적화: 내 루트 + 북마크를 병렬로 동시 호출 ──
+  // 기존: 내 루트 API 호출(11초) → 완료 후 → 북마크 API 호출(1초) = 12초+
+  // 개선: 두 호출을 Promise.allSettled로 동시 실행 = 병렬 처리
+
   const routeListEndpoints = [
     resolvedUserId ? appendUserIdQuery('/api/v1/map/routes', resolvedUserId) : null,
     '/api/v1/routes/my',
@@ -292,46 +296,66 @@ export const loadPostCreateRoutes = async (userId) => {
     '/api/v1/user/myRoute',
   ].filter(Boolean);
 
-  let myRoutesLoaded = false;
-  for (const endpoint of routeListEndpoints) {
-    try {
-      const response = await FetchJson(endpoint);
-      const routeList = extractArrayPayload(response);
-      if (routeList.length > 0) {
-        collected.push(
-          ...routeList.map((route) =>
-            normalizeRouteOption(route, {
-              sourceType: 'MY_ROUTE',
-              sourceLabel: '내 루트',
-            }),
-          ),
-        );
+  // 내 루트 로딩 함수 (fallback endpoint 포함)
+  const loadMyRoutes = async () => {
+    for (const endpoint of routeListEndpoints) {
+      try {
+        const response = await FetchJson(endpoint);
+        const routeList = extractArrayPayload(response);
+        return { success: true, routes: routeList };
+      } catch {
+        // 다음 후보 endpoint로 재시도
       }
-      myRoutesLoaded = true;
-      break;
-    } catch {
-      // 다음 후보 endpoint로 재시도
     }
-  }
+    return { success: false, routes: [] };
+  };
 
-  if (!myRoutesLoaded) {
+  // 북마크 로딩 함수
+  const loadBookmarks = async () => {
+    try {
+      const bookmarks = await fetchBookmarksWithFallback({
+        fetchJson: FetchJson,
+        userId: resolvedUserId,
+      });
+      return bookmarks.filter((bookmark) => bookmark?.routeId != null);
+    } catch {
+      return null; // 실패 표시
+    }
+  };
+
+  // ── 핵심: 두 API를 동시에 호출 ──
+  const [myRoutesResult, bookmarkResult] = await Promise.allSettled([
+    loadMyRoutes(),
+    loadBookmarks(),
+  ]);
+
+  // 내 루트 결과 처리
+  const myRoutesData = myRoutesResult.status === 'fulfilled' ? myRoutesResult.value : { success: false, routes: [] };
+  if (myRoutesData.success && myRoutesData.routes.length > 0) {
+    collected.push(
+      ...myRoutesData.routes.map((route) =>
+        normalizeRouteOption(route, {
+          sourceType: 'MY_ROUTE',
+          sourceLabel: '내 루트',
+        }),
+      ),
+    );
+  } else if (!myRoutesData.success) {
     issues.push('내 루트 조회 API 응답을 확인하지 못했습니다.');
   }
 
-  try {
-    const bookmarks = await fetchBookmarksWithFallback({
-      fetchJson: FetchJson,
-      userId: resolvedUserId,
-    });
-    const routeBookmarks = bookmarks.filter((bookmark) => bookmark?.routeId != null);
-
-    for (const bookmark of routeBookmarks) {
+  // 북마크 결과 처리
+  const routeBookmarks = bookmarkResult.status === 'fulfilled' ? bookmarkResult.value : null;
+  if (routeBookmarks === null) {
+    issues.push('북마크 목록 조회 API 응답을 확인하지 못했습니다.');
+  } else if (routeBookmarks.length > 0) {
+    // 북마크 루트 상세 조회도 병렬로 처리
+    const bookmarkPromises = routeBookmarks.map(async (bookmark) => {
       const routeId = bookmark.routeId;
       const fastResolved = normalizeBookmarkedRouteFromPins(bookmark);
 
       if (fastResolved) {
-        collected.push(fastResolved);
-        continue;
+        return { resolved: fastResolved, issues: [] };
       }
 
       const routeDetailEndpoints = [
@@ -356,33 +380,45 @@ export const loadPostCreateRoutes = async (userId) => {
       }
 
       if (resolved) {
-        collected.push(resolved);
-      } else {
-        let fallbackRoute = null;
+        return { resolved, issues: [] };
+      }
 
-        if (bookmark?.postId != null) {
-          try {
-            const bookmarkedPost = await FetchJson(`/api/v1/posts/${bookmark.postId}`);
-            fallbackRoute = normalizeBookmarkedRouteFromPostDetail(bookmarkedPost, bookmark);
-          } catch {
-            // 공개 게시물 상세도 실패하면 pins fallback으로 한번 더 시도합니다.
-          }
-        }
+      // fallback: 게시글 상세 또는 pins
+      let fallbackRoute = null;
+      const itemIssues = [];
 
-        if (!fallbackRoute) {
-          fallbackRoute = normalizeBookmarkedRouteFromPins(bookmark);
-        }
-
-        if (fallbackRoute) {
-          collected.push(fallbackRoute);
-          issues.push(`북마크 루트 ${routeId} 상세 조회는 실패했지만, 북마크 데이터로 복원했습니다.`);
-        } else {
-          issues.push(`북마크 루트 ${routeId} 상세 조회에 실패했습니다.`);
+      if (bookmark?.postId != null) {
+        try {
+          const bookmarkedPost = await FetchJson(`/api/v1/posts/${bookmark.postId}`);
+          fallbackRoute = normalizeBookmarkedRouteFromPostDetail(bookmarkedPost, bookmark);
+        } catch {
+          // pins fallback으로 시도
         }
       }
+
+      if (!fallbackRoute) {
+        fallbackRoute = normalizeBookmarkedRouteFromPins(bookmark);
+      }
+
+      if (fallbackRoute) {
+        itemIssues.push(`북마크 루트 ${routeId} 상세 조회는 실패했지만, 북마크 데이터로 복원했습니다.`);
+        return { resolved: fallbackRoute, issues: itemIssues };
+      }
+
+      itemIssues.push(`북마크 루트 ${routeId} 상세 조회에 실패했습니다.`);
+      return { resolved: null, issues: itemIssues };
+    });
+
+    // 북마크 상세 조회를 병렬로 실행
+    const bookmarkResults = await Promise.allSettled(bookmarkPromises);
+    for (const result of bookmarkResults) {
+      if (result.status === 'fulfilled' && result.value) {
+        if (result.value.resolved) {
+          collected.push(result.value.resolved);
+        }
+        issues.push(...result.value.issues);
+      }
     }
-  } catch {
-    issues.push('북마크 목록 조회 API 응답을 확인하지 못했습니다.');
   }
 
   if (collected.length === 0 && ENABLE_POST_CREATE_MOCK_ROUTES) {

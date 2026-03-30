@@ -2,6 +2,7 @@ package project.oshiashi.oshiashi.domain.spot.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import project.oshiashi.oshiashi.domain.spot.entity.SpotEntity;
 
@@ -10,8 +11,19 @@ import java.util.Optional;
 
 @Repository
 public interface SpotRepository extends JpaRepository<SpotEntity, Long> {
-	// 특정 작품에 해당하는 모든 성지(Spot) 조회
+	// 특정 작품에 해당하는 모든 성지(Spot) 조회 (기본 - 호환용)
 	List<SpotEntity> findByArtwork_ArtworkId(Long artworkId);
+
+	// ── 성능 최적화: Artwork + ArtworkType JOIN FETCH ──
+	// 기존: findByArtwork_ArtworkId → MapPlaceResponse.from()에서 Artwork LAZY 로드 = N+1
+	// 개선: 1 쿼리로 Artwork + ArtworkType까지 로드
+	@Query("""
+	    SELECT s FROM SpotEntity s
+	    JOIN FETCH s.artwork a
+	    JOIN FETCH a.artworkType
+	    WHERE a.artworkId = :artworkId
+	""")
+	List<SpotEntity> findByArtworkIdWithType(@Param("artworkId") Long artworkId);
 
 	// 장소 이름 + 작품 제목 기준 키워드 검색
 	@Query("""
@@ -67,5 +79,15 @@ public interface SpotRepository extends JpaRepository<SpotEntity, Long> {
     and lower(t.artworkTypeName) = lower(:mediaType)
     """)
 	List<SpotEntity> searchByKeywordAndMediaType(String keyword, String mediaType);
+
+	// ── 성능 최적화: 전체 장소 조회 시 Artwork + ArtworkType JOIN FETCH ──
+	// (기존: findAll() → Spot N개 × Artwork LAZY × ArtworkType LAZY = 34+ 쿼리)
+	// (개선: 1 쿼리로 전부 로드)
+	@Query("""
+		SELECT s FROM SpotEntity s
+		JOIN FETCH s.artwork a
+		JOIN FETCH a.artworkType
+	""")
+	List<SpotEntity> findAllWithArtwork();
 
 }

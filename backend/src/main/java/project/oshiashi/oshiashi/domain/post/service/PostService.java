@@ -1,28 +1,31 @@
 package project.oshiashi.oshiashi.domain.post.service;
 
+import org.springframework.data.domain.Pageable;
 import project.oshiashi.oshiashi.domain.post.dto.PostRequest;
 import project.oshiashi.oshiashi.domain.post.dto.PostResponse;
 
 import java.util.List;
 
 public interface PostService {
-	//List<PostResponse> getAllPost();
 	PostResponse getPostById(Long postId);
-	
+
 	//  게시글 작성
 	PostResponse createPost(PostRequest request);
 
 	//삭제
-	void deletePost(Long postId,String userId );
-	
-	//수정
+	void deletePost(Long postId, String userId);
 
-	PostResponse updatePost(Long postId,String userId , PostRequest request);
+	//수정
+	PostResponse updatePost(Long postId, String userId, PostRequest request);
 
 	//좋아요
 	PostResponse likePost(Long postId, String userId);
-	
+
+	// 기존: 전체 로드 (하위 호환)
 	List<PostResponse> getAllPost(Boolean routeIdIsNull, String sort, String search, List<String> tags);
+
+	// 신규: 페이지네이션 적용
+	List<PostResponse> getAllPost(Boolean routeIdIsNull, String sort, String search, List<String> tags, Pageable pageable);
 
 	// 인기글 목록 조회(좋아요 기준 Top 10)
 	List<PostResponse> getTopPosts();

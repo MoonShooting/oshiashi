@@ -27,9 +27,13 @@ import project.oshiashi.oshiashi.domain.user.repository.UserRepository;
 import project.oshiashi.oshiashi.global.exception.BusinessException;
 import project.oshiashi.oshiashi.global.exception.ErrorCode;
 
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -110,13 +114,15 @@ public class PostServiceImpl implements PostService {
 		boolean hasTags = tags != null && !tags.isEmpty();
 		boolean routeOnlyNull = Boolean.TRUE.equals(routeIdIsNull);
 
+		// ── 정렬 상수 통일: 프론트 기준 "views"/"popular"/"latest" 사용 ──
+		// (커뮤니티/루트 양쪽 모두 동일한 정렬 키 사용)
 		if (routeOnlyNull) {
 			if (hasTags) {
 				posts = postRepository.findAllByRouteIsNullAndTagNamesInOrderByCreatedAtDesc(tags);
 			} else {
 				posts = switch (normalizedSort) {
-					case "view" -> postRepository.findAllByRouteIsNullOrderByViewCountDescCreatedAtDesc();
-					case "like" -> postRepository.findAllByRouteIsNullOrderByLikeCountDescCreatedAtDesc();
+					case "views", "view" -> postRepository.findAllByRouteIsNullOrderByViewCountDescCreatedAtDesc();
+					case "popular", "like" -> postRepository.findAllByRouteIsNullOrderByLikeCountDescCreatedAtDesc();
 					case "latest" -> postRepository.findAllByRouteIsNullOrderByCreatedAtDesc();
 					default -> throw new IllegalArgumentException("지원하지 않는 정렬 방식입니다. " + sort);
 				};
@@ -126,8 +132,8 @@ public class PostServiceImpl implements PostService {
 				posts = postRepository.findAllByRouteIsNotNullAndTagNamesInOrderByCreatedAtDesc(tags);
 			} else {
 				posts = switch (normalizedSort) {
-					case "views" -> postRepository.findAllByRouteIsNotNullOrderByViewCountDescCreatedAtDesc();
-					case "popular" -> postRepository.findAllByRouteIsNotNullOrderByLikeCountDescCreatedAtDesc();
+					case "views", "view" -> postRepository.findAllByRouteIsNotNullOrderByViewCountDescCreatedAtDesc();
+					case "popular", "like" -> postRepository.findAllByRouteIsNotNullOrderByLikeCountDescCreatedAtDesc();
 					case "latest" -> postRepository.findAllByRouteIsNotNullOrderByCreatedAtDesc();
 					default -> throw new IllegalArgumentException("지원하지 않는 정렬 방식입니다. " + sort);
 				};
@@ -179,6 +185,116 @@ public class PostServiceImpl implements PostService {
 	}
 
 	/**
+	 * 1-2. 게시글 전체 조회 (페이지네이션 적용)
+	 * - 기존 getAllPost와 동일한 로직이나 DB 레벨에서 LIMIT/OFFSET 적용
+	 * - 프론트에서 page/size를 보내면 이 메서드로 라우팅됨
+	 */
+	@Override
+	@Transactional(readOnly = true)
+	public List<PostResponse> getAllPost(Boolean routeIdIsNull, String sort, String search, List<String> tags, Pageable pageable) {
+		log.debug("[Service] 게시글 페이지네이션 조회 - routeIdIsNull: {}, sort: {}, page: {}, size: {}",
+				routeIdIsNull, sort, pageable.getPageNumber(), pageable.getPageSize());
+
+		String normalizedSort = (sort == null || sort.isBlank()) ? "latest" : sort.trim().toLowerCase();
+		List<PostEntity> posts;
+
+		boolean hasTags = tags != null && !tags.isEmpty();
+		boolean hasSearch = search != null && !search.isBlank();
+		boolean routeOnlyNull = Boolean.TRUE.equals(routeIdIsNull);
+
+		// ── 성능 최적화: search 필터를 DB LIKE 쿼리로 전환 ──
+		// 기존: DB에서 전체 로드 → Java stream().filter()로 검색 (메모리 낭비)
+		// 개선: DB에서 LIKE 조건으로 필터링 후 페이지네이션 적용
+		if (hasSearch && !hasTags) {
+			// 검색어가 있고 태그 필터가 없는 경우 → DB LIKE 쿼리 사용
+			if (routeOnlyNull) {
+				posts = switch (normalizedSort) {
+					case "views", "view" -> postRepository.searchByRouteNullViews(search, pageable);
+					case "popular", "like" -> postRepository.searchByRouteNullPopular(search, pageable);
+					case "latest" -> postRepository.searchByRouteNullLatest(search, pageable);
+					default -> throw new IllegalArgumentException("지원하지 않는 정렬 방식입니다. " + sort);
+				};
+			} else {
+				posts = switch (normalizedSort) {
+					case "views", "view" -> postRepository.searchByRouteNotNullViews(search, pageable);
+					case "popular", "like" -> postRepository.searchByRouteNotNullPopular(search, pageable);
+					case "latest" -> postRepository.searchByRouteNotNullLatest(search, pageable);
+					default -> throw new IllegalArgumentException("지원하지 않는 정렬 방식입니다. " + sort);
+				};
+			}
+		} else if (routeOnlyNull) {
+			if (hasTags) {
+				posts = postRepository.findAllByRouteIsNullAndTagNamesInOrderByCreatedAtDesc(tags, pageable);
+			} else {
+				posts = switch (normalizedSort) {
+					case "views", "view" -> postRepository.findAllByRouteIsNullOrderByViewCountDescCreatedAtDesc(pageable);
+					case "popular", "like" -> postRepository.findAllByRouteIsNullOrderByLikeCountDescCreatedAtDesc(pageable);
+					case "latest" -> postRepository.findAllByRouteIsNullOrderByCreatedAtDesc(pageable);
+					default -> throw new IllegalArgumentException("지원하지 않는 정렬 방식입니다. " + sort);
+				};
+			}
+		} else {
+			if (hasTags) {
+				posts = postRepository.findAllByRouteIsNotNullAndTagNamesInOrderByCreatedAtDesc(tags, pageable);
+			} else {
+				posts = switch (normalizedSort) {
+					case "views", "view" -> postRepository.findAllByRouteIsNotNullOrderByViewCountDescCreatedAtDesc(pageable);
+					case "popular", "like" -> postRepository.findAllByRouteIsNotNullOrderByLikeCountDescCreatedAtDesc(pageable);
+					case "latest" -> postRepository.findAllByRouteIsNotNullOrderByCreatedAtDesc(pageable);
+					default -> throw new IllegalArgumentException("지원하지 않는 정렬 방식입니다. " + sort);
+				};
+			}
+		}
+
+		// 태그+검색 조합인 경우에만 메모리 필터 (드문 케이스)
+		List<PostEntity> filteredPosts;
+		if (hasSearch && hasTags) {
+			filteredPosts = posts.stream()
+					.filter(post -> post.getTitle().contains(search)
+							|| post.getContent().contains(search))
+					.toList();
+		} else {
+			filteredPosts = posts;
+		}
+
+		if (filteredPosts.isEmpty()) {
+			return List.of();
+		}
+
+		List<Long> postIds = filteredPosts.stream()
+				.map(PostEntity::getPostId)
+				.toList();
+
+		Map<Long, Integer> commentCountMap = commentRepository.countByPostIds(postIds).stream()
+				.collect(Collectors.toMap(
+						row -> (Long) row[0],
+						row -> ((Long) row[1]).intValue()
+				));
+
+		Map<Long, List<String>> tagMap = postTagRepository.findTagNamesByPostIds(postIds).stream()
+				.collect(Collectors.groupingBy(
+						row -> (Long) row[0],
+						Collectors.mapping(row -> (String) row[1], Collectors.toList())
+				));
+
+		Map<Long, List<String>> imageMap = postImageRepository.findImagesByPostIds(postIds).stream()
+				.sorted(Comparator.comparing(row -> (Integer) row[2]))
+				.collect(Collectors.groupingBy(
+						row -> (Long) row[0],
+						Collectors.mapping(row -> (String) row[1], Collectors.toList())
+				));
+
+		return filteredPosts.stream()
+				.map(post -> PostResponse.fromListData(
+						post,
+						commentCountMap.getOrDefault(post.getPostId(), 0),
+						tagMap.getOrDefault(post.getPostId(), List.of()),
+						imageMap.getOrDefault(post.getPostId(), List.of())
+				))
+				.toList();
+	}
+
+	/**
 	 * 2. 게시글 단건 조회
 	 * @param postId (필수) 조회할 게시글 고유 ID
 	 * @return PostResponse
@@ -190,19 +306,24 @@ public class PostServiceImpl implements PostService {
 	public PostResponse getPostById(Long postId) {
 		log.debug("[Service] 게시글 단건 조회 시작 - ID: {}", postId);
 
-		return postRepository.findById(postId)
-				.map(entity -> {
-					
-					entity.incrementViewCount();
-					log.debug("[Service] 조회수 증가!, {}", entity.getViewCount() );
-					
-					log.debug("[Service] 게시글 조회 성공: {}", entity.getTitle());
-					return PostResponse.fromEntity(entity);
-				})
+		// ── 성능 최적화: 2-쿼리 전략으로 N+1 해결 ──
+		// 1단계: Route → RouteSpot → Spot → Artwork 그래프를 한 번에 로드
+		PostEntity entity = postRepository.findByIdWithRouteGraph(postId)
 				.orElseThrow(() -> {
 					log.debug("[Service] 조회 실패: {}번 게시글이 존재하지 않음", postId);
 					return new BusinessException(ErrorCode.POST_NOT_FOUND);
 				});
+
+		// 2단계: Images와 PostTags를 별도 쿼리로 로드
+		// (MultipleBagFetchException 방지를 위해 컬렉션별 분리)
+		postRepository.findByIdWithImages(postId);
+		postRepository.findByIdWithTags(postId);
+
+		entity.incrementViewCount();
+		log.debug("[Service] 조회수 증가!, {}", entity.getViewCount());
+		log.debug("[Service] 게시글 조회 성공: {}", entity.getTitle());
+
+		return PostResponse.fromEntity(entity);
 	}
 
 	/**
@@ -256,45 +377,47 @@ public class PostServiceImpl implements PostService {
 		//먼저 저장하여 postId 받기
 		postEntity = postRepository.save(postEntity);
 		
-		// 1. 기본 이미지 리스트 가져오기
-		List<String> allImages = new ArrayList<>();
-		
+		// 이미지 URL → 장소 메모 매핑 (순서 보존, 중복 제거)
+		// 기존: List<String>으로 URL만 수집 → note 유실
+		// 개선: LinkedHashMap<url, note>으로 entry별 note를 함께 저장
+		LinkedHashMap<String, String> imageNoteMap = new LinkedHashMap<>();
+
 		// 2. 프론트가 보낸 'entries'를 최우선으로 가져옵니다. (여기에 원본과 내 사진이 다 있음)
 		if (request.getEntries() != null && !request.getEntries().isEmpty()) {
 			for (PostEntryResponse entry : request.getEntries()) {
-				
+				String note = entry.getNote() != null ? entry.getNote().trim() : "";
+
 				// 1. [짝수 라인] 애니메이션 원본 장면 (Reference)
 				if (entry.getReferenceImageUrl() != null && !entry.getReferenceImageUrl().isBlank()) {
-					allImages.add(entry.getReferenceImageUrl().trim());
+					imageNoteMap.putIfAbsent(entry.getReferenceImageUrl().trim(), note);
 				}
-
 
 				// 2. [홀수 라인] 내가 직접 찍은 사진 (User)
 				if (entry.getUserImageUrl() != null && !entry.getUserImageUrl().isBlank()) {
-					allImages.add(entry.getUserImageUrl().trim());
+					imageNoteMap.putIfAbsent(entry.getUserImageUrl().trim(), note);
 				}
 			}
 		}
-		
-		
-		// 3. 만약 위에서 아무것도 안 담겼다면 기본 imageUrl 사용
-		if (allImages.isEmpty() && request.getImageUrl() != null) {
-			allImages.addAll(request.getImageUrl());
-		}
-		// [검거 로그] 여기서 주소가 서로 다른지 꼭 확인하세요!
-		log.debug("최종 리스트 내용: {}", allImages);
-		
-		// 3. 이제 합쳐진 allImages로 DB에 저장 (sortOrder i 적용)
-		List<String> persistableImages = allImages.stream()
-				.filter(imageUrl -> imageUrl != null && !imageUrl.isBlank())
-				.distinct()
-				.toList();
 
-		for (int i = 0; i < persistableImages.size(); i++) {
+		// 3. 만약 위에서 아무것도 안 담겼다면 기본 imageUrl 사용 (note 없음)
+		if (imageNoteMap.isEmpty() && request.getImageUrl() != null) {
+			for (String url : request.getImageUrl()) {
+				if (url != null && !url.isBlank()) {
+					imageNoteMap.putIfAbsent(url.trim(), "");
+				}
+			}
+		}
+		log.debug("최종 리스트 내용: {}", imageNoteMap.keySet());
+
+		// 3. 이제 합쳐진 imageNoteMap으로 DB에 저장 (sortOrder i, note 포함)
+		List<String> persistableImages = new ArrayList<>(imageNoteMap.keySet());
+		int sortIdx = 0;
+		for (Map.Entry<String, String> imgEntry : imageNoteMap.entrySet()) {
 			PostImageEntity imageEntity = PostImageEntity.builder()
 					.post(postEntity)
-					.imageUrl(persistableImages.get(i))
-					.sortOrder(i)
+					.imageUrl(imgEntry.getKey())
+					.sortOrder(sortIdx++)
+					.note(imgEntry.getValue())
 					.createdAt(LocalDateTime.now())
 					.build();
 			postEntity.addPostImage(imageEntity);
@@ -521,14 +644,54 @@ public class PostServiceImpl implements PostService {
 	 * - 좋아요가 많은 순으로 정렬한 뒤 상위 10개만 반환합니다.
 	 * - 좋아요 수가 같으면 더 최근 글이 먼저 오도록 createdAt 기준을 함께 사용합니다.
 	 */
+	/** 인기 게시글 상위 10개 (DB LIMIT) */
+	private static final int TOP_POSTS_LIMIT = 10;
+
 	@Override
 	@Transactional(readOnly = true)
 	public List<PostResponse> getTopPosts() {
 		log.debug("[Service] 메인 인기 게시글 목록 조회 요청");
 
-		return postRepository.findAllByRouteIsNotNullOrderByLikeCountDescCreatedAtDesc().stream()
-				.limit(10)
-				.map(PostResponse::fromEntity)
+		// ── 성능 최적화 ──
+		// 기존: 전체 로드 → Java .limit(10) → fromEntity() N+1 = 221 쿼리
+		// 개선: DB에서 10건만 조회 (JOIN FETCH user) → fromListData로 배치 변환 = 4 쿼리
+		List<PostEntity> topPosts = postRepository.findTopPostsWithUser(
+				PageRequest.of(0, TOP_POSTS_LIMIT));
+
+		if (topPosts.isEmpty()) {
+			return List.of();
+		}
+
+		List<Long> postIds = topPosts.stream()
+				.map(PostEntity::getPostId)
+				.toList();
+
+		Map<Long, Integer> commentCountMap = commentRepository.countByPostIds(postIds).stream()
+				.collect(Collectors.toMap(
+						row -> (Long) row[0],
+						row -> ((Long) row[1]).intValue()
+				));
+
+		Map<Long, List<String>> tagMap = postTagRepository.findTagNamesByPostIds(postIds).stream()
+				.collect(Collectors.groupingBy(
+						row -> (Long) row[0],
+						Collectors.mapping(row -> (String) row[1], Collectors.toList())
+				));
+
+		Map<Long, List<String>> imageMap = postImageRepository.findImagesByPostIds(postIds).stream()
+				.sorted(Comparator.comparing(row -> (Integer) row[2]))
+				.collect(Collectors.groupingBy(
+						row -> (Long) row[0],
+						Collectors.mapping(row -> (String) row[1], Collectors.toList())
+				));
+
+		return topPosts.stream()
+				.map(post -> PostResponse.fromListData(
+						post,
+						commentCountMap.getOrDefault(post.getPostId(), 0),
+						tagMap.getOrDefault(post.getPostId(), List.of()),
+						imageMap.getOrDefault(post.getPostId(), List.of())
+				))
 				.toList();
 	}
 }

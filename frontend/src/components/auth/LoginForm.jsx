@@ -34,12 +34,12 @@ const LoginForm = () => {
       // 인증 상태가 반영되면 홈으로 이동합니다.
       navigate('/');
     } catch (error) {
-      const errorMessage = typeof e === 'string' ? e : e.message || JSON.stringify(e);
+      const errorMessage = typeof error === 'string' ? error : error.message || JSON.stringify(error);
 
       if (errorMessage.includes('WITHDRAWN')) {
-        alert('탈퇴 처리 진행 중인 계정입니다. 로그인이 불가합니다.');
+        setFormError('탈퇴 처리 진행 중인 계정입니다. 로그인이 불가합니다.');
       } else {
-        alert('아이디 또는 비밀번호가 일치하지 않습니다.');
+        setFormError('아이디 또는 비밀번호가 일치하지 않습니다.');
       }
     }
   };

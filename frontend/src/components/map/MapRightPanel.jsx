@@ -164,8 +164,16 @@ export default function MapRightPanel({ pin, onClose }) {
                       day: '2-digit',
                     })
                   : '';
+                const thumb = post.thumbnailUrl || (Array.isArray(post.imageUrl) ? post.imageUrl[0] : null);
                 return (
-                  <li key={postId} className={styles.postItem}>
+                  <li
+                    key={postId}
+                    className={styles.postItem}
+                    onClick={() => navigate(`/posts/${postId}`)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => e.key === 'Enter' && navigate(`/posts/${postId}`)}>
+                    {thumb && <img src={thumb} alt="" className={styles.postThumb} />}
                     <div className={styles.postText}>
                       <strong>{post.title || '(제목 없음)'}</strong>
                       <span>
