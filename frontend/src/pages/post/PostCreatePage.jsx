@@ -13,7 +13,7 @@ import { useAuthStore } from '@/stores/useAuthStore';
 import styles from '@/styles/PostCreatePage.module.css';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
-const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/png', 'image/jpg'];
 
 // blob: URL은 로컬 미리보기 전용이라 서버 저장 대상으로 보면 안 됩니다.
 const hasUploadedUrl = (value) => typeof value === 'string' && value.trim().length > 0 && !value.startsWith('blob:');
@@ -21,7 +21,7 @@ const hasUploadedUrl = (value) => typeof value === 'string' && value.trim().leng
 /*
 [PostCreatePage]
 - 루트 선택 -> 장소 카드 생성 -> 대표사진/감상 입력 -> 업로드 API 호출 -> JSON 생성 전송
-- 업로드 정책: 장소별 대표사진 1장, jpg/png/webp, 10MB 이하
+- 업로드 정책: 장소별 대표사진 1장, jpg/jpeg/png, 10MB 이하
 - 참고 이미지는 업로드 성공 시 entry.referenceImageUrl로 저장됩니다.
 */
 const PostCreatePage = () => {
@@ -185,9 +185,9 @@ const PostCreatePage = () => {
   };
 
   const validateRepresentativePhoto = (file) => {
-    // 정책 고정: 장소별 대표 사진 1장, jpg/png/webp, 10MB 이하
+    // 정책 고정: 장소별 대표 사진 1장, jpg/jpeg/png, 10MB 이하
     if (!ALLOWED_FILE_TYPES.includes(file.type)) {
-      return '대표 사진은 jpg, png, webp 형식만 업로드할 수 있습니다.';
+      return '대표 사진은 jpg, jpeg, png 형식만 업로드할 수 있습니다.';
     }
 
     if (file.size > MAX_FILE_SIZE) {
@@ -450,12 +450,7 @@ const PostCreatePage = () => {
             <p className={styles.tagInputHint}>{selectedRoute?.title ?? '기존 루트 정보를 불러오는 중입니다.'}</p>
           </section>
         ) : (
-          <PostRoutePicker
-            routes={routes}
-            selectedRouteId={selectedRouteId}
-            onSelectRoute={handleSelectRoute}
-            loading={isLoadingRoutes}
-          />
+          <PostRoutePicker routes={routes} selectedRouteId={selectedRouteId} onSelectRoute={handleSelectRoute} loading={isLoadingRoutes} />
         )}
 
         <section className={styles.formSection}>
@@ -543,7 +538,7 @@ const PostCreatePage = () => {
             <strong className={styles.bottomSummaryTitle}>게시 즉시 공개됩니다.</strong>
             <p className={styles.bottomSummaryText}>
               총 {entries.length}개 장소 중 {incompleteEntries}개 장소가 아직 대표 사진을 기다리고 있습니다. 장소별 대표 사진은 1장, 파일 용량은 10MB
-              이하(jpg/png/webp)로 제한되며, 업로드가 완료된 사진만 최종 등록됩니다.
+              이하(jpg/jpeg/png)로 제한되며, 업로드가 완료된 사진만 최종 등록됩니다.
             </p>
           </div>
 

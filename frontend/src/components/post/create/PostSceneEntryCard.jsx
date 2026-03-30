@@ -1,14 +1,5 @@
 import React, { useRef } from 'react';
-import {
-  Camera,
-  ImagePlus,
-  Link2,
-  MapPin,
-  Music4,
-  PlusCircle,
-  Upload,
-  X,
-} from 'lucide-react';
+import { Camera, ImagePlus, Link2, MapPin, Music4, PlusCircle, Upload, X } from 'lucide-react';
 import styles from '@/styles/PostCreatePage.module.css';
 
 const PostSceneEntryCard = ({
@@ -24,8 +15,7 @@ const PostSceneEntryCard = ({
   const photoInputRef = useRef(null);
   const referenceInputRef = useRef(null);
 
-  const referenceImageUrl =
-    entry.referenceImagePreviewUrl ?? entry.referenceImageUrl ?? entry.sceneImageUrl ?? null;
+  const referenceImageUrl = entry.referenceImagePreviewUrl ?? entry.referenceImageUrl ?? entry.sceneImageUrl ?? null;
   const referenceLabel = entry.kind === 'custom-place' ? '비교용 참고 이미지' : '원본 장면';
   const uploadedPhoto = entry.experiencePhotos[0] ?? null;
 
@@ -47,26 +37,15 @@ const PostSceneEntryCard = ({
         : uploadedPhoto?.uploadStatus === 'uploaded'
           ? `${uploadedPhoto.name} 업로드가 완료되었습니다.`
           : '';
-  const photoPromptPresets = [
-    '이 장면이 특히 좋았던 이유는 ',
-    '이 사진을 찍을 때 들은 음악은 ',
-    '직접 와보니 작중 분위기와 달랐던 점은 ',
-  ];
+  const photoPromptPresets = ['이 장면이 특히 좋았던 이유는 ', '이 사진을 찍을 때 들은 음악은 ', '직접 와보니 작중 분위기와 달랐던 점은 '];
 
   return (
-    <article
-      className={
-        entry.kind === 'custom-place'
-          ? `${styles.entryCard} ${styles.entryCardCustom}`
-          : styles.entryCard
-      }>
+    <article className={entry.kind === 'custom-place' ? `${styles.entryCard} ${styles.entryCardCustom}` : styles.entryCard}>
       <div className={styles.entryHeader}>
         <div className={styles.entryHeaderMain}>
           <span className={styles.entryIndex}>{index + 1}</span>
           <div className={styles.entryTitleBlock}>
-            <h3 className={styles.entryTitle}>
-              {entry.name || (entry.kind === 'custom-place' ? '추가 장소 이름을 입력하세요' : '장소 이름 없음')}
-            </h3>
+            <h3 className={styles.entryTitle}>{entry.name || (entry.kind === 'custom-place' ? '추가 장소 이름을 입력하세요' : '장소 이름 없음')}</h3>
             <p className={styles.entryMeta}>
               {entry.artworkTitle || '작품 정보 없음'}
               {entry.address ? ` · ${entry.address}` : ''}
@@ -84,10 +63,7 @@ const PostSceneEntryCard = ({
             {entry.kind === 'custom-place' ? '추가 장소' : '루트 장소'}
           </span>
           {entry.kind === 'custom-place' ? (
-            <button
-              type="button"
-              className={styles.entryRemoveButton}
-              onClick={() => onRemoveEntry(entry.id)}>
+            <button type="button" className={styles.entryRemoveButton} onClick={() => onRemoveEntry(entry.id)}>
               <X size={14} />
               삭제
             </button>
@@ -146,20 +122,12 @@ const PostSceneEntryCard = ({
               }
             }}>
             {referenceImageUrl ? (
-              <img
-                src={referenceImageUrl}
-                alt={`${entry.name || '장소'} reference`}
-                className={styles.referenceImage}
-              />
+              <img src={referenceImageUrl} alt={`${entry.name || '장소'} reference`} className={styles.referenceImage} />
             ) : (
               <div className={styles.referencePlaceholder}>
                 <ImagePlus size={26} />
-                <strong className={styles.referencePlaceholderTitle}>
-                  참고 이미지가 아직 없습니다
-                </strong>
-                <p className={styles.referencePlaceholderText}>
-                  추가 장소라면 비교용 참고 이미지를 직접 넣을 수 있습니다.
-                </p>
+                <strong className={styles.referencePlaceholderTitle}>참고 이미지가 아직 없습니다</strong>
+                <p className={styles.referencePlaceholderText}>추가 장소라면 비교용 참고 이미지를 직접 넣을 수 있습니다.</p>
               </div>
             )}
           </div>
@@ -177,10 +145,7 @@ const PostSceneEntryCard = ({
               </span>
             )}
 
-            <button
-              type="button"
-              className={styles.uploadReferenceButton}
-              onClick={() => referenceInputRef.current?.click()}>
+            <button type="button" className={styles.uploadReferenceButton} onClick={() => referenceInputRef.current?.click()}>
               <ImagePlus size={14} />
               {referenceImageUrl ? '참고 이미지 바꾸기' : '참고 이미지 추가'}
             </button>
@@ -189,9 +154,7 @@ const PostSceneEntryCard = ({
           {referenceUploadMessage ? (
             <p
               className={
-                entry.referenceImageUploadStatus === 'error'
-                  ? `${styles.uploadStatusText} ${styles.uploadStatusError}`
-                  : styles.uploadStatusText
+                entry.referenceImageUploadStatus === 'error' ? `${styles.uploadStatusText} ${styles.uploadStatusError}` : styles.uploadStatusText
               }>
               {referenceUploadMessage}
             </p>
@@ -214,25 +177,20 @@ const PostSceneEntryCard = ({
 
         <div className={styles.compareColumn}>
           <span className={styles.columnLabel}>실제 촬영 사진</span>
-          <button
-            type="button"
-            className={styles.uploadZone}
-            onClick={() => photoInputRef.current?.click()}>
+          <button type="button" className={styles.uploadZone} onClick={() => photoInputRef.current?.click()}>
             <Upload size={24} />
             <strong className={styles.uploadZoneTitle}>실제 촬영 사진 업로드</strong>
             <p className={styles.uploadZoneHint}>
               각 spot에는 대표 사진 1장만 올립니다. 대신 그 사진에 대한 감상, 음악, 현장 분위기를 자세히 적습니다.
             </p>
-            <span className={styles.uploadZoneButton}>
-              {uploadedPhoto ? '사진 바꾸기' : '사진 추가'}
-            </span>
+            <span className={styles.uploadZoneButton}>{uploadedPhoto ? '사진 바꾸기' : '사진 추가'}</span>
           </button>
 
           <input
             ref={photoInputRef}
             type="file"
-            // 페이지 정책과 동일하게 대표 사진은 jpg/png/webp만 허용합니다.
-            accept="image/jpeg,image/png,image/webp"
+            // 페이지 정책과 동일하게 대표 사진은 jpg/jpeg/png만 허용합니다.
+            accept="image/jpeg,image/png,image/jpg"
             hidden
             onChange={(event) => {
               const files = Array.from(event.target.files ?? []);
@@ -258,15 +216,8 @@ const PostSceneEntryCard = ({
               <div className={styles.photoSingleWrap}>
                 <div className={styles.photoCard}>
                   <div className={styles.photoPreviewWrap}>
-                    <img
-                      src={uploadedPhoto.previewUrl}
-                      alt={uploadedPhoto.name}
-                      className={styles.photoPreview}
-                    />
-                    <button
-                      type="button"
-                      className={styles.photoRemoveButton}
-                      onClick={() => onRemovePhoto(entry.id, uploadedPhoto.id)}>
+                    <img src={uploadedPhoto.previewUrl} alt={uploadedPhoto.name} className={styles.photoPreview} />
+                    <button type="button" className={styles.photoRemoveButton} onClick={() => onRemovePhoto(entry.id, uploadedPhoto.id)}>
                       <X size={12} />
                     </button>
                   </div>
@@ -280,18 +231,14 @@ const PostSceneEntryCard = ({
                   {photoUploadMessage ? (
                     <p
                       className={
-                        uploadedPhoto.uploadStatus === 'error'
-                          ? `${styles.uploadStatusText} ${styles.uploadStatusError}`
-                          : styles.uploadStatusText
+                        uploadedPhoto.uploadStatus === 'error' ? `${styles.uploadStatusText} ${styles.uploadStatusError}` : styles.uploadStatusText
                       }>
                       {photoUploadMessage}
                     </p>
                   ) : null}
                   <div className={styles.photoNoteHeader}>
                     <strong className={styles.photoNoteLabel}>이 사진의 감상</strong>
-                    <span className={styles.photoNoteHelper}>
-                      장면 감상, 들은 음악, 현장 기분을 이 대표 사진 기준으로 남겨보세요
-                    </span>
+                    <span className={styles.photoNoteHelper}>장면 감상, 들은 음악, 현장 기분을 이 대표 사진 기준으로 남겨보세요</span>
                   </div>
                   <div className={styles.photoPromptRow}>
                     {photoPromptPresets.map((preset) => (
@@ -300,11 +247,7 @@ const PostSceneEntryCard = ({
                         type="button"
                         className={styles.photoPromptChip}
                         onClick={() =>
-                          onUpdatePhotoNote(
-                            entry.id,
-                            uploadedPhoto.id,
-                            uploadedPhoto.note ? `${uploadedPhoto.note}\n${preset}` : preset,
-                          )
+                          onUpdatePhotoNote(entry.id, uploadedPhoto.id, uploadedPhoto.note ? `${uploadedPhoto.note}\n${preset}` : preset)
                         }>
                         {preset}
                       </button>
@@ -313,9 +256,7 @@ const PostSceneEntryCard = ({
                   <textarea
                     className={styles.photoNote}
                     value={uploadedPhoto.note}
-                    onChange={(event) =>
-                      onUpdatePhotoNote(entry.id, uploadedPhoto.id, event.target.value)
-                    }
+                    onChange={(event) => onUpdatePhotoNote(entry.id, uploadedPhoto.id, event.target.value)}
                     placeholder="예: 이 장면이 정말 좋았습니다. 실제로는 골목이 더 좁았고, 이때는 OST를 들으며 걸어서 더 몰입됐습니다."
                   />
                 </div>
