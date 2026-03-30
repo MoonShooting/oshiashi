@@ -18,6 +18,10 @@ spring.flyway.baseline-on-migrate=true
 # JPA 설정
 spring.jpa.show-sql=true
 
+# Hibernate 배치 페치 사이즈 설정 (N+1 쿼리 방지)
+# LAZY 로딩 시 IN 절로 최대 100건을 한번에 조회하여 쿼리 수를 대폭 줄임
+spring.jpa.properties.hibernate.default_batch_fetch_size=100
+
 # DDL 자동생성/검증 설정
 # Flyway를 사용하므로 엔티티-DB 구조 일치 여부만 검사하는 validate가 가장 안전합니다.
 spring.jpa.hibernate.ddl-auto=validate

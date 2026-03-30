@@ -71,19 +71,11 @@ public class UserService {
 		UserEntity me = getCurrentUserEntity();
 		log.info("[UserService] 프로필 요약 조회 함: {}", me.getUserId());
 		// TODO: 프로필 전용 DTO를 만들어 반환 (닉네임, 작성글 수 등 포함), 프론트랑 조금 더 논의 후 유저프로필 리스폰스 제작
-		int routeCount = routeRepository.findAllByUser(me).size();
-		int postCount = postRepository.findAllByUserOrderByCreatedAtDesc(me).size();
-		int bookmarkCount = bookmarkRepository.findAllByUser(me).size();
-		int achievementCount = userAchievementRepository.findAllByUser(me).size();
-
-		// 대표 칭호 조회
-		// 현재 프로젝트에 대표 칭호 필드/메서드가 다를 수 있으니 그에 맞게 조정 필요
-		/*
-		String mainAchievement = userAchievementRepository.findAllByUser(me).stream()
-				.filter(userAchievement -> Boolean.TRUE.equals(userAchievement.getIsMain()))
-				.map(userAchievement -> userAchievement.getAchievement().getName())
-				.findFirst()
-				.orElse("대표 칭호 없음");*/
+		// COUNT 쿼리로 숫자만 조회 (전체 엔티티 로딩 대신)
+		int routeCount = (int) routeRepository.countByUser(me);
+		int postCount = (int) postRepository.countByUser(me);
+		int bookmarkCount = (int) bookmarkRepository.countByUser(me);
+		int achievementCount = (int) userAchievementRepository.countByUser(me);
 
 		return UserProfileResponse.builder()
 				.nickname(
@@ -97,7 +89,6 @@ public class UserService {
 								? me.getCreatedAt().toLocalDate().toString()
 								: "-"
 				)
-				// .mainAchievement(mainAchievement)
 				.routeCount(routeCount)
 				.postCount(postCount)
 				.bookmarkCount(bookmarkCount)
@@ -265,10 +256,11 @@ public class UserService {
 
 		log.info("[UserService] 특정 유저 프로필 요약 조회 >> {}", targetUser.getUserId());
 
-		int routeCount = routeRepository.findAllByUser(targetUser).size();
-		int postCount = postRepository.findAllByUserOrderByCreatedAtDesc(targetUser).size();
-		int bookmarkCount = bookmarkRepository.findAllByUser(targetUser).size();
-		int achievementCount = userAchievementRepository.findAllByUser(targetUser).size();
+		// COUNT 쿼리로 숫자만 조회 (전체 엔티티 로딩 대신)
+		int routeCount = (int) routeRepository.countByUser(targetUser);
+		int postCount = (int) postRepository.countByUser(targetUser);
+		int bookmarkCount = (int) bookmarkRepository.countByUser(targetUser);
+		int achievementCount = (int) userAchievementRepository.countByUser(targetUser);
 
 		return UserProfileResponse.builder()
 				.nickname(

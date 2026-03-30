@@ -15,6 +15,9 @@ public interface UserAchievementRepository extends JpaRepository<UserAchievement
 	 */
 	List<UserAchievementEntity> findAllByUser(UserEntity user);
 
+	// 프로필 요약에서 전체 엔티티 로딩 대신 COUNT 쿼리 사용
+	long countByUser(UserEntity user);
+
 	/**
 	 * [최신순 업적 조회]
 	 * - Collection<Object> 대신 명확한 엔티티 타입(List<UserAchievementEntity>)을 반환하도록 수정했습니다.

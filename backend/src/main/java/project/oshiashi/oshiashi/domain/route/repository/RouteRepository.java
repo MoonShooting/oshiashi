@@ -17,4 +17,7 @@ public interface RouteRepository extends JpaRepository<RouteEntity, Long> {
 
 	// UserService의  내 루트 조회 RouteRepository.findAllByUser(me) 호출을 처리하기 위함
 	List<RouteEntity> findAllByUser(UserEntity user);
+
+	// 프로필 요약에서 전체 엔티티 로딩 대신 COUNT 쿼리 사용
+	long countByUser(UserEntity user);
 }

@@ -526,8 +526,7 @@ public class PostServiceImpl implements PostService {
 	public List<PostResponse> getTopPosts() {
 		log.debug("[Service] 메인 인기 게시글 목록 조회 요청");
 
-		return postRepository.findAllByRouteIsNotNullOrderByLikeCountDescCreatedAtDesc().stream()
-				.limit(10)
+		return postRepository.findTop10WithRouteOrderByLikeCountDesc().stream()
 				.map(PostResponse::fromEntity)
 				.toList();
 	}

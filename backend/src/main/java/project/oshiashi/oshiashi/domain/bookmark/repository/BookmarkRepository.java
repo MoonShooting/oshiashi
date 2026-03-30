@@ -38,6 +38,9 @@ public interface BookmarkRepository extends JpaRepository<BookmarkEntity, Long> 
 
 	List<BookmarkEntity> findAllByUser(UserEntity user);
 
+	// 프로필 요약에서 전체 엔티티 로딩 대신 COUNT 쿼리 사용
+	long countByUser(UserEntity user);
+
 	// 특정 유저가 소유한 특정 북마크 1건 조회
 	// - 보안용: 남의 북마크 이름을 내 마음대로 바꾸는 공격을 방어하기 위함
 	Optional<BookmarkEntity> findByBookmarkIdAndUser(Long bookmarkId, UserEntity user);
